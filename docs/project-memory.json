@@ -1,0 +1,73 @@
+{
+    "facts": [
+        "Aleph exposes one capability: web.crawl.",
+        "A web crawl is represented by an ingestion run with source, capability, parameters, lifecycle, totals, and failure state.",
+        "The frontier is database-backed, breadth-first, and unique by run and canonical URL hash.",
+        "Every retrieved response must be accepted by Funes before Aleph marks its candidate fetched.",
+        "Aleph stores stable Funes observation references and first, unchanged, or changed dispositions but no response bodies.",
+        "External URLs are recorded as skipped frontier candidates and Funes discoveries but are never claimed for recursive retrieval.",
+        "The production LinkSource is NoLinks, so real HTTP crawling currently retrieves configured seeds only."
+    ],
+    "assumptions": [
+        "A sequential concurrency ceiling of one is sufficient for the bounded AHSD crawl.",
+        "Configured source keys remain stable Funes source references when prefixed with web:.",
+        "The configured query-parameter allowlist defines URL identity for each web source."
+    ],
+    "decisions": [
+        {
+            "decision": "Implement only the web.crawl capability from ALEPH-001.",
+            "rationale": "No second executable connector yet justifies generic manifest, checkpoint, approval, or parallel-work contracts."
+        },
+        {
+            "decision": "Require Funes acceptance before a frontier candidate becomes fetched.",
+            "rationale": "Operational success must not precede canonical content persistence."
+        },
+        {
+            "decision": "Resume interrupted Funes submissions in the same ingestion run.",
+            "rationale": "Funes acceptance is idempotent and a stranded fetching candidate can be returned to pending safely."
+        },
+        {
+            "decision": "Record external URLs in both operational frontier evidence and Funes discovery provenance.",
+            "rationale": "Their existence and parent relationship matter even though they are outside the recursive crawl boundary."
+        }
+    ],
+    "open_questions": [
+        "Should frontier identity collapse distinct requested URLs that resolve to the same canonical final URL?",
+        "Which AHSD query parameters identify distinct resources once HTML extraction exists?",
+        "When does measured crawl throughput justify concurrency greater than one?"
+    ],
+    "constraints": [
+        "Only public GET and HEAD retrievals are permitted.",
+        "Page count, depth, timeouts, redirects, response size, retries, and host rate are bounded.",
+        "External URLs must never be recursively crawled.",
+        "Aleph must not become a second canonical content store.",
+        "A run cannot complete while required Funes acceptance has failed."
+    ],
+    "glossary": {
+        "capability": "An operation Aleph can execute; currently only web.crawl.",
+        "ingestion_run": "A bounded execution of one capability for one source.",
+        "frontier": "The retained operational set of pending, fetching, fetched, failed, and skipped canonical URLs.",
+        "observation": "An immutable Funes content record created or reused for a retrieved response.",
+        "disposition": "Funes' first, unchanged, or changed classification for accepted content."
+    },
+    "features": {
+        "implemented": ["ALEPH-001 ingestion-run and web.crawl capability subset", "ALEPH-005", "ALEPH-006", "ALEPH-007"],
+        "not_implemented": ["connector manifests", "generic checkpoints", "HTML link extraction", "resource extraction", "concurrent fetching"]
+    },
+    "workflows": {
+        "crawl": ["resolve configured source", "start or resume ingestion run", "seed frontier", "claim one candidate", "fetch within HTTP policy", "canonicalize and record discoveries", "accept retrieved response through Funes", "record observation reference and disposition", "complete with deterministic totals"],
+        "resume_submission_failure": ["interrupt run", "retain candidate in fetching", "resume same run", "release fetching candidate to pending", "repeat idempotent fetch and Funes acceptance", "complete only after acceptance"]
+    },
+    "content_opportunities": [
+        {
+            "format": "post",
+            "user_problem": "A crawler reports success before durable history accepts its response.",
+            "concept": "Persistence-gated operational state",
+            "technology": "Laravel package integration, SQLite contract tests, idempotent acceptance",
+            "project_context": "Aleph and Funes bounded crawler",
+            "audience": "backend application developers",
+            "skill_level": "intermediate",
+            "hook": "A page is not fetched until the history boundary says it is."
+        }
+    ]
+}

@@ -41,7 +41,7 @@ function runAhsdCrawl(FakeSite $site, array $options = []): array
 
     test()->artisan('aleph:crawl', array_replace(['source' => 'ahsd'], $options))->assertSuccessful();
 
-    $run = DB::table('aleph_crawl_runs')->orderByDesc('id')->first();
+    $run = DB::table('aleph_ingestion_runs')->orderByDesc('id')->first();
 
     return json_decode((string) $run->totals, true, 512, JSON_THROW_ON_ERROR);
 }

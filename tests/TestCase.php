@@ -6,12 +6,13 @@ namespace Sifrious\Aleph\Tests;
 
 use Orchestra\Testbench\TestCase as Orchestra;
 use Sifrious\Aleph\AlephServiceProvider;
+use Sifrious\Funes\FunesServiceProvider;
 
 abstract class TestCase extends Orchestra
 {
     protected function getPackageProviders($app): array
     {
-        return [AlephServiceProvider::class];
+        return [FunesServiceProvider::class, AlephServiceProvider::class];
     }
 
     protected function defineEnvironment($app): void

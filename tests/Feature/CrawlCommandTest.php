@@ -7,7 +7,7 @@ use Sifrious\Aleph\Tests\Fixtures\FakeSite;
 
 function totalsForLatestRun(): array
 {
-    $run = DB::table('aleph_crawl_runs')->orderByDesc('id')->first();
+    $run = DB::table('aleph_ingestion_runs')->orderByDesc('id')->first();
 
     expect($run)->not->toBeNull();
 
@@ -22,9 +22,10 @@ it('completes a single page fake crawl with a visible run summary', function ():
         ->expectsOutputToContain('Fetched')
         ->assertSuccessful();
 
-    $run = DB::table('aleph_crawl_runs')->first();
+    $run = DB::table('aleph_ingestion_runs')->first();
 
-    expect(DB::table('aleph_crawl_runs')->count())->toBe(1)
+    expect(DB::table('aleph_ingestion_runs')->count())->toBe(1)
+        ->and($run->capability)->toBe('web.crawl')
         ->and($run->status)->toBe('completed')
         ->and($run->finished_at)->not->toBeNull();
 
@@ -45,7 +46,7 @@ it('fails cleanly for an unknown source', function (): void {
         ->expectsOutputToContain('Unknown web source [nope]')
         ->assertFailed();
 
-    expect(DB::table('aleph_crawl_runs')->count())->toBe(0);
+    expect(DB::table('aleph_ingestion_runs')->count())->toBe(0);
 });
 
 it('rejects a non numeric limit override', function (): void {
@@ -95,7 +96,7 @@ it('restricts a crawl to hosts named on the command line', function (): void {
         ->toBe('https://hs.ahsd.test/');
 });
 
-it('resumes an unfinished run by default and starts a new one with fresh', function (): void {
+it('resumes an unfinished run with its original parameters and starts a new one with fresh', function (): void {
     config()->set('aleph.web_sources.test', webSource());
 
     bindSite((new FakeSite)
@@ -105,18 +106,18 @@ it('resumes an unfinished run by default and starts a new one with fresh', funct
 
     $this->artisan('aleph:crawl', ['source' => 'test', '--max-pages' => '1'])->assertSuccessful();
 
-    $first = DB::table('aleph_crawl_runs')->first();
+    $first = DB::table('aleph_ingestion_runs')->first();
 
-    DB::table('aleph_crawl_runs')->where('id', $first->id)->update(['status' => 'running']);
+    DB::table('aleph_ingestion_runs')->where('id', $first->id)->update(['status' => 'interrupted']);
 
     $this->artisan('aleph:crawl', ['source' => 'test'])
         ->expectsOutputToContain("Resuming unfinished run {$first->id}")
         ->assertSuccessful();
 
-    expect(DB::table('aleph_crawl_runs')->count())->toBe(1)
-        ->and(totalsForLatestRun())->toMatchArray(['fetched' => 3, 'remaining' => 0]);
+    expect(DB::table('aleph_ingestion_runs')->count())->toBe(1)
+        ->and(totalsForLatestRun())->toMatchArray(['fetched' => 1, 'remaining' => 2, 'stopped_by' => 'page_limit']);
 
     $this->artisan('aleph:crawl', ['source' => 'test', '--fresh'])->assertSuccessful();
 
-    expect(DB::table('aleph_crawl_runs')->count())->toBe(2);
+    expect(DB::table('aleph_ingestion_runs')->count())->toBe(2);
 });

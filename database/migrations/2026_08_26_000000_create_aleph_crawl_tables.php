@@ -10,20 +10,22 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('aleph_crawl_runs', function (Blueprint $table): void {
+        Schema::create('aleph_ingestion_runs', function (Blueprint $table): void {
             $table->ulid('id')->primary();
-            $table->string('source');
+            $table->string('source_reference');
+            $table->string('capability');
             $table->string('status');
-            $table->json('limits');
+            $table->json('parameters');
             $table->json('totals')->nullable();
+            $table->text('failure')->nullable();
             $table->timestampTz('started_at');
             $table->timestampTz('finished_at')->nullable();
-            $table->index(['source', 'status']);
+            $table->index(['source_reference', 'capability', 'status']);
         });
 
         Schema::create('aleph_frontier_candidates', function (Blueprint $table): void {
             $table->id();
-            $table->foreignUlid('run_id')->constrained('aleph_crawl_runs')->cascadeOnDelete();
+            $table->foreignUlid('run_id')->constrained('aleph_ingestion_runs')->cascadeOnDelete();
             $table->foreignId('parent_id')->nullable()->constrained('aleph_frontier_candidates')->nullOnDelete();
             $table->text('canonical_url');
             $table->char('canonical_hash', 64);
@@ -38,6 +40,8 @@ return new class extends Migration
             $table->string('content_type')->nullable();
             $table->string('failure')->nullable();
             $table->text('failure_message')->nullable();
+            $table->ulid('observation_id')->nullable();
+            $table->string('observation_disposition')->nullable();
             $table->timestampTz('fetched_at')->nullable();
             $table->timestampTz('created_at');
             $table->unique(['run_id', 'canonical_hash']);
@@ -48,6 +52,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('aleph_frontier_candidates');
-        Schema::dropIfExists('aleph_crawl_runs');
+        Schema::dropIfExists('aleph_ingestion_runs');
     }
 };

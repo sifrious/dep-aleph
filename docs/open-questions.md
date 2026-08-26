@@ -5,9 +5,9 @@
 `ahsd.org/robots.txt` responds `301` to `.../robots.txt/`. SchoolMessenger appends trailing slashes,
 so `/page` and `/page/` are the same resource but two canonical URLs, costing one redirect each.
 
-Forcing a trailing slash in `UrlCanonicalizer` is wrong in general — it breaks `/file.pdf`. Resolving
-identity by final URI after redirect is ALEPH-007's job. Decide there whether Aleph should also
-collapse the frontier entry.
+Forcing a trailing slash in `UrlCanonicalizer` is wrong in general — it breaks `/file.pdf`. Funes
+identity uses the canonical final URI, but Aleph does not yet collapse two frontier entries that
+redirect to that same resource.
 
 ## Q-002 — The `query_parameters` allowlist for AHSD is empty
 
@@ -19,7 +19,7 @@ and calendar range parameters are the likely candidates.
 
 `UrlCanonicalizer` does not normalize percent-encoding case or decode unreserved characters, so
 `/a%2Fb` and `/a%2fb` are distinct canonical URLs. No observed AHSD behaviour needs it. Revisit if
-duplicate observations appear in ALEPH-007.
+duplicate frontier retrievals become measurable.
 
 ## Q-004 — Internationalized hostnames are not punycoded
 
@@ -37,10 +37,9 @@ subdomains serve directly. The district seed now points at `www` so a redirect i
 run, and both hosts remain allowed.
 
 They are still two canonical URLs for one resource. If a page links to the bare domain, the frontier
-will hold both. Collapsing them belongs to ALEPH-007's identity-by-final-URI mapping, alongside Q-001.
+will hold both even though Funes resolves both retrievals to final-URI identity.
 
 ## Q-006 — Concurrency
 
-The crawl is single-process and sequential; the per-host delay is the only rate control. Bounded
-concurrency was specified in ALEPH-006 but is not needed at AHSD's size. Revisit only against a
-measured need.
+The crawl is single-process and sequential; its concurrency ceiling is one and the per-host delay is
+the rate control. Revisit only against a measured throughput need.

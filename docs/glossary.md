@@ -27,8 +27,10 @@ link-discovered resources to be distinguishable.
 **Skip reason** — why a candidate was recorded but never enqueued: `external_host`, `excluded`, or
 `depth_limit`.
 
-**Run** — one bounded execution against a source, with its own frontier. Resumable while `running`;
-`--fresh` starts a new one.
+**Ingestion run** — one bounded execution of a declared capability against a source. A web crawl has
+its own frontier. Runs may be `running`, `interrupted`, or `completed`; `--fresh` starts a new one.
+
+**Capability** — an operation Aleph can execute. The implemented set contains only `web.crawl`.
 
 **Stop reason** — why the loop ended: `frontier_exhausted` or `page_limit`.
 
@@ -38,5 +40,5 @@ link-discovered resources to be distinguishable.
 **Fetch failure** — a transport-level outcome with no response: `connection_failed`, `timeout`,
 `too_large`, `too_many_redirects`, `robots_disallowed`.
 
-**Observation** *(Funes, not yet used)* — the immutable record of one retrieval. Aleph will submit
-these in ALEPH-007; it does not store content itself (D-010).
+**Observation** *(Funes)* — the immutable content record of one retrieval. Aleph stores its stable
+reference and acceptance disposition but not its content (D-010).

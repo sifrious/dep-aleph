@@ -11,17 +11,15 @@ Confirmed: `ahsd.org`, `hs.ahsd.org`, `ms.ahsd.org`, `cse.ahsd.org`, `wav.ahsd.o
 `ahsd` source allows `*.ahsd.org` rather than a single host, and why "newly discovered subdomains
 enter the frontier" is a load-bearing acceptance criterion rather than a hypothetical.
 
-## A-003 — Funes will stabilize near its current shape
+## A-003 — Funes is the content-history boundary
 
-`ObservationDraft` carries source/resource/observation references, observed time, payload, media
-type, metadata, and discoveries; `funes_discoveries` carries parent resource and relationship.
-ALEPH-007's mapping is planned against that shape. If FUNES-006/007/008 diverge, D-004's identity
-correspondence is the part most likely to need revision.
+Aleph depends on Funes' executable `ObservationStore` contract. Retrieved content, canonical resource
+identity, and discovery relationships cross that boundary before Aleph marks a candidate fetched.
 
 ## A-004 — A single-process sequential crawl is sufficient
 
-AHSD is a five-site district, bounded at 200 pages and depth 3. No measurement suggests concurrency
-is needed.
+AHSD is a five-site district, bounded at 200 pages and depth 3. No measurement justifies concurrent
+fetching, so the effective concurrency ceiling is one.
 
 ## A-005 — Public pages only
 

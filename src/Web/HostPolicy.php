@@ -33,4 +33,12 @@ final readonly class HostPolicy
     {
         return new self($this->allowed, $hosts);
     }
+
+    /**
+     * @return list<string>
+     */
+    public function restrictions(): array
+    {
+        return $this->restrictedTo;
+    }
 }

@@ -3,28 +3,28 @@
 Decisions taken while implementing ALEPH-005 (bounded named crawl) and ALEPH-006
 (conservative HTTP fetching). Each entry records the decision, why, and what was rejected.
 
-## D-001 — ALEPH-001's connector contracts were not built first
+## D-001 — Capability and ingestion-run contracts stop at demonstrated behavior
 
-**Decision.** ALEPH-005 was implemented concretely, without the connector, capability, attempt,
-and checkpoint contracts ALEPH-001 describes.
+**Decision.** `Capability` currently admits only `web.crawl`. `IngestionRun` records source,
+capability, parameters, lifecycle, totals, and failure. Connector manifests, generic attempts, and
+checkpoint contracts remain absent until another implemented capability requires them.
 
-**Rationale.** None of ALEPH-005's acceptance criteria need those abstractions. They need a source
-configuration, a frontier, canonicalization, limits, and totals. Building a contract set with one
-implementor would be speculative infrastructure.
+**Rationale.** ALEPH-005 requires an explicit bounded ingestion run and operation identity. It does
+not require the remainder of ALEPH-001's provider-neutral connector model.
 
-**Rejected.** Implementing ALEPH-001 first. ALEPH-001 should be re-scoped against the contracts
-005 and 006 actually produced — `Fetcher`, `LinkSource`, `Clock`.
+**Rejected.** Encoding hypothetical backfill, incremental-sync, checkpoint, approval, and parallel
+work contracts before an executable connector uses them.
 
-## D-002 — ALEPH-007 deferred until Funes is ready
+## D-002 — Funes acceptance is required before operational success
 
-**Decision.** No persistence to Funes. Aleph keeps operational run state only.
+**Decision.** Aleph directly depends on Funes' `ObservationStore`. A retrieved candidate becomes
+`fetched` only after acceptance returns a stable observation reference and disposition.
 
-**Rationale.** Funes' `ObservationStore::accept()` returns an `Observation`, not the
-first/unchanged/changed disposition ALEPH-007's criteria require, and has no artifact reference for
-large binaries. FUNES-006/007/008 are open.
+**Rationale.** This establishes one canonical content-history boundary. A submission failure leaves
+the candidate resumable and interrupts the ingestion run, so the run cannot report false success.
 
-**Rejected.** Building an Aleph-side port with an in-memory fake now. Deferred by explicit
-instruction to avoid designing against a contract still being written.
+**Rejected.** An Aleph-side writer abstraction that would duplicate the already demonstrated Funes
+boundary, and storing response bodies in Aleph.
 
 ## D-003 — Query parameters are an allowlist, not a denylist
 
@@ -46,7 +46,7 @@ against a calendar.
 **Rationale.** A unique index on a text column needs a prefix length in MySQL and is not portable.
 The index is what enforces "duplicate canonical URLs are fetched at most once per run" — in the
 database, not in application logic. Funes independently arrived at the same shape in
-`funes_resources`, so ALEPH-007's identity mapping becomes a direct correspondence.
+`funes_resources`, so Funes identity receives the same stable representation.
 
 ## D-005 — `HttpMethod` admits only GET and HEAD
 
@@ -79,7 +79,7 @@ A 404 or other 4xx yields allow-all.
 
 ## D-008 — Runs are ULIDs, candidates are auto-increment
 
-**Decision.** `aleph_crawl_runs.id` is a ULID; `aleph_frontier_candidates.id` is auto-increment.
+**Decision.** `aleph_ingestion_runs.id` is a ULID; `aleph_frontier_candidates.id` is auto-increment.
 
 **Rationale.** Run ids are operator-visible and benefit from being sortable and opaque. Candidate
 ordering must be *provably* insertion-ordered, because deterministic totals depend on the claim order
@@ -93,8 +93,8 @@ monotonicity.
 `parent_id`.
 
 **Rationale.** "Recorded but never recursively crawled" needs the evidence in one place, with the
-provenance ALEPH-007 will map to Funes discoveries. `claimNext()` only takes `pending` rows, so a
-skipped row can never be fetched.
+provenance submitted to Funes discoveries. `claimNext()` only takes `pending` rows, so a skipped row
+can never be fetched.
 
 **Rejected.** A separate external-links table, which would split provenance across two schemas.
 
@@ -102,8 +102,8 @@ skipped row can never be fetched.
 
 **Decision.** No table in Aleph has a body or content column, and none may gain one.
 
-**Rationale.** ALEPH-007 requires that Aleph never becomes a second canonical content store. Holding
-that line now, while 007 is deferred, is what makes 007 a mapping exercise rather than a migration.
+**Rationale.** Funes is the canonical content store. Aleph retains only retrieval state, response
+metadata, the stable Funes observation reference, and its acceptance disposition.
 
 ## D-011 — `NoLinks` is the default link source
 

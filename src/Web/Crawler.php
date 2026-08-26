@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace Sifrious\Aleph\Web;
 
+use Sifrious\Aleph\Ingestion\IngestionRun;
+
 final readonly class Crawler
 {
     public function __construct(
         private Fetcher $fetcher,
         private LinkSource $links,
+        private FunesObservationWriter $observations,
     ) {}
 
-    public function crawl(WebSource $source, Frontier $frontier, CrawlRun $run): CrawlSummary
+    public function crawl(WebSource $source, Frontier $frontier, IngestionRun $run): CrawlSummary
     {
         $canonicalizer = $source->canonicalizer();
         $limits = $source->limits;
@@ -67,46 +70,51 @@ final readonly class Crawler
                 continue;
             }
 
-            $frontier->markFetched($candidate, $result);
+            $base = $this->baseFor($canonicalizer, $result, $candidate);
+            $observationDiscoveries = [];
+
+            if ($result->isOk() && $source->hosts->allows($base->host)) {
+                foreach ($this->links->linksFrom($result) as $link) {
+                    $discovered++;
+                    $url = $canonicalizer->canonicalize($link, $base);
+
+                    if ($url === null) {
+                        $unresolvable++;
+
+                        continue;
+                    }
+
+                    $observationDiscoveries[$url->value] = $url;
+                    $admitted = $this->admit(
+                        $frontier,
+                        $source,
+                        $url,
+                        $link,
+                        $candidate->depth + 1,
+                        DiscoveryOrigin::Link,
+                        $candidate->id,
+                    );
+
+                    if ($admitted === null) {
+                        $duplicates++;
+                    }
+                }
+            }
+
+            $accepted = $this->observations->accept(
+                $source,
+                $run,
+                $candidate,
+                $base,
+                $result,
+                array_values($observationDiscoveries),
+            );
+            $frontier->markFetched($candidate, $result, $accepted);
             $fetched++;
 
             if (! $result->isOk()) {
                 $unsuccessful++;
-
-                continue;
             }
-
-            $base = $this->baseFor($canonicalizer, $result, $candidate);
-
-            if (! $source->hosts->allows($base->host)) {
-                continue;
-            }
-
-            foreach ($this->links->linksFrom($result) as $link) {
-                $discovered++;
-                $url = $canonicalizer->canonicalize($link, $base);
-
-                if ($url === null) {
-                    $unresolvable++;
-
-                    continue;
-                }
-
-                $admitted = $this->admit(
-                    $frontier,
-                    $source,
-                    $url,
-                    $link,
-                    $candidate->depth + 1,
-                    DiscoveryOrigin::Link,
-                    $candidate->id,
-                );
-
-                if ($admitted === null) {
-                    $duplicates++;
-                }
-            }
-
         }
 
         return new CrawlSummary(

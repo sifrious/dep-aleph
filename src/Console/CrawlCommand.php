@@ -8,10 +8,11 @@ use Illuminate\Console\Command;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Contracts\Container\Container;
 use InvalidArgumentException;
+use Sifrious\Aleph\Ingestion\Capability;
+use Sifrious\Aleph\Ingestion\IngestionRun;
+use Sifrious\Aleph\Ingestion\IngestionRuns;
 use Sifrious\Aleph\Web\Crawler;
 use Sifrious\Aleph\Web\CrawlLimits;
-use Sifrious\Aleph\Web\CrawlRun;
-use Sifrious\Aleph\Web\CrawlRuns;
 use Sifrious\Aleph\Web\CrawlSummary;
 use Sifrious\Aleph\Web\FrontierFactory;
 use Sifrious\Aleph\Web\UnknownWebSource;
@@ -32,13 +33,14 @@ final class CrawlCommand extends Command
 
     public function handle(
         WebSources $sources,
-        CrawlRuns $runs,
+        IngestionRuns $runs,
         FrontierFactory $frontiers,
         Container $container,
     ): int {
         try {
             $source = $this->resolveSource($sources);
             $crawler = $container->make(Crawler::class);
+            [$run, $source] = $this->resolveRun($runs, $source);
         } catch (UnknownWebSource|InvalidArgumentException $e) {
             $this->components->error($e->getMessage());
 
@@ -49,7 +51,6 @@ final class CrawlCommand extends Command
             return self::FAILURE;
         }
 
-        $run = $this->resolveRun($runs, $source);
         $frontier = $frontiers->for($source, $run);
 
         $this->components->info(sprintf(
@@ -63,13 +64,13 @@ final class CrawlCommand extends Command
         try {
             $summary = $crawler->crawl($source, $frontier, $run);
         } catch (Throwable $e) {
-            $runs->abort($run, ['error' => $e->getMessage()]);
+            $runs->interrupt($run, $e->getMessage());
             $this->components->error("Crawl aborted: {$e->getMessage()}");
 
             return self::FAILURE;
         }
 
-        $runs->complete($run, $summary);
+        $runs->complete($run, $summary->toArray());
         $this->report($summary);
 
         return self::SUCCESS;
@@ -79,20 +80,11 @@ final class CrawlCommand extends Command
     {
         $name = $this->argument('source');
 
-        if (! is_string($name) || $name === '') {
+        if ($name === '') {
             throw new InvalidArgumentException('A web source name is required.');
         }
 
-        $source = $sources->get($name);
-
-        $source = $source->withLimits($this->limits($source->limits));
-
-        $hosts = array_values(array_filter(
-            array_map(strval(...), (array) $this->option('host')),
-            fn (string $host): bool => $host !== '',
-        ));
-
-        return $hosts === [] ? $source : $source->restrictedToHosts($hosts);
+        return $sources->get($name);
     }
 
     private function limits(CrawlLimits $configured): CrawlLimits
@@ -118,21 +110,67 @@ final class CrawlCommand extends Command
         return (int) $value;
     }
 
-    private function resolveRun(CrawlRuns $runs, WebSource $source): CrawlRun
+    /**
+     * @return array{IngestionRun, WebSource}
+     */
+    private function resolveRun(IngestionRuns $runs, WebSource $source): array
     {
-        if ($this->option('fresh')) {
-            return $runs->start($source);
+        if (! $this->option('fresh')) {
+            $existing = $runs->latestIncomplete($source->key, Capability::WebCrawl);
+
+            if ($existing !== null) {
+                $this->components->info("Resuming unfinished run {$existing->id}.");
+
+                return [$runs->resume($existing), $this->sourceFor($source, $existing)];
+            }
         }
 
-        $existing = $runs->latestRunning($source->key);
+        $source = $source
+            ->withLimits($this->limits($source->limits))
+            ->restrictedToHosts($this->hostRestrictions());
 
-        if ($existing !== null) {
-            $this->components->info("Resuming unfinished run {$existing->id}.");
+        return [$this->startRun($runs, $source), $source];
+    }
 
-            return $existing;
+    private function startRun(IngestionRuns $runs, WebSource $source): IngestionRun
+    {
+        return $runs->start(
+            $source->key,
+            Capability::WebCrawl,
+            [
+                'limits' => $source->limits->toArray(),
+                'hosts' => $source->hosts->restrictions(),
+            ],
+        );
+    }
+
+    private function sourceFor(WebSource $source, IngestionRun $run): WebSource
+    {
+        $limits = $run->parameters['limits'] ?? null;
+        $hosts = $run->parameters['hosts'] ?? null;
+
+        if (! is_array($limits) || ! is_int($limits['max_pages'] ?? null) || ! is_int($limits['max_depth'] ?? null)) {
+            throw new InvalidArgumentException("Ingestion run [{$run->id}] has invalid crawl limits.");
         }
 
-        return $runs->start($source);
+        if (! is_array($hosts) || array_filter($hosts, fn (mixed $host): bool => ! is_string($host)) !== []) {
+            throw new InvalidArgumentException("Ingestion run [{$run->id}] has invalid host restrictions.");
+        }
+
+        return $source
+            ->withLimits(new CrawlLimits($limits['max_pages'], $limits['max_depth']))
+            ->restrictedToHosts(array_values($hosts));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function hostRestrictions(): array
+    {
+        return array_values(array_filter(
+            array_map(strval(...), (array) $this->option('host')),
+            fn (string $host): bool => $host !== '',
+        ));
     }
 
     private function report(CrawlSummary $summary): void

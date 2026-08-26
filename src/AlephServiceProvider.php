@@ -10,8 +10,8 @@ use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Support\ServiceProvider;
 use Sifrious\Aleph\Console\CrawlCommand;
+use Sifrious\Aleph\Ingestion\IngestionRuns;
 use Sifrious\Aleph\Web\Clock;
-use Sifrious\Aleph\Web\CrawlRuns;
 use Sifrious\Aleph\Web\Fetcher;
 use Sifrious\Aleph\Web\FetchPolicy;
 use Sifrious\Aleph\Web\FrontierFactory;
@@ -34,8 +34,8 @@ class AlephServiceProvider extends ServiceProvider
         ));
 
         $this->app->singleton(
-            CrawlRuns::class,
-            fn (Application $app): CrawlRuns => new CrawlRuns($this->connection($app)),
+            IngestionRuns::class,
+            fn (Application $app): IngestionRuns => new IngestionRuns($this->connection($app)),
         );
 
         $this->app->singleton(

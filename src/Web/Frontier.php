@@ -7,6 +7,7 @@ namespace Sifrious\Aleph\Web;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
+use Sifrious\Funes\Value\AcceptedObservation;
 
 final readonly class Frontier
 {
@@ -89,13 +90,18 @@ final readonly class Frontier
         );
     }
 
-    public function markFetched(FrontierCandidate $candidate, FetchResult $result): void
-    {
+    public function markFetched(
+        FrontierCandidate $candidate,
+        FetchResult $result,
+        AcceptedObservation $accepted,
+    ): void {
         $this->table()->where('id', $candidate->id)->update([
             'state' => FrontierState::Fetched->value,
             'final_url' => $result->finalUrl,
             'http_status' => $result->status,
             'content_type' => $result->contentType,
+            'observation_id' => $accepted->observation->id,
+            'observation_disposition' => $accepted->disposition->value,
             'fetched_at' => $result->retrievedAt,
         ]);
     }

@@ -1,205 +1,81 @@
 # Aleph
 
-Aleph is named after the impossible point in Jorge Luis Borges's story *The Aleph*: a single place from which every other place can be seen at once, without losing its position or identity.
+Aleph is a Laravel package for bounded ingestion from external sources. Its implemented capability is a public-web crawl whose operational state remains in Aleph and whose retrieved content and discovery provenance are accepted by Funes.
 
-This package applies that idea to software systems. It gives Laravel applications a consistent way to observe many external sources, collect their history, and preserve where each record came from. Instead of building a separate collection pipeline for every API, repository, mailbox, document store, or activity stream, an application can use one ingestion model with source-specific connectors.
+## Installation
 
-## The problems Aleph solves
+Install Aleph and run the package migrations:
 
-Connecting to an external service is usually the easy part. Keeping the connection reliable over time is the real work.
-
-An ingestion system must answer questions such as:
-
-- How is an initial historical import different from a routine incremental sync?
-- Where should a long-running import resume after a worker stops?
-- How can the same page, event, or webhook be processed twice without creating duplicates?
-- Which source accounts are healthy, stale, rate-limited, or missing credentials?
-- What happened during a failed run, and is it safe to retry?
-- How can records be normalized without discarding provider-specific identifiers and metadata?
-- How can a new connector support only the operations that make sense for its source?
-
-Aleph provides the shared machinery for answering those questions.
-
-## What Aleph is
-
-Aleph is a Laravel package for building ingestion and observation applications. It coordinates work; connectors remain responsible for understanding their sources.
-
-Its core model covers:
-
-- connector registration and capability discovery;
-- multiple accounts for the same provider;
-- source streams and their project, identity, repository, or domain scopes;
-- scheduled, manual, webhook-triggered, and reconciliation runs;
-- queued background execution;
-- runs, attempts, partitions, leases, and heartbeats;
-- typed, versioned checkpoints;
-- retries, resumability, and failure classification;
-- idempotent submissions and duplicate prevention;
-- connector health and source freshness;
-- raw source metadata and provenance;
-- deterministic normalization before records are accepted by an application's history store;
-- downloadable files, extracted content, and other produced artifacts;
-- optional agent-assisted processing for sources that cannot be handled reliably with deterministic code.
-
-## A connector is a set of capabilities
-
-Aleph does not require every connector to implement one large interface. A local Git connector, for example, should not need placeholder methods for OAuth or webhooks. A webhook-only connector should not pretend it can backfill history.
-
-Connectors declare the small capabilities they actually support, such as:
-
-- discovering sources;
-- importing historical records;
-- synchronizing incrementally;
-- polling for changes;
-- consuming webhooks;
-- downloading artifacts;
-- extracting content;
-- normalizing records;
-- checking health;
-- using agents for bounded processing.
-
-The application can then expose, schedule, and run only valid operations.
-
-## The ingestion lifecycle
-
-A typical ingestion follows the same traceable sequence:
-
-1. A schedule, user action, or webhook requests an operation.
-2. Aleph creates an ingestion run with the source, capability, parameters, and trigger.
-3. A worker claims an attempt or partition with a time-bounded lease.
-4. The connector reads from its source using the last committed checkpoint.
-5. Connector-specific normalization produces versioned candidate records while retaining source IDs and raw metadata.
-6. The application accepts or rejects those records through its configured history writer.
-7. Aleph commits the next checkpoint only after acceptance succeeds.
-8. The run records its outcome, counts, warnings, errors, and remaining work.
-
-This ordering makes interruption safe: accepted records are durable before progress advances.
-
-## Backfills and incremental synchronization
-
-Aleph treats historical import and incremental synchronization as related but distinct operations.
-
-A backfill may define a time range, scope, partitions, rate limits, and an explicit completion boundary. An incremental sync begins from a committed cursor, timestamp, sequence, hash, or source revision. Connectors own the meaning and serialization of their checkpoint values; Aleph owns when those values may be committed.
-
-Periodic reconciliation can repair edits, deletions, or events that a provider's incremental mechanism did not guarantee.
-
-## Reliability and observability
-
-Queue job state alone is not enough to explain ingestion. Jobs are an execution mechanism; ingestion runs are the durable domain record.
-
-Aleph keeps logical runs and attempts separate so an operator can see:
-
-- what was requested;
-- what source and stream were involved;
-- how the run was triggered;
-- which checkpoint it started from;
-- what each attempt processed and accepted;
-- whether work completed, partially completed, failed, or was interrupted;
-- whether a failure is retryable;
-- what remains to be processed;
-- when the source last synchronized successfully;
-- whether the source is currently fresh and healthy.
-
-## Provenance and idempotency
-
-Every candidate record should retain enough information to identify its origin:
-
-- source account and stream;
-- provider object or event ID;
-- provider revision, sequence, timestamp, ETag, hash, or commit identifier;
-- source URL or path when available;
-- occurrence and observation times;
-- raw payload reference and payload hash;
-- schema and normalizer versions;
-- ingestion run and attempt.
-
-These values provide stable idempotency keys and make later corrections explainable. Replaying a page, webhook, partition, or complete backfill should produce the same accepted identities rather than parallel copies.
-
-## Source health
-
-Aleph distinguishes application health from connector health. A worker can be running while a source account is unusable.
-
-A connector may report checks for:
-
-- authentication and token expiry;
-- API reachability;
-- provider rate limits;
-- checkpoint and synchronization freshness;
-- webhook delivery;
-- queue backlog;
-- storage availability;
-- incomplete or repeatedly failing runs.
-
-Health results are designed for dashboards, alerts, and automation without requiring an operator to inspect logs.
-
-## Intended package boundaries
-
-Aleph owns operational ingestion concerns: connector installations, credentials, schedules, runs, attempts, checkpoints, leases, health checks, webhook deliveries, and submission results.
-
-Connector packages own provider communication, pagination, provider-specific checkpoint values, payload mapping, and their tests.
-
-The consuming application owns the accepted historical model and supplies the writer that receives normalized candidates. This keeps Aleph useful whether an application stores events, documents, activity records, audit data, or another form of history.
-
-## Current status
-
-Aleph is under active design. Most of this README describes intended scope. One vertical slice is
-implemented and tested: a bounded web crawl.
-
-### What works today
-
+```bash
+composer require sifrious/aleph
+php artisan migrate
 ```
+
+Aleph depends on `sifrious/funes`. Laravel package discovery registers both service providers and loads both packages' migrations.
+
+## Ingestion contract
+
+An ingestion run records a source reference, one declared capability, input parameters, lifecycle status, deterministic totals, and an optional failure. The only capability currently admitted by `Capability` is `web.crawl`.
+
+Runs move through these implemented states:
+
+```text
+running -> completed
+running -> interrupted -> running
+```
+
+An interrupted run is resumed by default. `--fresh` starts another run. A run cannot complete while a required Funes submission has failed.
+
+## Configuring a web source
+
+Sources are declared under `aleph.web_sources`:
+
+```php
+'ahsd' => [
+    'name' => 'Abington Heights School District',
+    'seeds' => [
+        'https://www.ahsd.org/',
+        'https://hs.ahsd.org/',
+        'https://ms.ahsd.org/',
+        'https://cse.ahsd.org/',
+        'https://wav.ahsd.org/',
+    ],
+    'allowed_hosts' => ['ahsd.org', '*.ahsd.org'],
+    'excluded' => ['*/login*', '*/logout*', '*/account*'],
+    'query_parameters' => [],
+    'limits' => [
+        'max_pages' => 200,
+        'max_depth' => 3,
+    ],
+],
+```
+
+An empty `query_parameters` list drops all query parameters during canonicalization. Named parameters are retained and sorted.
+
+## Running a crawl
+
+```bash
 php artisan aleph:crawl ahsd --max-pages=50 --max-depth=2
 ```
 
-A web source is declared in `config/aleph.php` with seeds, allowed hosts, path exclusions, a
-query-parameter allowlist, and page and depth limits. The command seeds a frontier, walks it
-breadth-first, and finishes with a totals table: pages fetched, how many were not 2xx, transport
-failures, skips broken out by reason, duplicate and unresolvable references, and what remains
-pending. `--host` narrows a run to named hosts; `--fresh` starts a new run instead of resuming the
-latest unfinished one.
+The command supports `--max-pages`, `--max-depth`, repeatable `--host`, and `--fresh`. It reports fetched responses, non-2xx responses, transport failures, skips by reason, duplicates, unresolvable references, discoveries, remaining candidates, and the stop reason.
 
-Identity is a canonical URL — scheme and host lowercased, default port and fragment dropped, dot
-segments resolved, query reduced to the configured allowlist and sorted — indexed by hash so a
-database constraint, not application logic, enforces that each canonical URL is fetched at most once
-per run. URLs outside the allowed hosts are recorded with their discovery provenance and never
-requested.
+The frontier is breadth-first and database-backed. Canonical URL identity lowercases scheme and host, removes credentials, default ports, fragments, and dot segments, and applies the configured query allowlist. A unique `(run_id, canonical_hash)` constraint prevents duplicate fetches. Page and depth limits bound traversal. External, excluded, and over-depth URLs remain recorded as skipped evidence and are never claimed for retrieval.
 
-Retrieval is deliberately conservative. `HttpMethod` admits only GET and HEAD, so the crawler cannot
-submit a form or issue a mutation request. Connect and request timeouts, a redirect ceiling, and a
-response-size cap enforced both on the declared `Content-Length` and while streaming the body are all
-configurable. `robots.txt` is read once per host and honoured, including `Crawl-delay`; a host whose
-robots file is unreadable is not crawled. Non-2xx responses and transport failures are recorded as
-evidence and the run continues. One retry is attempted, for transport failures only.
+## HTTP policy
 
-To run the crawler during package development, point Testbench at a file database, migrate, then
-crawl:
+The production fetcher permits only GET and HEAD. It applies connect and request timeouts, a redirect ceiling, a response-size ceiling enforced against both `Content-Length` and the streamed body, a configurable per-host delay, one bounded transport retry by default, and `robots.txt` policy. A missing `robots.txt` permits crawling; an unreachable or server-error response refuses crawling for that host.
 
-```
-DB_DATABASE=/tmp/aleph.sqlite vendor/bin/testbench migrate --force
-DB_DATABASE=/tmp/aleph.sqlite vendor/bin/testbench aleph:crawl ahsd --max-pages=5 --fresh
-```
+The crawler is sequential. Its effective concurrency ceiling is one. Non-2xx responses are observations; transport, size, redirect, and robots failures remain Aleph operational evidence and do not create successful Funes observations.
 
-The `testbench.yaml` default is an in-memory database, which suits the test suite but starts empty on
-every CLI invocation.
+## Funes persistence
 
-Decisions, open questions, assumptions, and the domain vocabulary are in [docs/](docs/).
+A retrieved response must be accepted by Funes before its frontier candidate becomes `fetched`. Aleph sends the canonical final URL, raw response bytes, status, content type, requested and final URLs, redirect chain, retrieval time, run reference, discovery origin, and canonical discovered URLs.
 
-### What is not implemented
+Funes returns `first`, `unchanged`, or `changed`. Aleph stores only the stable observation reference and disposition beside the operational attempt state. It does not store response bodies. Identical fresh crawls create no duplicate historical effect; changed bytes create another immutable Funes observation. A failed Funes acceptance interrupts the run with its candidate still resumable.
 
-- **HTML link extraction.** `LinkSource` binds to a no-op, so a live crawl retrieves its seeds and
-  stops. Real extraction is ALEPH-009.
-- **Persistence through Funes.** Aleph currently keeps operational run state only and stores no
-  response bodies. Submitting observations and provenance is ALEPH-007, which is blocked on
-  FUNES-006/007/008.
-- **Connector contracts.** ALEPH-001's connector, capability, attempt, and checkpoint abstractions
-  were deliberately not built ahead of a second implementor. See `docs/decisions.md`.
+## Current boundary
 
-The first release should still prove one complete workflow:
+`LinkSource` defaults to `NoLinks`, so the production command currently retrieves configured seeds only. Tests inject a deterministic link source to prove bounded frontier behavior and provenance. HTML parsing and embed classification are separate capabilities and are not implemented here.
 
-- install a connector;
-- configure a source account;
-- run a historical import;
-- persist accepted records through an application-provided writer;
-- commit checkpoints safely;
-- continue with incremental synchronization;
-- inspect status and retry a failed attempt.
+The current decision, assumption, question, glossary, and structured project-memory records are in [`docs/`](docs/).

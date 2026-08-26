@@ -3,8 +3,9 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\DB;
+use Sifrious\Aleph\Ingestion\Capability;
+use Sifrious\Aleph\Ingestion\IngestionRuns;
 use Sifrious\Aleph\Web\CanonicalUrl;
-use Sifrious\Aleph\Web\CrawlRuns;
 use Sifrious\Aleph\Web\DiscoveryOrigin;
 use Sifrious\Aleph\Web\FetchFailure;
 use Sifrious\Aleph\Web\FetchResult;
@@ -12,10 +13,17 @@ use Sifrious\Aleph\Web\FrontierFactory;
 use Sifrious\Aleph\Web\FrontierState;
 use Sifrious\Aleph\Web\SkipReason;
 use Sifrious\Aleph\Web\WebSource;
+use Sifrious\Funes\Value\AcceptedObservation;
+use Sifrious\Funes\Value\Observation;
+use Sifrious\Funes\Value\ObservationDisposition;
 
 beforeEach(function (): void {
     $this->source = WebSource::fromArray('test', webSource());
-    $this->run = app(CrawlRuns::class)->start($this->source);
+    $this->run = app(IngestionRuns::class)->start(
+        $this->source->key,
+        Capability::WebCrawl,
+        ['limits' => $this->source->limits->toArray()],
+    );
     $this->frontier = app(FrontierFactory::class)->for($this->source, $this->run);
     $this->canonicalizer = $this->source->canonicalizer();
 });
@@ -34,6 +42,26 @@ function enqueue(string $value, int $depth = 0, ?int $parentId = null): ?int
         $parentId === null ? DiscoveryOrigin::Seed : DiscoveryOrigin::Link,
         $parentId,
         FrontierState::Pending,
+    );
+}
+
+function accepted(string $resource): AcceptedObservation
+{
+    return new AcceptedObservation(
+        new Observation(
+            '01K3N7KSS00000000000000000',
+            'web:test',
+            'Test District',
+            $resource,
+            new DateTimeImmutable('2026-08-26T12:00:00+00:00'),
+            new DateTimeImmutable('2026-08-26T12:00:00+00:00'),
+            '',
+            hash('sha256', ''),
+            'text/html',
+            [],
+            [],
+        ),
+        ObservationDisposition::First,
     );
 }
 
@@ -63,7 +91,7 @@ it('claims pending candidates breadth first in insertion order', function (): vo
             $candidate->url->value,
             $candidate->url->value,
             200,
-        ));
+        ), accepted($candidate->url->value));
     }
 
     expect($claimed)->toBe([
@@ -87,7 +115,7 @@ it('moves a claimed candidate through fetching to fetched', function (): void {
         'https://ahsd.test/final',
         200,
         'text/html',
-    ));
+    ), accepted('https://ahsd.test/final'));
 
     expect($this->frontier->countByState(FrontierState::Fetched))->toBe(1)
         ->and($this->frontier->countByState(FrontierState::Fetching))->toBe(0);
