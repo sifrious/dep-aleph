@@ -142,9 +142,59 @@ The consuming application owns the accepted historical model and supplies the wr
 
 ## Current status
 
-Aleph is under active design. The public contracts and installation instructions will be documented as the first executable vertical slice is implemented.
+Aleph is under active design. Most of this README describes intended scope. One vertical slice is
+implemented and tested: a bounded web crawl.
 
-The first release should prove one complete workflow:
+### What works today
+
+```
+php artisan aleph:crawl ahsd --max-pages=50 --max-depth=2
+```
+
+A web source is declared in `config/aleph.php` with seeds, allowed hosts, path exclusions, a
+query-parameter allowlist, and page and depth limits. The command seeds a frontier, walks it
+breadth-first, and finishes with a totals table: pages fetched, how many were not 2xx, transport
+failures, skips broken out by reason, duplicate and unresolvable references, and what remains
+pending. `--host` narrows a run to named hosts; `--fresh` starts a new run instead of resuming the
+latest unfinished one.
+
+Identity is a canonical URL — scheme and host lowercased, default port and fragment dropped, dot
+segments resolved, query reduced to the configured allowlist and sorted — indexed by hash so a
+database constraint, not application logic, enforces that each canonical URL is fetched at most once
+per run. URLs outside the allowed hosts are recorded with their discovery provenance and never
+requested.
+
+Retrieval is deliberately conservative. `HttpMethod` admits only GET and HEAD, so the crawler cannot
+submit a form or issue a mutation request. Connect and request timeouts, a redirect ceiling, and a
+response-size cap enforced both on the declared `Content-Length` and while streaming the body are all
+configurable. `robots.txt` is read once per host and honoured, including `Crawl-delay`; a host whose
+robots file is unreadable is not crawled. Non-2xx responses and transport failures are recorded as
+evidence and the run continues. One retry is attempted, for transport failures only.
+
+To run the crawler during package development, point Testbench at a file database, migrate, then
+crawl:
+
+```
+DB_DATABASE=/tmp/aleph.sqlite vendor/bin/testbench migrate --force
+DB_DATABASE=/tmp/aleph.sqlite vendor/bin/testbench aleph:crawl ahsd --max-pages=5 --fresh
+```
+
+The `testbench.yaml` default is an in-memory database, which suits the test suite but starts empty on
+every CLI invocation.
+
+Decisions, open questions, assumptions, and the domain vocabulary are in [docs/](docs/).
+
+### What is not implemented
+
+- **HTML link extraction.** `LinkSource` binds to a no-op, so a live crawl retrieves its seeds and
+  stops. Real extraction is ALEPH-009.
+- **Persistence through Funes.** Aleph currently keeps operational run state only and stores no
+  response bodies. Submitting observations and provenance is ALEPH-007, which is blocked on
+  FUNES-006/007/008.
+- **Connector contracts.** ALEPH-001's connector, capability, attempt, and checkpoint abstractions
+  were deliberately not built ahead of a second implementor. See `docs/decisions.md`.
+
+The first release should still prove one complete workflow:
 
 - install a connector;
 - configure a source account;
@@ -153,5 +203,3 @@ The first release should prove one complete workflow:
 - commit checkpoints safely;
 - continue with incremental synchronization;
 - inspect status and retry a failed attempt.
-
-Until that slice exists, this README describes the intended scope rather than a stable public API.

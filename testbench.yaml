@@ -1,0 +1,8 @@
+providers:
+  - Sifrious\Aleph\AlephServiceProvider
+
+migrations: true
+
+env:
+  DB_CONNECTION: sqlite
+  DB_DATABASE: ':memory:'
