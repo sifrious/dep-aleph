@@ -182,3 +182,7 @@ records broken ancestry explicitly so a force-push remains distinct from ordinar
 
 **Git file change** — an added, modified, deleted, or renamed path derived by comparing two trees.
 Deletion retains the prior blob SHA; rename retains both paths and the shared blob SHA.
+
+**GitHub ingestion run** — the GitHub projection of a provider-neutral ingestion run. It adds
+account, repository, repository-watch, target, reconciliation, and all/project/repo/pull-request/watch
+scope without owning GitHub historical records.

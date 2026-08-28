@@ -199,6 +199,10 @@
         {
             "decision": "Observe Git as SHA-addressed repository, ref movement, commit, tree, file, change, diff, and blame facts behind a replaceable source contract.",
             "rationale": "A current-file projection erases deletions and force-pushes, while local paths, GitHub payloads, and symbol interpretation do not belong in the portable observation contract."
+        },
+        {
+            "decision": "Import Landing GitHub runs as deterministic shared ingestion runs with GitHub-only scope in an extension projection.",
+            "rationale": "Status, timing, retry, checkpoint, progress, and failure behavior are provider-neutral, while repository watches, targets, and reconciliation IDs must remain operational rather than historical payloads."
         }
     ],
     "open_questions": [
@@ -273,6 +277,7 @@
         "git_repository_source": "A replaceable reader that returns stable repository identity and captured ref snapshots.",
         "git_ref_movement": "A previous-SHA to head-SHA observation that explicitly records broken ancestry.",
         "git_file_change": "An added, modified, deleted, or renamed path derived from previous and current trees.",
+        "github_ingestion_run": "A shared ingestion run projected with GitHub account, repository, watch, target, reconciliation, and scope metadata.",
         "domain_ingestion_run": "A DNS-specific projection that adds stable account/domain scope and provider reconciliation references to the shared ingestion run.",
         "manual_launch": "An authorized idempotent request that persists a pending run before host dispatch.",
         "authorization_decision_reference": "A stable host-issued reference to the evaluated decision that allowed a manual run."
@@ -305,7 +310,8 @@
             "MME-812 strategy-aware incremental synchronization and change ledger",
             "MME-813 independently authenticated multiple source accounts",
             "MME-1174 executable Aleph package-boundary validation",
-            "MME-815 SHA-addressed Git repository and history ingestion"
+            "MME-815 SHA-addressed Git repository and history ingestion",
+            "MME-954 GitHubSyncRun migration adapter and GitHub run projection"
         ],
         "not_implemented": [
             "connector manifests",
@@ -506,6 +512,15 @@
             "accept every envelope through Funes",
             "advance the ref checkpoint only after complete acceptance",
             "replay an unchanged ref without another historical effect"
+        ],
+        "github_run_migration": [
+            "read a Landing GithubSyncRun characterization row",
+            "derive a deterministic Aleph run identity from its legacy ID",
+            "map shared lifecycle, timing, checkpoint, counts, failure, and retryability",
+            "project GitHub account, repositories, watch, targets, reconciliation IDs, and scope",
+            "retain accepted GitHub history only as stable Funes references",
+            "replay import without duplicating the run",
+            "retain Landing persistence until consuming-host reconciliation passes"
         ]
     },
     "content_opportunities": [
@@ -718,6 +733,16 @@
             "audience": "developer-tool and data-platform engineers",
             "skill_level": "advanced",
             "hook": "A branch is a moving pointer, not history."
+        },
+        {
+            "format": "short video",
+            "user_problem": "A GitHub sync uses one audit row for the banner and another run for the actual pipeline.",
+            "concept": "Provider run models as typed projections over one lifecycle",
+            "technology": "Laravel migration adapters, deterministic IDs, typed extension read models",
+            "project_context": "Aleph MME-954 GithubSyncRun migration",
+            "audience": "backend and platform developers",
+            "skill_level": "intermediate",
+            "hook": "One lifecycle, provider-specific scope."
         }
     ]
 }

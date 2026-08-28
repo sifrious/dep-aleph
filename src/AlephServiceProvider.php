@@ -31,6 +31,7 @@ use Sifrious\Aleph\Envelope\EnvelopeDrafter;
 use Sifrious\Aleph\Envelope\EnvelopeSubmitter;
 use Sifrious\Aleph\Ingestion\ContinuationLeases;
 use Sifrious\Aleph\Ingestion\DomainRunQueries;
+use Sifrious\Aleph\Ingestion\GitHubRunQueries;
 use Sifrious\Aleph\Ingestion\IncrementalChanges;
 use Sifrious\Aleph\Ingestion\IngestionCheckpoints;
 use Sifrious\Aleph\Ingestion\IngestionPartitions;
@@ -76,6 +77,11 @@ class AlephServiceProvider extends ServiceProvider
         $this->app->singleton(
             IngestionRunQueries::class,
             fn (Application $app): IngestionRunQueries => new IngestionRunQueries($app->make(IngestionRuns::class)),
+        );
+
+        $this->app->singleton(
+            GitHubRunQueries::class,
+            fn (Application $app): GitHubRunQueries => new GitHubRunQueries($app->make(IngestionRunQueries::class)),
         );
 
         $this->app->singleton(

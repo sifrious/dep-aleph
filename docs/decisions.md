@@ -1020,3 +1020,21 @@ identity hides force-pushes; treating only current files as truth erases deletio
 from one SHA to another remains a distinct event and records whether ancestry was broken. File
 revisions use repository/ref/SHA/path provenance, deletions preserve the prior blob, and rename
 detection preserves both paths. Symbol, test, and dataflow interpretation remains outside Aleph.
+
+## D-073 — GitHub sync runs are projections over the shared run lifecycle
+
+**Decision.** Landing `GithubSyncRun` rows import into deterministic Aleph ingestion-run identities.
+Pending, running, succeeded, and failed map to the shared lifecycle; cursor/ref checkpoints, numeric
+counts, failure and retryability remain shared fields. GitHub-only all, project, repository,
+pull-request, and watch scope plus account, repositories, watch, targets, and provider reconciliation
+IDs live in a typed `github` extension projection.
+
+**Rationale.** Landing currently bridges `GithubSyncRun` to a second pipeline run and repeats status,
+timing, error, and progress behavior across commands, jobs, controllers, and a reaper. Moving these
+shared fields into another GitHub model would preserve the duplication and leak host IDs into the
+package.
+
+**Consequence.** GitHub runs use the same attempts, retries, resume behavior, diagnostics, and query
+shape as every connector while retaining their provider-specific operational scope. Historical
+repositories, pull requests, and comments remain Funes references. Landing persistence remains in
+place until a consuming-host reconciliation proves count and ID parity.
