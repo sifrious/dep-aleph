@@ -51,7 +51,12 @@ use Sifrious\Aleph\Connector\Shell\IngestShellHistory;
 use Sifrious\Aleph\Connector\Shell\ShellCommandTokenizer;
 use Sifrious\Aleph\Connector\Shell\ShellHistorySources;
 use Sifrious\Aleph\Connector\Shell\ShellRedactionPolicy;
+use Sifrious\Aleph\Connector\Slack\ConsumeSlackEvent;
+use Sifrious\Aleph\Connector\Slack\ImportSlackActivities;
+use Sifrious\Aleph\Connector\Slack\SlackActivitySources;
+use Sifrious\Aleph\Connector\Slack\SlackActivitySubmitter;
 use Sifrious\Aleph\Connector\Slack\SlackCredentials;
+use Sifrious\Aleph\Connector\Slack\SlackEventSecrets;
 use Sifrious\Aleph\Connector\Watch\RepositoryWatches;
 use Sifrious\Aleph\Console\CrawlCommand;
 use Sifrious\Aleph\Console\InventoryCommand;
@@ -232,6 +237,31 @@ class AlephServiceProvider extends ServiceProvider
             fn (Application $app): SlackCredentials => new SlackCredentials(
                 $this->connection($app),
                 $app->make(ConnectorInstallations::class),
+            ),
+        );
+
+        $this->app->singleton(SlackActivitySources::class);
+        $this->app->singleton(SlackActivitySubmitter::class);
+        $this->app->singleton(SlackEventSecrets::class);
+
+        $this->app->singleton(
+            ImportSlackActivities::class,
+            fn (Application $app): ImportSlackActivities => new ImportSlackActivities(
+                $app->make(SlackActivitySources::class),
+                $app->make(ConnectorInstallations::class),
+                $app->make(SourceStreams::class),
+                $app->make(IngestionRuns::class),
+                $app->make(IngestionCheckpoints::class),
+                $app->make(SlackActivitySubmitter::class),
+            ),
+        );
+
+        $this->app->singleton(
+            ConsumeSlackEvent::class,
+            fn (Application $app): ConsumeSlackEvent => new ConsumeSlackEvent(
+                $app->make(SlackEventSecrets::class),
+                $app->make(ConnectorInstallations::class),
+                $app->make(SlackActivitySubmitter::class),
             ),
         );
 

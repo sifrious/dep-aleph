@@ -53,7 +53,8 @@
         "Linear workspaces ingest independently through package-owned pagination; each resource stream has its own accepted-through cursor, while verified webhooks and polling share canonical activity identity.",
         "Gmail, Microsoft Graph, and IMAP records normalize to provider-neutral F28 messages; bounded mailbox pages advance opaque provider checkpoints only after Funes acceptance, and attachments remain Digory references.",
         "Slack credential migration retains workspace/account/scopes/status/timestamps and an opaque host secret-store reference; token material and legacy-row deletion remain outside Aleph.",
-        "Landing SlackSyncRun rows import into the shared lifecycle with Slack workspace/channel scope and reconciled cursor, oldest, and high-water checkpoint state."
+        "Landing SlackSyncRun rows import into the shared lifecycle with Slack workspace/channel scope and reconciled cursor, oldest, and high-water checkpoint state.",
+        "Slack polling and verified Events API observations converge through canonical activity identity; cursor/high-water checkpoints advance after Funes acceptance and attachment chunks hand off to Digory references."
     ],
     "assumptions": [
         "A sequential concurrency ceiling of one is sufficient for the bounded AHSD crawl.",
@@ -253,6 +254,10 @@
         {
             "decision": "Model SlackSyncRun as a typed Slack projection over the shared ingestion-run lifecycle.",
             "rationale": "Landing repeats shared run status/timing/counter/failure behavior, while workspace/channel scope and reconciled continuation state are the only Slack-specific operational facts."
+        },
+        {
+            "decision": "Converge Slack polling and Events API before Funes and checkpoint cursor/high-water only after acceptance.",
+            "rationale": "Transport overlap must not duplicate messages, incomplete paging must retain its cursor without advancing the floor, and attachment bytes belong to downstream owners."
         }
     ],
     "open_questions": [
@@ -346,6 +351,8 @@
         "slack_credential_handle": "Workspace-scoped metadata and an opaque reference resolved only by a host secret store.",
         "slack_credential_state": "The active, expired, revoked, or missing availability of one Slack workspace credential.",
         "slack_ingestion_run": "A shared ingestion run projected with Slack workspace/channel scope, provider references, targets, and continuation checkpoint.",
+        "slack_activity": "A canonical workspace, user, channel, message, file, or link revision shared across polling and Events API.",
+        "slack_cursor_high_water_checkpoint": "An accepted-through partition value carrying continuation cursor and high-water timestamp.",
         "domain_ingestion_run": "A DNS-specific projection that adds stable account/domain scope and provider reconciliation references to the shared ingestion run.",
         "manual_launch": "An authorized idempotent request that persists a pending run before host dispatch.",
         "authorization_decision_reference": "A stable host-issued reference to the evaluated decision that allowed a manual run."
@@ -389,7 +396,8 @@
             "MME-822 multi-workspace Linear polling, checkpoint, webhook, and Funes ingestion",
             "MME-823 Gmail, Microsoft Graph, and IMAP F28 email ingestion",
             "MME-1106 opaque Slack credential migration and lifecycle broker",
-            "MME-1105 SlackSyncRun migration adapter and Slack run projection"
+            "MME-1105 SlackSyncRun migration adapter and Slack run projection",
+            "MME-824 multi-workspace Slack polling, Events API, checkpoint, Funes, and attachment handoff"
         ],
         "not_implemented": [
             "connector manifests",
@@ -706,6 +714,17 @@
             "retain imported Slack history only as stable Funes references",
             "resume and retry through the shared attempt lifecycle",
             "replay import without duplication and retain Landing persistence through reconciliation"
+        ],
+        "slack_activity_ingestion": [
+            "resolve one Slack workspace installation and registered activity source",
+            "page users, channels, and per-channel history as explicit partitions",
+            "normalize workspace/user/channel/message/file/link revisions and relationships",
+            "submit through Funes with workspace, channel, provider, source timestamp, run, and raw-reference provenance",
+            "commit combined cursor/high-water after accepted pages",
+            "pause and resume without duplicate history",
+            "verify Events API signatures and converge polling overlap",
+            "return retryable rate limits without corrupting checkpoints",
+            "resume attachment chunks and hand them to stable Digory references"
         ]
     },
     "content_opportunities": [
@@ -1028,6 +1047,16 @@
             "audience": "backend and platform developers",
             "skill_level": "intermediate",
             "hook": "Migrate the run. Reconcile the cursor."
+        },
+        {
+            "format": "long-form video",
+            "user_problem": "A Slack sync splits cursor, high-water, event, message, and attachment behavior across jobs and models.",
+            "concept": "Convergent resumable connector design",
+            "technology": "Slack cursors, Events API signatures, Funes identity, Digory handoff",
+            "project_context": "Aleph MME-824 Slack ingestion",
+            "audience": "backend and integration developers",
+            "skill_level": "advanced",
+            "hook": "One connector, five state owners—until the boundary becomes executable."
         }
     ]
 }

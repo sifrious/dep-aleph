@@ -175,6 +175,15 @@ targets stay in the typed Slack projection. Reconciled continuation cursor, olde
 channel high-water state use the shared checkpoint. Slack history remains represented only by stable
 Funes references. Landing run persistence remains until a consuming host reconciles cutover.
 
+## Slack activity adapters
+
+`SlackConnector` owns workspace/user/channel/message/file/link polling and verified Events API
+ingestion. Registered sources page explicit users, channels, and per-channel history partitions.
+Each partition commits a combined cursor/high-water checkpoint after Funes acceptance; page budgets
+close as retryable partial work. Polling and events share canonical provider identity.
+`AcquireSlackAttachment` resumes chunk acquisition from an opaque checkpoint and hands bytes to a
+stable Digory historical reference without creating Aleph-owned content history.
+
 ## Fakes
 
 Composable doubles live in `Sifrious\Aleph\Testing\Fakes` so orchestration tests need no real

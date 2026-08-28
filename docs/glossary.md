@@ -246,3 +246,9 @@ workspace credential at a given time.
 **Slack ingestion run** — the Slack projection of a shared ingestion run, adding workspace/channel
 scope, provider run/reconciliation references, targets, and continuation checkpoint state without
 owning Slack history.
+
+**Slack activity** — a canonical workspace, user, channel, message, file, or link revision shared
+by polling and Events API transports.
+
+**Slack cursor/high-water checkpoint** — one accepted-through partition value carrying an in-page
+continuation cursor and the newest completely observed provider timestamp.

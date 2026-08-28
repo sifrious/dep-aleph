@@ -1225,3 +1225,21 @@ into fact, while omitting the reconciled checkpoint would lose safe continuation
 and use one provider-neutral retry/resume engine. Slack SDK objects and message/file history stay out
 of Aleph run contracts. Landing persistence remains until consuming-host identity and count
 reconciliation passes.
+
+## D-084 — Slack transports converge before accepted history
+
+**Decision.** Slack workspace, user, channel, message, file, and link records normalize to one
+canonical activity contract. Polling partitions and verified Events API observations use the same
+submitter and provider revision identity. Channel history retains cursor and high-water together in
+an accepted-through checkpoint. Attachment chunks resume through a package contract and hand bytes
+to a stable Digory historical reference.
+
+**Rationale.** Landing's cursor job correctly avoids advancing high-water during incomplete paging,
+but the state lives in a queue payload and channel model. Transport-specific normalization duplicates
+messages when polling overlaps events. Storing attachment bytes in Aleph would duplicate downstream
+artifact ownership.
+
+**Consequence.** Workspaces and channel partitions isolate progress. Page-budget interruption and
+rate limits cannot advance unaccepted checkpoints. Thread and file relations remain explicit in
+Funes metadata, and attachment retries converge at the downstream reference. Host adapters can
+become thin invokers once the package is installed in Landing.
