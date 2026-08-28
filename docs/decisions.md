@@ -915,3 +915,20 @@ checks are evidence gaps rather than proof of health.
 `unknown` with an action to run the check, disabled installations are unhealthy regardless of stale
 configuration evidence, not-applicable dimensions do not reduce health, and hosts receive the same
 summary and remediation codes without provider-specific inference.
+
+## D-067 — Schedules own cadence; hosts only wake and dispatch them
+
+**Decision.** One enabled schedule may exist per source installation and advertised dispatchable
+capability. It stores a cron expression, IANA timezone, constraints, next due and last dispatch
+times. Due work is claimed through an expiring owner lock, and each successful occurrence records an
+immutable schedule/due-time-to-run link before calculating its next UTC instant.
+
+**Rationale.** Landing's commands duplicate cadence logic for repositories and provider accounts.
+Putting calculation in Laravel Scheduler would make schedule identity and daylight-saving behavior
+host-specific, while omitting a durable occurrence would let two scheduler processes dispatch the
+same account.
+
+**Consequence.** Two installations of the same connector can use different cadences without code
+changes. Unsupported operations, invalid cron, and invalid timezones fail before persistence;
+disable and reschedule are data changes; competing scheduler hosts cannot claim a live lock; and the
+runtime adapter receives a provider-neutral scheduled-ingestion value.

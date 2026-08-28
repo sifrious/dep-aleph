@@ -40,7 +40,8 @@
         "A retry is a numbered child attempt reconstructed from the original run's durable parameters, checkpoint, counters, and idempotent identity.",
         "Resume reconstructs each partition from its latest accepted-through checkpoint under an expiring lease and explicit partition, record, and runtime budgets.",
         "Every active source stream has a package freshness projection or an explicit never-synchronized read model, and freshness is recalculated against an explicit clock.",
-        "Connector health is an immutable expiring result per installation dimension, aggregated with explicit unknown evidence and coded remediation."
+        "Connector health is an immutable expiring result per installation dimension, aggregated with explicit unknown evidence and coded remediation.",
+        "Recurring ingestion schedules validate connector capabilities, calculate timezone-aware next runs, use expiring distributed claims, and record every schedule occurrence against its ingestion run."
     ],
     "assumptions": [
         "A sequential concurrency ceiling of one is sufficient for the bounded AHSD crawl.",
@@ -172,6 +173,10 @@
         {
             "decision": "Represent connector health as latest expiring evidence per dimension with coded remediation.",
             "rationale": "A universal boolean hides the difference between bad credentials, provider reachability, rate state, stale data, queue backlog, and missing evidence."
+        },
+        {
+            "decision": "Persist recurring cadence and dispatch identity in Aleph while leaving scheduler wakeups to the host.",
+            "rationale": "Provider-specific host commands duplicate cadence rules, and two scheduler processes need one durable lock and occurrence identity."
         }
     ],
     "open_questions": [
@@ -235,6 +240,8 @@
         "freshness_expectation": "The expected interval and stale boundary applied by the package freshness query.",
         "connector_health_check": "An expiring immutable result for one installation health dimension.",
         "health_remediation": "A coded plain-language next step attached to a health result.",
+        "ingestion_schedule": "A recurring supported capability for one source installation with cron cadence, timezone, constraints, and next due time.",
+        "schedule_dispatch": "The immutable association between one schedule occurrence and its ingestion run.",
         "domain_ingestion_run": "A DNS-specific projection that adds stable account/domain scope and provider reconciliation references to the shared ingestion run.",
         "manual_launch": "An authorized idempotent request that persists a pending run before host dispatch.",
         "authorization_decision_reference": "A stable host-issued reference to the evaluated decision that allowed a manual run."
@@ -261,7 +268,8 @@
             "MME-804 deterministic retry command and attempt lineage",
             "MME-805 bounded leased resume from accepted-through checkpoints",
             "MME-809 provider-neutral source-stream freshness projection",
-            "MME-808 connector health evidence, aggregation, and remediation contract"
+            "MME-808 connector health evidence, aggregation, and remediation contract",
+            "MME-801 recurring ingestion schedules and scheduler adapter"
         ],
         "not_implemented": [
             "connector manifests",
@@ -406,6 +414,15 @@
             "override stale configuration evidence when the installation is disabled",
             "aggregate by worst severity",
             "return plain-language summary and deduplicated remediation codes"
+        ],
+        "scheduled_ingestion": [
+            "validate the installation and advertised dispatchable capability",
+            "persist cron cadence, timezone, constraints, and next due instant",
+            "claim due schedules with an expiring distributed owner lock",
+            "dispatch through the host scheduler adapter",
+            "record the schedule occurrence and created ingestion run",
+            "calculate the next UTC due instant",
+            "release the lock for another host wakeup"
         ]
     },
     "content_opportunities": [
@@ -558,6 +575,16 @@
             "audience": "backend and operations developers",
             "skill_level": "intermediate",
             "hook": "Unhealthy is not an explanation."
+        },
+        {
+            "format": "short video",
+            "user_problem": "Adding a second provider account requires another hard-coded scheduler branch.",
+            "concept": "Schedules as data with durable occurrence identity",
+            "technology": "Cron expressions, IANA timezones, distributed claims, Laravel package adapters",
+            "project_context": "Aleph MME-801 recurring ingestion",
+            "audience": "backend and platform developers",
+            "skill_level": "intermediate",
+            "hook": "Two accounts. Two cadences. Zero scheduler branches."
         }
     ]
 }

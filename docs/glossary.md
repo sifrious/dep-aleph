@@ -143,3 +143,9 @@ or storage.
 
 **Health remediation** — a machine-readable code and plain-language next step attached to an
 unhealthy, degraded, unknown, or expired health dimension.
+
+**Ingestion schedule** — a host-independent recurring operation for one source installation and a
+capability its connector advertises, with cron cadence, timezone, constraints, and next due time.
+
+**Schedule dispatch** — the immutable link from one schedule occurrence to the ingestion run it
+created. Its schedule/due-time identity prevents duplicate dispatch across scheduler hosts.

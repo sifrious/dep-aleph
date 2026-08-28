@@ -29,6 +29,7 @@ use Sifrious\Aleph\Ingestion\DomainRunQueries;
 use Sifrious\Aleph\Ingestion\IngestionCheckpoints;
 use Sifrious\Aleph\Ingestion\IngestionRunQueries;
 use Sifrious\Aleph\Ingestion\IngestionRuns;
+use Sifrious\Aleph\Ingestion\IngestionSchedules;
 use Sifrious\Aleph\Ingestion\SourceStreams;
 use Sifrious\Aleph\Ingestion\SourceStreamStatuses;
 use Sifrious\Aleph\Inventory\InventoryReader;
@@ -68,6 +69,15 @@ class AlephServiceProvider extends ServiceProvider
         $this->app->singleton(
             IngestionRunQueries::class,
             fn (Application $app): IngestionRunQueries => new IngestionRunQueries($app->make(IngestionRuns::class)),
+        );
+
+        $this->app->singleton(
+            IngestionSchedules::class,
+            fn (Application $app): IngestionSchedules => new IngestionSchedules(
+                $this->connection($app),
+                $app->make(ConnectorInstallations::class),
+                $app->make(ConnectorRegistry::class),
+            ),
         );
 
         $this->app->singleton(

@@ -8,4 +8,5 @@ enum IngestionTrigger: string
 {
     case System = 'system';
     case Manual = 'manual';
+    case Scheduled = 'scheduled';
 }

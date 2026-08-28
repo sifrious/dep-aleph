@@ -21,3 +21,13 @@ PAYS WHEN: `Acceptance\Submissions` calls `Str::ulid()`, which it does for every
 CHARGES WHEN: never seriously.
 
 TRIGGER: fired now — Aleph was relying on `laravel/framework` to pull this in. In a host built on the split `illuminate/*` packages (Laravel Zero, which Stacks is) it is absent, and the first acceptance fails with `Class "Symfony\Component\Uid\Ulid" not found`. Found by running Aleph inside Stacks; a package that calls it should require it.
+
+## dep: dragonmantank/cron-expression — 2026-08-28, MME-801
+
+SEAM: borrowed — standard cron validation and timezone-aware next-run calculation; zero new transitive packages because Illuminate Console already installs it
+
+PAYS WHEN: every schedule create, edit, enable, and successful dispatch calculates the next due instant from the stored cron expression and timezone
+
+CHARGES WHEN: cron grammar or daylight-saving behavior changes upstream, or removal requires replacing one schedule calculation call site
+
+TRIGGER: MME-801 requires arbitrary per-installation recurring cadence now; Aleph directly calls the parser and therefore declares it instead of relying on Laravel's transitive dependency
