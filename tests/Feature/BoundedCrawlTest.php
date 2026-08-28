@@ -43,14 +43,14 @@ function runAhsdCrawl(FakeSite $site, array $options = []): array
 
     $run = DB::table('aleph_ingestion_runs')->orderByDesc('id')->first();
 
-    return json_decode((string) $run->totals, true, 512, JSON_THROW_ON_ERROR);
+    return json_decode((string) $run->stats, true, 512, JSON_THROW_ON_ERROR);
 }
 
 beforeEach(function (): void {
     configureAhsd();
 });
 
-it('produces exact deterministic totals for a bounded multi seed crawl', function (): void {
+it('produces exact deterministic stats for a bounded multi seed crawl', function (): void {
     expect(runAhsdCrawl(ahsdFixture()))->toBe([
         'fetched' => 7,
         'unsuccessful' => 0,
@@ -131,17 +131,17 @@ it('stops at the depth limit and records what it refused to enqueue', function (
 });
 
 it('terminates on the page limit leaving the rest of the frontier pending', function (): void {
-    $totals = runAhsdCrawl(ahsdFixture(), ['--max-pages' => '3']);
+    $stats = runAhsdCrawl(ahsdFixture(), ['--max-pages' => '3']);
 
-    expect($totals)->toMatchArray(['fetched' => 3, 'stopped_by' => 'page_limit'])
-        ->and($totals['remaining'])->toBeGreaterThan(0);
+    expect($stats)->toMatchArray(['fetched' => 3, 'stopped_by' => 'page_limit'])
+        ->and($stats['remaining'])->toBeGreaterThan(0);
 });
 
 it('keeps crawling after a page fails', function (): void {
-    $totals = runAhsdCrawl(ahsdFixture()->fails('https://ahsd.test/news'));
+    $stats = runAhsdCrawl(ahsdFixture()->fails('https://ahsd.test/news'));
 
-    expect($totals)->toMatchArray(['failed' => 1, 'stopped_by' => 'frontier_exhausted'])
-        ->and($totals['fetched'])->toBe(5);
+    expect($stats)->toMatchArray(['failed' => 1, 'stopped_by' => 'frontier_exhausted'])
+        ->and($stats['fetched'])->toBe(5);
 
     expect(DB::table('aleph_frontier_candidates')->where('canonical_url', 'https://ahsd.test/news')->first())
         ->state->toBe('failed')
@@ -155,16 +155,16 @@ it('records a not found response as fetched evidence rather than a failure', fun
 
     config()->set('aleph.web_sources.ahsd.seeds', ['https://ahsd.test/missing']);
 
-    $totals = runAhsdCrawl($site, ['--fresh' => true]);
+    $stats = runAhsdCrawl($site, ['--fresh' => true]);
 
-    expect($totals)->toMatchArray(['fetched' => 1, 'failed' => 0]);
+    expect($stats)->toMatchArray(['fetched' => 1, 'failed' => 0]);
 
     expect((int) DB::table('aleph_frontier_candidates')
         ->where('canonical_url', 'https://ahsd.test/missing')
         ->value('http_status'))->toBe(404);
 });
 
-it('produces identical totals across repeated runs of the same fixture', function (): void {
+it('produces identical stats across repeated runs of the same fixture', function (): void {
     $first = runAhsdCrawl(ahsdFixture());
     $second = runAhsdCrawl(ahsdFixture(), ['--fresh' => true]);
 

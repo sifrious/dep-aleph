@@ -9,6 +9,7 @@ use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
+use stdClass;
 
 final readonly class IngestionRuns
 {
@@ -49,27 +50,32 @@ final readonly class IngestionRuns
             ->orderByDesc('id')
             ->first();
 
-        if ($row === null) {
-            return null;
-        }
+        return $row === null ? null : $this->hydrate($row);
+    }
 
-        $parameters = json_decode((string) $row->parameters, true, 512, JSON_THROW_ON_ERROR);
+    public function find(string $id): ?IngestionRun
+    {
+        $row = $this->table()->where('id', $id)->first();
 
-        return new IngestionRun(
-            id: (string) $row->id,
-            sourceReference: (string) $row->source_reference,
-            capability: Capability::from((string) $row->capability),
-            status: RunStatus::from((string) $row->status),
-            parameters: is_array($parameters) ? $parameters : [],
-            startedAt: new DateTimeImmutable((string) $row->started_at),
-        );
+        return $row === null ? null : $this->hydrate($row);
+    }
+
+    public function latest(string $sourceReference, Capability $capability): ?IngestionRun
+    {
+        $row = $this->table()
+            ->where('source_reference', $sourceReference)
+            ->where('capability', $capability->value)
+            ->orderByDesc('id')
+            ->first();
+
+        return $row === null ? null : $this->hydrate($row);
     }
 
     public function resume(IngestionRun $run): IngestionRun
     {
         $this->table()->where('id', $run->id)->update([
             'status' => RunStatus::Running->value,
-            'failure' => null,
+            'error' => null,
             'finished_at' => null,
         ]);
 
@@ -84,25 +90,39 @@ final readonly class IngestionRuns
     }
 
     /**
-     * @param  array<string, mixed>  $totals
+     * @param  array<string, mixed>  $stats
      */
-    public function complete(IngestionRun $run, array $totals): void
+    public function complete(IngestionRun $run, array $stats): void
     {
         $this->table()->where('id', $run->id)->update([
             'status' => RunStatus::Completed->value,
-            'totals' => json_encode($totals, JSON_THROW_ON_ERROR),
-            'failure' => null,
+            'stats' => json_encode($stats, JSON_THROW_ON_ERROR),
+            'error' => null,
             'finished_at' => Carbon::now(),
         ]);
     }
 
-    public function interrupt(IngestionRun $run, string $failure): void
+    public function interrupt(IngestionRun $run, string $error): void
     {
         $this->table()->where('id', $run->id)->update([
             'status' => RunStatus::Interrupted->value,
-            'failure' => $failure,
+            'error' => $error,
             'finished_at' => Carbon::now(),
         ]);
+    }
+
+    private function hydrate(stdClass $row): IngestionRun
+    {
+        $parameters = json_decode((string) $row->parameters, true, 512, JSON_THROW_ON_ERROR);
+
+        return new IngestionRun(
+            id: (string) $row->id,
+            sourceReference: (string) $row->source_reference,
+            capability: Capability::from((string) $row->capability),
+            status: RunStatus::from((string) $row->status),
+            parameters: is_array($parameters) ? $parameters : [],
+            startedAt: new DateTimeImmutable((string) $row->started_at),
+        );
     }
 
     private function table(): Builder

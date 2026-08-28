@@ -13,6 +13,7 @@ final readonly class WebSource
      * @param  list<string>  $seeds
      * @param  list<string>  $excluded
      * @param  list<string>  $allowedQueryParameters
+     * @param  list<string>  $calendarSignals
      */
     public function __construct(
         public string $key,
@@ -21,6 +22,7 @@ final readonly class WebSource
         public HostPolicy $hosts,
         public array $excluded,
         public array $allowedQueryParameters,
+        public array $calendarSignals,
         public CrawlLimits $limits,
     ) {
         if ($seeds === []) {
@@ -45,11 +47,20 @@ final readonly class WebSource
                 $config['query_parameters'] ?? [],
                 "aleph.web_sources.{$key}.query_parameters",
             ),
+            calendarSignals: self::strings(
+                $config['calendar_signals'] ?? [],
+                "aleph.web_sources.{$key}.calendar_signals",
+            ),
             limits: new CrawlLimits(
                 maxPages: is_int($limits['max_pages'] ?? null) ? $limits['max_pages'] : 100,
                 maxDepth: is_int($limits['max_depth'] ?? null) ? $limits['max_depth'] : 2,
             ),
         );
+    }
+
+    public function reference(): string
+    {
+        return "web:{$this->key}";
     }
 
     public function canonicalizer(): UrlCanonicalizer
@@ -68,6 +79,11 @@ final readonly class WebSource
         return Str::is($this->excluded, $target);
     }
 
+    public function looksLikeCalendar(CanonicalUrl $url): bool
+    {
+        return $this->calendarSignals !== [] && Str::is($this->calendarSignals, $url->path);
+    }
+
     public function withLimits(CrawlLimits $limits): self
     {
         return new self(
@@ -77,6 +93,7 @@ final readonly class WebSource
             $this->hosts,
             $this->excluded,
             $this->allowedQueryParameters,
+            $this->calendarSignals,
             $limits,
         );
     }
@@ -93,6 +110,7 @@ final readonly class WebSource
             $this->hosts->restrictTo($hosts),
             $this->excluded,
             $this->allowedQueryParameters,
+            $this->calendarSignals,
             $this->limits,
         );
     }

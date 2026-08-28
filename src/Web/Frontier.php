@@ -7,7 +7,6 @@ namespace Sifrious\Aleph\Web;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
-use Sifrious\Funes\Value\AcceptedObservation;
 
 final readonly class Frontier
 {
@@ -93,16 +92,23 @@ final readonly class Frontier
     public function markFetched(
         FrontierCandidate $candidate,
         FetchResult $result,
-        AcceptedObservation $accepted,
+        AcceptedRetrieval $accepted,
     ): void {
         $this->table()->where('id', $candidate->id)->update([
             'state' => FrontierState::Fetched->value,
             'final_url' => $result->finalUrl,
             'http_status' => $result->status,
             'content_type' => $result->contentType,
-            'observation_id' => $accepted->observation->id,
+            'observation_id' => $accepted->observationId,
             'observation_disposition' => $accepted->disposition->value,
-            'fetched_at' => $result->retrievedAt,
+            'payload_hash' => $accepted->payloadHash,
+            'byte_size' => $accepted->byteSize,
+            'extractor' => $accepted->extractor,
+            'extraction_version' => $accepted->extractionVersion,
+            'extraction_status' => $accepted->extractionStatus->value,
+            'extraction_error' => $accepted->extractionError,
+            'observed_at' => $accepted->observedAt,
+            'ingested_at' => $accepted->ingestedAt,
         ]);
     }
 
@@ -114,7 +120,7 @@ final readonly class Frontier
             'http_status' => $result->status,
             'failure' => $result->failure?->value,
             'failure_message' => $result->failureMessage,
-            'fetched_at' => $result->retrievedAt,
+            'observed_at' => $result->retrievedAt,
         ]);
     }
 

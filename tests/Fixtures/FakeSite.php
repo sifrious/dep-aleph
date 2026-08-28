@@ -8,12 +8,11 @@ use Sifrious\Aleph\Web\Fetcher;
 use Sifrious\Aleph\Web\FetchFailure;
 use Sifrious\Aleph\Web\FetchRequest;
 use Sifrious\Aleph\Web\FetchResult;
-use Sifrious\Aleph\Web\LinkSource;
 
-final class FakeSite implements Fetcher, LinkSource
+final class FakeSite implements Fetcher
 {
     /**
-     * @var array<string, array{status: int, contentType: string, body: string, links: list<string>}>
+     * @var array<string, array{status: int, contentType: string, body: string}>
      */
     private array $pages = [];
 
@@ -42,11 +41,14 @@ final class FakeSite implements Fetcher, LinkSource
         string $contentType = 'text/html; charset=utf-8',
         ?string $body = null,
     ): self {
+        $anchors = implode('', array_map(
+            fn (string $link): string => '<a href="'.htmlspecialchars($link, ENT_QUOTES).'">x</a>',
+            $links,
+        ));
         $this->pages[$url] = [
             'status' => $status,
             'contentType' => $contentType,
-            'body' => $body ?? "<html><body>{$url}</body></html>",
-            'links' => $links,
+            'body' => $body ?? "<html><body>{$url}{$anchors}</body></html>",
         ];
 
         return $this;
@@ -101,13 +103,5 @@ final class FakeSite implements Fetcher, LinkSource
             $page['body'],
             $chain,
         );
-    }
-
-    /**
-     * @return list<string>
-     */
-    public function linksFrom(FetchResult $result): array
-    {
-        return $this->pages[$result->finalUrl ?? '']['links'] ?? [];
     }
 }

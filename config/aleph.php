@@ -46,6 +46,11 @@ return [
 
             'query_parameters' => [],
 
+            'calendar_signals' => [
+                '*calendar',
+                '*calendar/*',
+            ],
+
             'limits' => [
                 'max_pages' => 200,
                 'max_depth' => 3,

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\DB;
 use Sifrious\Aleph\Ingestion\Capability;
 use Sifrious\Aleph\Ingestion\IngestionRuns;
+use Sifrious\Aleph\Web\AcceptedRetrieval;
 use Sifrious\Aleph\Web\CanonicalUrl;
 use Sifrious\Aleph\Web\DiscoveryOrigin;
 use Sifrious\Aleph\Web\FetchFailure;
@@ -14,6 +15,7 @@ use Sifrious\Aleph\Web\FrontierState;
 use Sifrious\Aleph\Web\SkipReason;
 use Sifrious\Aleph\Web\WebSource;
 use Sifrious\Funes\Value\AcceptedObservation;
+use Sifrious\Funes\Value\ExtractionResult;
 use Sifrious\Funes\Value\Observation;
 use Sifrious\Funes\Value\ObservationDisposition;
 
@@ -45,23 +47,36 @@ function enqueue(string $value, int $depth = 0, ?int $parentId = null): ?int
     );
 }
 
-function accepted(string $resource): AcceptedObservation
+function accepted(string $resource): AcceptedRetrieval
 {
-    return new AcceptedObservation(
-        new Observation(
-            '01K3N7KSS00000000000000000',
-            'web:test',
-            'Test District',
-            $resource,
-            new DateTimeImmutable('2026-08-26T12:00:00+00:00'),
-            new DateTimeImmutable('2026-08-26T12:00:00+00:00'),
-            '',
-            hash('sha256', ''),
-            'text/html',
-            [],
-            [],
+    $observed = new DateTimeImmutable('2026-08-26T12:00:00+00:00');
+
+    return AcceptedRetrieval::of(
+        new AcceptedObservation(
+            new Observation(
+                '01K3N7KSS00000000000000000',
+                'web:test',
+                'Test District',
+                $resource,
+                $observed,
+                $observed,
+                '',
+                hash('sha256', ''),
+                'text/html',
+                [],
+                [],
+            ),
+            ObservationDisposition::First,
         ),
-        ObservationDisposition::First,
+        new ExtractionResult(
+            '01K3N7KSS00000000000000001',
+            '01K3N7KSS00000000000000000',
+            'aleph.html',
+            '1',
+            ['classification' => 'html'],
+            null,
+            $observed,
+        ),
     );
 }
 
@@ -138,7 +153,7 @@ it('moves a claimed candidate to failed while preserving the failure', function 
 
     expect($row->failure)->toBe('timeout')
         ->and($row->failure_message)->toBe('Timed out after 10s.')
-        ->and($row->fetched_at)->not->toBeNull();
+        ->and($row->observed_at)->not->toBeNull();
 });
 
 it('returns candidates stranded in fetching back to pending', function (): void {

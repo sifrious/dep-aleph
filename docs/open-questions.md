@@ -9,11 +9,12 @@ Forcing a trailing slash in `UrlCanonicalizer` is wrong in general — it breaks
 identity uses the canonical final URI, but Aleph does not yet collapse two frontier entries that
 redirect to that same resource.
 
-## Q-002 — The `query_parameters` allowlist for AHSD is empty
+## Q-002 — The `query_parameters` allowlist for AHSD remains empty
 
-Every query parameter is currently dropped for the `ahsd` source. That is correct until we know which
-parameters address distinct resources. Populate it once ALEPH-009 has seen real pages — pagination
-and calendar range parameters are the likely candidates.
+Every query parameter is currently dropped for the `ahsd` source. ALEPH-009 confirmed that the
+Waverly PDF iframe identity does not need query parameters. Pagination and SchoolMessenger calendar
+range parameters remain the likely exceptions, but none has yet demonstrated stable resource
+identity sufficient to enter the allowlist.
 
 ## Q-003 — Percent-encoding is not normalized
 
@@ -43,3 +44,29 @@ will hold both even though Funes resolves both retrievals to final-URI identity.
 
 The crawl is single-process and sequential; its concurrency ceiling is one and the per-host delay is
 the rate control. Revisit only against a measured throughput need.
+
+## Q-008 — District PDFs are stored under a CDN identity
+
+Captured live: `https://ms.ahsd.org/UserFiles/Servers/Server_453577/File/…pdf` returns `301` to
+`https://cdnsm5-ss20.sharpschool.com/UserFiles/…pdf`, which serves `application/pdf`. Because Funes
+identity is the canonical final URL, every district PDF is stored under a `sharpschool.com` resource
+reference, and `Crawler::baseFor()` then treats that base as an external host.
+
+For PDFs this costs nothing — they yield no discoveries. It would matter if an HTML page redirected
+to the CDN, because discoveries would not be extracted from it. The inventory keeps both identities
+(`canonical_url` and `final_url`), so the divergence is queryable rather than hidden.
+
+Options are to allow the CDN hosts, to record the pre-redirect URL as the resource reference, or to
+leave it. None is justified by a measured failure yet. Related to Q-001 and Q-007.
+
+## Q-009 — The staleness probe loads payloads it does not need
+
+`InventoryReader` asks `ObservationStore::find()` whether a resource has any prior observation.
+`find()` hydrates the whole observation, payload included, to answer a question about existence and
+timing. At AHSD's 200-page bound this is not measurable, and most probes miss outright because a
+pending candidate has usually never been fetched.
+
+A payload-free summary read on `ObservationStore` would fix it, at the cost of widening another
+package's contract for one consumer. Revisit when an inventory is large enough for the cost to show
+up, not before.
+

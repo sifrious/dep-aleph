@@ -5,13 +5,13 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\DB;
 use Sifrious\Aleph\Tests\Fixtures\FakeSite;
 
-function totalsForLatestRun(): array
+function statsForLatestRun(): array
 {
     $run = DB::table('aleph_ingestion_runs')->orderByDesc('id')->first();
 
     expect($run)->not->toBeNull();
 
-    return json_decode((string) $run->totals, true, 512, JSON_THROW_ON_ERROR);
+    return json_decode((string) $run->stats, true, 512, JSON_THROW_ON_ERROR);
 }
 
 it('completes a single page fake crawl with a visible run summary', function (): void {
@@ -27,9 +27,10 @@ it('completes a single page fake crawl with a visible run summary', function ():
     expect(DB::table('aleph_ingestion_runs')->count())->toBe(1)
         ->and($run->capability)->toBe('web.crawl')
         ->and($run->status)->toBe('completed')
+        ->and($run->error)->toBeNull()
         ->and($run->finished_at)->not->toBeNull();
 
-    expect(totalsForLatestRun())
+    expect(statsForLatestRun())
         ->toMatchArray([
             'fetched' => 1,
             'failed' => 0,
@@ -70,7 +71,7 @@ it('stops at a page limit supplied on the command line', function (): void {
     $this->artisan('aleph:crawl', ['source' => 'test', '--max-pages' => '2'])
         ->assertSuccessful();
 
-    expect(totalsForLatestRun())
+    expect(statsForLatestRun())
         ->toMatchArray([
             'fetched' => 2,
             'remaining' => 2,
@@ -90,7 +91,7 @@ it('restricts a crawl to hosts named on the command line', function (): void {
     $this->artisan('aleph:crawl', ['source' => 'test', '--host' => ['hs.ahsd.test']])
         ->assertSuccessful();
 
-    expect(totalsForLatestRun())->toMatchArray(['fetched' => 1]);
+    expect(statsForLatestRun())->toMatchArray(['fetched' => 1]);
 
     expect(DB::table('aleph_frontier_candidates')->where('state', 'fetched')->value('canonical_url'))
         ->toBe('https://hs.ahsd.test/');
@@ -115,7 +116,7 @@ it('resumes an unfinished run with its original parameters and starts a new one 
         ->assertSuccessful();
 
     expect(DB::table('aleph_ingestion_runs')->count())->toBe(1)
-        ->and(totalsForLatestRun())->toMatchArray(['fetched' => 1, 'remaining' => 2, 'stopped_by' => 'page_limit']);
+        ->and(statsForLatestRun())->toMatchArray(['fetched' => 1, 'remaining' => 2, 'stopped_by' => 'page_limit']);
 
     $this->artisan('aleph:crawl', ['source' => 'test', '--fresh'])->assertSuccessful();
 

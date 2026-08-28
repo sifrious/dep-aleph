@@ -27,6 +27,14 @@ final readonly class HostPolicy
     }
 
     /**
+     * @return list<string>
+     */
+    public function allowed(): array
+    {
+        return $this->allowed;
+    }
+
+    /**
      * @param  list<string>  $hosts
      */
     public function restrictTo(array $hosts): self

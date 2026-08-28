@@ -17,7 +17,7 @@
         }
     ],
     "require": {
-        "php": "^8.3",
+        "php": "^8.4.1",
         "guzzlehttp/guzzle": "^7.9|^8.0",
         "illuminate/console": "^13.0",
         "illuminate/contracts": "^13.0",
@@ -25,7 +25,8 @@
         "illuminate/http": "^13.0",
         "illuminate/support": "^13.0",
         "psr/http-message": "^1.1|^2.0",
-        "sifrious/funes": "dev-main"
+        "sifrious/funes": "dev-main",
+        "smalot/pdfparser": "^2.12"
     },
     "require-dev": {
         "larastan/larastan": "^3.0",

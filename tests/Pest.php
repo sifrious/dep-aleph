@@ -9,7 +9,6 @@ use Sifrious\Aleph\Web\Fetcher;
 use Sifrious\Aleph\Web\FetchRequest;
 use Sifrious\Aleph\Web\FetchResult;
 use Sifrious\Aleph\Web\HttpMethod;
-use Sifrious\Aleph\Web\LinkSource;
 use Sifrious\Aleph\Web\UrlCanonicalizer;
 
 uses(TestCase::class, RefreshDatabase::class)->in('Feature');
@@ -29,7 +28,6 @@ function webSource(array $overrides = []): array
 function bindSite(FakeSite $site): FakeSite
 {
     app()->instance(Fetcher::class, $site);
-    app()->instance(LinkSource::class, $site);
 
     return $site;
 }

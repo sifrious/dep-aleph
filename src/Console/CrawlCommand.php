@@ -13,6 +13,7 @@ use Sifrious\Aleph\Ingestion\IngestionRun;
 use Sifrious\Aleph\Ingestion\IngestionRuns;
 use Sifrious\Aleph\Web\Crawler;
 use Sifrious\Aleph\Web\CrawlLimits;
+use Sifrious\Aleph\Web\CrawlParameters;
 use Sifrious\Aleph\Web\CrawlSummary;
 use Sifrious\Aleph\Web\FrontierFactory;
 use Sifrious\Aleph\Web\UnknownWebSource;
@@ -116,12 +117,12 @@ final class CrawlCommand extends Command
     private function resolveRun(IngestionRuns $runs, WebSource $source): array
     {
         if (! $this->option('fresh')) {
-            $existing = $runs->latestIncomplete($source->key, Capability::WebCrawl);
+            $existing = $runs->latestIncomplete($source->reference(), Capability::WebCrawl);
 
             if ($existing !== null) {
                 $this->components->info("Resuming unfinished run {$existing->id}.");
 
-                return [$runs->resume($existing), $this->sourceFor($source, $existing)];
+                return [$runs->resume($existing), CrawlParameters::fromRun($existing)->applyTo($source)];
             }
         }
 
@@ -134,32 +135,7 @@ final class CrawlCommand extends Command
 
     private function startRun(IngestionRuns $runs, WebSource $source): IngestionRun
     {
-        return $runs->start(
-            $source->key,
-            Capability::WebCrawl,
-            [
-                'limits' => $source->limits->toArray(),
-                'hosts' => $source->hosts->restrictions(),
-            ],
-        );
-    }
-
-    private function sourceFor(WebSource $source, IngestionRun $run): WebSource
-    {
-        $limits = $run->parameters['limits'] ?? null;
-        $hosts = $run->parameters['hosts'] ?? null;
-
-        if (! is_array($limits) || ! is_int($limits['max_pages'] ?? null) || ! is_int($limits['max_depth'] ?? null)) {
-            throw new InvalidArgumentException("Ingestion run [{$run->id}] has invalid crawl limits.");
-        }
-
-        if (! is_array($hosts) || array_filter($hosts, fn (mixed $host): bool => ! is_string($host)) !== []) {
-            throw new InvalidArgumentException("Ingestion run [{$run->id}] has invalid host restrictions.");
-        }
-
-        return $source
-            ->withLimits(new CrawlLimits($limits['max_pages'], $limits['max_depth']))
-            ->restrictedToHosts(array_values($hosts));
+        return $runs->start($source->reference(), Capability::WebCrawl, CrawlParameters::of($source)->toArray());
     }
 
     /**

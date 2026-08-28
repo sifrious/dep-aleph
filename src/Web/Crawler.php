@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Sifrious\Aleph\Web;
 
+use Sifrious\Aleph\Extraction\ExtractorSelector;
 use Sifrious\Aleph\Ingestion\IngestionRun;
 
 final readonly class Crawler
 {
     public function __construct(
         private Fetcher $fetcher,
-        private LinkSource $links,
+        private ExtractorSelector $extractors,
         private FunesObservationWriter $observations,
     ) {}
 
@@ -71,12 +72,13 @@ final readonly class Crawler
             }
 
             $base = $this->baseFor($canonicalizer, $result, $candidate);
+            $extraction = $this->extractors->extract($result);
             $observationDiscoveries = [];
 
             if ($result->isOk() && $source->hosts->allows($base->host)) {
-                foreach ($this->links->linksFrom($result) as $link) {
+                foreach ($extraction->discoveries as $discovery) {
                     $discovered++;
-                    $url = $canonicalizer->canonicalize($link, $base);
+                    $url = $canonicalizer->canonicalize($discovery->reference, $base);
 
                     if ($url === null) {
                         $unresolvable++;
@@ -84,14 +86,17 @@ final readonly class Crawler
                         continue;
                     }
 
-                    $observationDiscoveries[$url->value] = $url;
+                    $observationDiscoveries[$discovery->relationship->value."\0".$url->value] = new CanonicalDiscovery(
+                        $url,
+                        $discovery->relationship,
+                    );
                     $admitted = $this->admit(
                         $frontier,
                         $source,
                         $url,
-                        $link,
+                        $discovery->reference,
                         $candidate->depth + 1,
-                        DiscoveryOrigin::Link,
+                        DiscoveryOrigin::from($discovery->relationship->value),
                         $candidate->id,
                     );
 
@@ -107,6 +112,7 @@ final readonly class Crawler
                 $candidate,
                 $base,
                 $result,
+                $extraction,
                 array_values($observationDiscoveries),
             );
             $frontier->markFetched($candidate, $result, $accepted);

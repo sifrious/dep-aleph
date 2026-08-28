@@ -6,7 +6,7 @@ Decisions taken while implementing ALEPH-005 (bounded named crawl) and ALEPH-006
 ## D-001 — Capability and ingestion-run contracts stop at demonstrated behavior
 
 **Decision.** `Capability` currently admits only `web.crawl`. `IngestionRun` records source,
-capability, parameters, lifecycle, totals, and failure. Connector manifests, generic attempts, and
+capability, parameters, lifecycle, stats, and error. Connector manifests, generic attempts, and
 checkpoint contracts remain absent until another implemented capability requires them.
 
 **Rationale.** ALEPH-005 requires an explicit bounded ingestion run and operation identity. It does
@@ -73,7 +73,7 @@ cost and removal cost out of proportion to the work.
 A 404 or other 4xx yields allow-all.
 
 **Rationale.** ALEPH-006 asks for conservative behaviour. The refusal is visible: it surfaces as
-`robots_disallowed` in the run's failure totals rather than as a silent skip.
+`robots_disallowed` in the run's failure stats rather than as a silent skip.
 
 **Rejected.** Failing open on transport errors, which would crawl a host that never granted permission.
 
@@ -82,7 +82,7 @@ A 404 or other 4xx yields allow-all.
 **Decision.** `aleph_ingestion_runs.id` is a ULID; `aleph_frontier_candidates.id` is auto-increment.
 
 **Rationale.** Run ids are operator-visible and benefit from being sortable and opaque. Candidate
-ordering must be *provably* insertion-ordered, because deterministic totals depend on the claim order
+ordering must be *provably* insertion-ordered, because deterministic stats depend on the claim order
 `ORDER BY depth, id`. An auto-increment column makes that self-evident instead of resting on ULID
 monotonicity.
 
@@ -105,13 +105,13 @@ can never be fetched.
 **Rationale.** Funes is the canonical content store. Aleph retains only retrieval state, response
 metadata, the stable Funes observation reference, and its acceptance disposition.
 
-## D-011 — `NoLinks` is the default link source
+## D-011 — `NoLinks` was the pre-extraction default link source
 
-**Decision.** `LinkSource` binds to `NoLinks`, which discovers nothing.
+**Decision.** Before ALEPH-009, `LinkSource` bound to `NoLinks`, which discovered nothing. ALEPH-009 removed both contracts when the production HTML extractor became the only source of document discoveries.
 
-**Rationale.** Real HTML link extraction is ALEPH-009. Binding a no-op default means
-`aleph:crawl` works end to end today — it fetches the seeds and stops — instead of failing to
-resolve. That is an accurate reflection of where the tickets stand.
+**Rationale.** Before the extractor shipped, the no-op binding let `aleph:crawl` work end to end by
+fetching seeds and stopping instead of failing to resolve. Removing it now keeps discovery tied to
+the persisted versioned extraction that produced the provenance.
 
 ## D-012 — `retrieved()` and `isOk()` are separate questions
 
@@ -124,3 +124,280 @@ summary reports `fetched` and `unsuccessful` separately so an operator can see t
 
 **Rejected.** A single `succeeded()` in the style of Funes' `ExtractionResult`, which conflates the
 two and would have made 404 handling ambiguous.
+
+## D-013 — Content type selects one versioned mechanical extractor
+
+**Decision.** Normalized `Content-Type` selects `aleph.html:1`, `aleph.pdf:1`, or
+`aleph.unsupported:1`. Every retrieved observation records exactly one of those versioned outcomes
+through Funes before its frontier candidate becomes fetched.
+
+**Rationale.** Classification remains deterministic and replayable from preserved observations.
+Changing extraction behavior requires a new version rather than silently changing an existing
+result fingerprint.
+
+**Rejected.** Choosing from file extensions, which are absent from Google Drive artifact URLs and
+can disagree with the retrieved representation.
+
+## D-014 — Discovery type is part of provenance identity
+
+**Decision.** HTML anchors, iframes, and embeds produce `link`, `iframe`, and `embed` relationships.
+The relationship participates in the in-memory discovery key and the Funes uniqueness constraint,
+so one child URL may retain more than one relationship to the same parent observation.
+
+**Rationale.** An embedded calendar artifact is materially different from a navigational link, and
+the critical Waverly proof depends on querying that distinction from Funes.
+
+## D-015 — Embedded PDF text uses `smalot/pdfparser`
+
+**Decision.** `aleph.pdf:1` uses `smalot/pdfparser` behind the single PDF extractor call site. The
+dependency tax is recorded in `OWNED-DIFF.md`.
+
+**Rationale.** PHP and Laravel have no PDF text parser. Compressed streams, font encodings, and PDF
+object layouts make a small in-package parser unsafe, while shelling out would add an undeclared
+host-runtime dependency.
+
+**Revisit if.** Limited upstream maintenance creates unresolved correctness or security failures.
+
+## D-016 — Landing owns the master database vocabulary
+
+**Decision.** Landing remains the complete application schema and source of truth. Aleph appends
+prefixed operational tables and uses landing's established names wherever concepts overlap, including
+`stats` and `error` for ingestion-run outcomes.
+
+**Rationale.** Package installation must extend the master database without replacing landing-owned
+domain tables or introducing a second name for the same persisted concept.
+
+**Rejected.** Copying landing domain models into Aleph or retaining package-local synonyms that need
+translation at every database boundary.
+
+## D-017 — The landing ownership matrix settles shared column names
+
+**Decision.** Where Aleph names a concept that the master schema already names, the name comes from
+`landing-model-attribute-ownership.csv`. That matrix assigns `aleph/core` the ingestion-run concept
+with `id`, `source_reference`, `capability`, `status`, `parameters`, `stats`, `error`, `started_at`,
+and `finished_at`, and it assigns `funes/core` the observation concept with `observations.observed_at`,
+`observations.ingested_at`, `observations.payload_hash`, and `payloads.byte_size`. Extraction facts
+carried onto another table use landing's `extraction_status` and `extraction_error`.
+
+**Rationale.** D-016 states the principle; the matrix is the artifact that resolves it case by case.
+`aleph_ingestion_runs` already matched. `aleph_frontier_candidates` did not: `fetched_at` was a
+package-local synonym for the value Aleph passes to Funes as `observedAt`, so it is now `observed_at`,
+and the new columns are `payload_hash`, `byte_size`, and `ingested_at` rather than `hash`, `size`, or
+`accepted_at`.
+
+`fetched_at` and `extraction_failure` were package inventions with nothing in the master schema to
+match, so both were renamed toward names landing already carries: `observed_at` (`pr_snapshots`) and
+`extraction_error` (`attachments`). `extraction_version` extends the same `extraction_` prefix for a
+fact landing has no column for; a bare `version` would say nothing on a frontier row, and a bare
+`failure` already means the transport failure on that table.
+
+**Rejected.** Keeping `fetched_at` alongside a second `observed_at` column, which would have stored
+one instant under two names.
+
+## D-018 — Aleph records what the acceptance boundary returned
+
+**Decision.** `FunesObservationWriter::accept()` returns `AcceptedRetrieval`, and the frontier row
+stores the observation reference, disposition, payload hash, byte size, ingestion time, and the
+versioned extraction outcome that Funes handed back.
+
+**Rationale.** The inventory needs hashes, sizes, and extraction status per candidate. Reading them
+back out of Funes' tables would cross the boundary D-002 established; recomputing the hash in Aleph
+would create a second authority for the same value. Taking them from the returned value does neither.
+This follows the precedent already set by `final_url`, `http_status`, and `content_type`, which the
+frontier records about its own attempt even though Funes also holds them.
+
+**Rejected.** Extending `ObservationStore` with an inventory-shaped read, which would change another
+package's contract before a second consumer needs it.
+
+**Note.** D-010 is unaffected. A hash and a byte count are not a body, and no Aleph table gained a
+content column.
+
+## D-019 — Calendar-like is configured evidence, not vendor knowledge
+
+**Decision.** `calendar_signals` is per-source configuration matched against the canonical path. No
+SchoolMessenger URL shape is compiled into Aleph. The `ahsd` patterns are justified request by
+request in `docs/investigations/schoolmessenger.md`.
+
+**Rationale.** ALEPH-011 admits only captured working requests as evidence. Recalled vendor route
+conventions are not evidence, and the capture disproved one: AHSD calendar pages are readable slugs
+such as `/our_school/calendar`, not a platform module path. Configuration keeps the classification
+answerable to the next capture.
+
+**Rejected.** A `SchoolMessengerClassifier` in `src/`, which would freeze a guess into code and would
+need deleting the first time a district differed.
+
+## D-020 — A resource is calendar-like by path or by embedding
+
+**Decision.** `CalendarSignal::Path` marks a canonical path that matches a configured signal.
+`CalendarSignal::EmbeddedInCalendar` marks a resource discovered as an `iframe` or `embed` whose
+parent is calendar-like by path. Embedding is resolved one level; it does not chain.
+
+**Rationale.** The Waverly artifact is a Google Drive URL with nothing calendrical in it. It is a
+calendar artifact only because of the edge that reaches it, which is precisely the provenance
+ALEPH-009 records. One level is what the captured evidence shows and what the proof needs.
+
+## D-021 — Freshness separates this run from what is merely known
+
+**Decision.** Every inventory row is `current` (this run produced its observation), `stale` (Funes
+holds an observation for the canonical resource but this run did not produce it), or `unobserved`
+(no observation exists). HTTP and extraction columns always describe this run; observation columns
+describe the most recent content evidence, and `last_observed_at` says when that was.
+
+**Rationale.** A page-limited or interrupted run leaves candidates whose content is known but not
+current. Reporting them as empty rows would hide the distinction between "never seen" and "not seen
+this time", which is the distinction an operator is actually asking about.
+
+## D-022 — The inventory is deterministic by construction
+
+**Decision.** Column order is fixed by `InventoryResource::columns()`, rows are sorted in PHP by
+`strcmp` on the canonical URL, instants are rendered as UTC `Y-m-d\TH:i:s\Z`, and no generation
+timestamp is embedded. The same crawl state exports byte-identical JSON and CSV.
+
+**Rationale.** "Reproducible" has to be a testable property, not an intention. Sorting in PHP rather
+than in SQL removes the database collation from the answer, and omitting a generation timestamp is
+what lets two exports be diffed at all.
+
+**Rejected.** `fputcsv`, whose escape-character default is deprecated and whose behaviour has moved
+between PHP versions; the encoder is a dozen lines of RFC 4180.
+
+## D-023 — An empty response body is an empty document
+
+**Decision.** `aleph.html:1` returns an empty text extraction with zero references for a body-less
+response instead of throwing.
+
+**Rationale.** The inventory surfaced this: a 404 with no body was being recorded as
+`extraction_status = failed`, which claims the extractor broke when nothing was wrong with it.
+`DOMDocument::loadHTML('')` returns false for empty input, which is a quirk of that function rather
+than a parse error. Fixed in place rather than as `aleph.html:2` because no `aleph.html:1` result has
+ever been recorded outside this repository's tests; once a version has shipped, D-013 applies and a
+behaviour change requires a new version.
+
+## D-024 — One source reference, spelled the same in both packages
+
+**Decision.** `aleph_ingestion_runs.source_reference` stores the prefixed form `web:ahsd`, byte-identical
+to `funes_sources.reference`. `WebSource::reference()` is the only place the `web:` prefix is written.
+The CLI argument and the configuration key stay the bare `ahsd`.
+
+**Rationale.** The run row and the Funes source row describe the same source, so joining them should
+be an equality, not an equality plus a prefixing rule that lives in Aleph's code rather than in the
+schema. The prefix was already being interpolated at two call sites, so a second capability would
+have made `source_reference` ambiguous across connectors — `web:ahsd` and `github:sifrious/aleph` do
+not collide, `ahsd` and `sifrious/aleph` say nothing about which connector produced them.
+
+Landing offers no competing convention to match: its sync-run tables identify a source by foreign key,
+and its `source` columns hold bare kinds such as `disk`. Funes' `reference` is therefore the only
+existing string convention for this concept, and Aleph now matches it exactly.
+
+**Timing.** Free now. Neither `aleph_*` nor `funes_*` tables exist in landing's database yet, so no
+persisted row changes meaning. After installation this would be a data migration.
+
+**Rejected.** A `source` plus `source_reference` pair mirroring landing's `notes.source` /
+`notes.source_ref` shape. The ownership matrix assigns this concept a single `source_reference`, and
+landing's own instances of that pair are unused.
+
+## D-025 — An inventory refuses a run that belongs to another source
+
+**Decision.** `aleph:inventory <source> --run=<id>` fails when the run's `source_reference` is not the
+named source's. The run's crawl parameters are applied only after that check.
+
+**Rationale.** The inventory reads its bounds from two places: the run row supplies status, stats, and
+the recorded limits, while the configured source supplies seeds, allowed hosts, exclusions, and
+calendar signals. Nothing joined them, so a mismatched pair produced a document that contradicted
+itself — `source_reference: web:middle` beside `source_name: Waverly Elementary` — and, worse, judged
+every row's `external` flag against the wrong host policy, marking a source's own crawled homepage
+external. A report whose provenance columns disagree is worse than no report, because it is diffable
+and looks authoritative.
+
+The guard belongs on the `--run` path only. `latest()` already filters by source reference, so the
+default path cannot produce the mismatch.
+
+**Rejected.** Deriving the source from the run instead of the argument. The source key is the
+command's required argument and its configuration is what supplies calendar signals; silently
+inventorying a different source than the one named would trade a visible contradiction for an
+invisible one.
+
+## D-026 — Extraction status is a typed vocabulary
+
+**Decision.** `succeeded` and `failed` are `ExtractionStatus` cases rather than string literals.
+
+**Rationale.** The spelling was written in `AcceptedRetrieval` and matched in `Inventory::totals()`,
+two files apart, with nothing tying them together. The inventory's `extraction_errors` total would
+have silently reported zero if either side were respelled. Every other vocabulary Aleph persists —
+frontier state, skip reason, fetch failure, discovery origin, calendar signal, freshness — is already
+an enum; this was the one that was not.
+
+## D-027 — Connector capability is a separate vocabulary from ingestion-run capability
+
+**Decision.** `Connector\Capability` is a new enum of nine connector capabilities. The existing
+`Ingestion\Capability` (currently only `web.crawl`) stays as it is.
+
+**Rationale.** They answer different questions. `Ingestion\Capability` records *what kind of run
+this was* and is already persisted in `aleph_ingestion_runs.capability`. `Connector\Capability`
+records *what a connector can be asked to do*, and every case maps one-to-one onto an interface.
+Merging them would break that one-to-one mapping — `web.crawl` has no contract — and would
+migrate live data for no behavioural gain.
+
+**Rejected.** Adding nine cases to `Ingestion\Capability`. It reads tidier and is wrong: dispatch
+would then accept a capability with no interface behind it.
+
+**Follow-up.** When generic ingestion runs arrive (A38 and the run-model tickets), decide whether
+a run's capability should become a connector capability. Recorded, not absorbed.
+
+## D-028 — Capabilities are derived from interfaces, never declared
+
+**Decision.** `CapabilitySet::of($connector)` computes capabilities by testing `instanceof`
+against `Capability::contract()`. `ConnectorManifest::for($connector)` is built from that. A
+connector author cannot write a capability list.
+
+**Rationale.** The ticket requires that declared capabilities cannot silently drift from the
+interfaces actually implemented. Making the manifest derived rather than declared removes the
+possibility structurally, instead of policing it with a test. Adding a capability is one act —
+implement the interface.
+
+**Rejected.** A `capabilities(): array` method on the connector, or a static manifest array. Both
+create a second source of truth that a developer can forget to update.
+
+## D-029 — No `connector_capabilities` table
+
+**Decision.** MME-853 adds no persistence. Capability discovery is `ConnectorRegistry` plus
+`instanceof`, in memory.
+
+**Rationale.** The ticket asks whether Aleph actually needs persisted capability discovery *at
+this stage*. It does not. Capabilities are a property of deployed PHP classes: a table would be a
+cache of the code, invalidated by every deploy, and able to disagree with the running system —
+exactly the drift D-028 exists to prevent. Registered connectors are enumerable in microseconds.
+
+**Rejected.** Creating the table now "because the ticket mentions it". The ticket explicitly marks
+it optional and prefers behaviour in the package.
+
+**Revisit when.** Aleph needs to answer capability questions *across hosts* or *about connectors
+not loaded in the current process* — for example a status dashboard querying which deployments
+support incremental sync. At that point the table becomes a projection of package-owned truth,
+rebuilt on deploy, and must never be read as authoritative.
+
+## D-030 — Extraction and normalization are capabilities but not operations
+
+**Decision.** `Capability::isDispatchable()` is false for `content.extract`, `records.normalize`,
+and `agents.assist`. The dispatcher refuses them with `capability_not_dispatchable`.
+
+**Rationale.** Discovery, backfill, incremental sync, webhook consumption, download, and health
+check are things an operator or scheduler asks a connector to do. Extraction and normalization
+happen *inside* a run, on material the run already fetched. Letting the dispatcher start a
+"normalize run" would invent an operation with no meaningful source reference.
+
+**Rejected.** Treating all nine uniformly. It reads consistent and would let the UI offer a button
+that cannot do anything.
+
+## D-031 — `MechanicalExtractor` is retained, not replaced
+
+**Decision.** The existing `Extraction\MechanicalExtractor` seam is untouched. The new
+`Contracts\ExtractsContent` sits at the connector level and does not supersede it.
+
+**Rationale.** `MechanicalExtractor` is already a narrow, well-shaped contract
+(`format`/`name`/`version`/`extract`) specialised to `Web\FetchResult`, and the crawl pipeline
+depends on it. `ExtractsContent` answers a different question — whether a *connector* can extract
+from artifacts it produced. Replacing a working seam to make the naming symmetrical would be
+churn.
+
+**Follow-up.** If a second connector implements `ExtractsContent`, check whether the web
+extractors should be expressed through it. Not now.

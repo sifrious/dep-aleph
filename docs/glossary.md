@@ -21,8 +21,17 @@ references that canonicalize alike are the same resource.
 
 **Canonical hash** — sha256 of the canonical URL. The indexed identity (D-004).
 
-**Discovery origin** — `seed` or `link`. Preserved because FUNES-008 requires seeded and
-link-discovered resources to be distinguishable.
+**Discovery origin** — `seed`, `link`, `iframe`, or `embed`. Preserves how a resource entered the
+operational frontier.
+
+**Discovery relationship** — the typed Funes edge from one observed HTML resource to a canonical
+resource discovered through an anchor, iframe, or embed.
+
+**Mechanical extraction** — a deterministic, versioned derivation from preserved response bytes.
+Current classifications are HTML, PDF, and unsupported.
+
+**Extractor selector** — chooses `aleph.html:1`, `aleph.pdf:1`, or `aleph.unsupported:1` from the
+normalized response media type.
 
 **Skip reason** — why a candidate was recorded but never enqueued: `external_host`, `excluded`, or
 `depth_limit`.
@@ -42,3 +51,20 @@ its own frontier. Runs may be `running`, `interrupted`, or `completed`; `--fresh
 
 **Observation** *(Funes)* — the immutable content record of one retrieval. Aleph stores its stable
 reference and acceptance disposition but not its content (D-010).
+
+**Inventory** — a deterministic report of one ingestion run: its bounds, its totals, and one row per
+frontier candidate joined to what the Funes boundary returned. Derived on read; it stores nothing.
+
+**Crawl bounds** — the limits and policy a run actually applied, read back from the run's recorded
+parameters rather than from current configuration: page and depth limits, seeds, allowed hosts, host
+restrictions, exclusions, query allowlist, and calendar signals.
+
+**Freshness** — `current`, `stale`, or `unobserved`. Whether the row's content evidence came from
+this run, from an earlier one, or does not exist (D-021).
+
+**Calendar signal** — why a resource is calendar-like: `path` for a canonical path matching the
+source's configured signals, `embedded_in_calendar` for an `iframe` or `embed` child of a
+calendar-like page (D-020).
+
+**External embed** — an inventory row whose host is outside the source's allowed hosts and whose
+discovery origin is `iframe` or `embed`. Recorded with its parent, never retrieved.

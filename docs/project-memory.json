@@ -1,17 +1,38 @@
 {
     "facts": [
         "Aleph exposes one capability: web.crawl.",
-        "A web crawl is represented by an ingestion run with source, capability, parameters, lifecycle, totals, and failure state.",
+        "A web crawl is represented by an ingestion run with source, capability, parameters, lifecycle, stats, and error state.",
+        "Landing is the complete master application schema and source of truth for shared database vocabulary; Aleph only appends prefixed operational tables.",
         "The frontier is database-backed, breadth-first, and unique by run and canonical URL hash.",
         "Every retrieved response must be accepted by Funes before Aleph marks its candidate fetched.",
         "Aleph stores stable Funes observation references and first, unchanged, or changed dispositions but no response bodies.",
-        "External URLs are recorded as skipped frontier candidates and Funes discoveries but are never claimed for recursive retrieval.",
-        "The production LinkSource is NoLinks, so real HTTP crawling currently retrieves configured seeds only."
+        "External URLs are recorded as skipped frontier candidates and typed Funes discoveries but are never claimed for recursive retrieval.",
+        "Every retrieved observation is classified as HTML, PDF, or unsupported and receives one versioned Funes extraction outcome before its frontier candidate becomes fetched.",
+        "HTML extraction records text and link, iframe, and embed discovery relationships.",
+        "PDF response bytes remain the immutable Funes payload while aleph.pdf:1 records text from the embedded text layer.",
+        "The Waverly calendar page resolves through Funes discovery provenance to its external Google Drive PDF iframe without requesting the external resource.",
+        "The landing model-attribute ownership matrix assigns aleph/core the ingestion-run concept with id, source_reference, capability, status, parameters, stats, error, started_at, and finished_at, and funes/core the observation concept with observed_at, ingested_at, payload_hash, and byte_size; extraction facts carried onto another table use extraction_status and extraction_error.",
+        "The frontier records what the Funes boundary returned: observation reference, disposition, payload hash, byte size, ingestion time, and the versioned extraction outcome.",
+        "An inventory is a deterministic report of one ingestion run, derived on read and stored nowhere.",
+        "Every inventory row is current, stale, or unobserved, and last_observed_at says when its content evidence was taken.",
+        "AHSD runs SchoolMessenger Presence, confirmed from the captured district page footer.",
+        "AHSD calendar pages render a client-side component and carry no event data in the served HTML.",
+        "ahsd.org robots.txt disallows /Search/, /WebApi/, /WebServices/, /portal/svc/, and the StaffDirectory, WorkspaceCalendar, and CalendarPicker asmx services.",
+        "No captured working request returns SchoolMessenger calendar event data, and every path such a request would occupy is robots-disallowed.",
+        "AHSD calendar paths are readable slugs such as /our_school/calendar, not a platform module path.",
+        "One district calendar artifact on Google Drive is iframed from four allowed-host homepages, so a single external resource holds four discovery parents.",
+        "District PDFs live under /UserFiles/Servers/Server_<id>/File/ and 301 to cdnsm{n}-ss20.sharpschool.com, so their Funes identity is a CDN URL.",
+        "aleph.pdf:1 extracted 832 characters from a captured 84,401-byte AHSD PDF.",
+        "sa.ahsd.org and nr.ahsd.org are allowed by *.ahsd.org but absent from the seeds, so they enter the frontier only by discovery.",
+        "aleph_ingestion_runs.source_reference stores the prefixed web:ahsd form, byte-identical to funes_sources.reference; WebSource::reference() is the only place the prefix is written.",
+        "Neither aleph_ nor funes_ tables exist in landing's database yet, so no persisted row changes meaning."
     ],
     "assumptions": [
         "A sequential concurrency ceiling of one is sufficient for the bounded AHSD crawl.",
         "Configured source keys remain stable Funes source references when prefixed with web:.",
-        "The configured query-parameter allowlist defines URL identity for each web source."
+        "The configured query-parameter allowlist defines URL identity for each web source.",
+        "Every configured calendar signal traces to a captured working request and is revisited when the captures change.",
+        "SchoolMessenger calendar event data is out of reach by policy rather than merely unbuilt."
     ],
     "decisions": [
         {
@@ -29,34 +50,145 @@
         {
             "decision": "Record external URLs in both operational frontier evidence and Funes discovery provenance.",
             "rationale": "Their existence and parent relationship matter even though they are outside the recursive crawl boundary."
+        },
+        {
+            "decision": "Select one versioned extractor from the normalized response media type.",
+            "rationale": "Classification and derivation remain deterministic, queryable, and replayable against preserved bytes."
+        },
+        {
+            "decision": "Preserve link, iframe, and embed as distinct discovery relationships.",
+            "rationale": "How an artifact is connected to its parent is part of the provenance proof."
+        },
+        {
+            "decision": "Use smalot/pdfparser only inside aleph.pdf:1.",
+            "rationale": "Reliable PDF text extraction exceeds the safe scope of an in-package parser and the single call site bounds removal cost."
+        },
+        {
+            "decision": "Use landing's names for database concepts shared with Aleph.",
+            "rationale": "The master schema must retain every landing table and column while package migrations add only new prefixed tables; ingestion-run outcomes therefore use stats and error."
+        },
+        {
+            "decision": "Take shared column names from the landing model-attribute ownership matrix.",
+            "rationale": "D-016 states the principle and the matrix resolves it case by case; fetched_at was a package-local synonym for observed_at and the new columns are payload_hash, byte_size, and ingested_at."
+        },
+        {
+            "decision": "Record on the frontier row what the Funes acceptance boundary returned rather than reading Funes tables or recomputing hashes.",
+            "rationale": "The inventory needs hashes, sizes, and extraction status without crossing the boundary D-002 established or creating a second authority for the same value."
+        },
+        {
+            "decision": "Configure calendar-like classification per source instead of compiling vendor URL shapes into Aleph.",
+            "rationale": "ALEPH-011 admits only captured working requests as evidence, and the capture disproved the recalled platform route convention."
+        },
+        {
+            "decision": "Mark a resource calendar-like by path or by one level of iframe or embed parentage.",
+            "rationale": "The Waverly artifact is a Google Drive URL that is calendrical only because of the edge reaching it."
+        },
+        {
+            "decision": "Separate current, stale, and unobserved rows in the inventory.",
+            "rationale": "A page-limited or interrupted run leaves candidates whose content is known but not current, which is the distinction an operator is asking about."
+        },
+        {
+            "decision": "Make the inventory deterministic by fixed columns, PHP-side canonical-URL ordering, UTC instants, and no generation timestamp.",
+            "rationale": "Reproducibility must be a testable property, and two exports must be diffable."
+        },
+        {
+            "decision": "Treat an empty response body as an empty document in aleph.html:1.",
+            "rationale": "A body-less 404 was recorded as a failed extraction, which claims the extractor broke; the version has never shipped, so it is fixed in place rather than as aleph.html:2."
+        },
+        {
+            "decision": "Store the prefixed source reference web:ahsd in aleph_ingestion_runs.source_reference so it matches funes_sources.reference exactly.",
+            "rationale": "Joining an Aleph run to its Funes source should be an equality, not an equality plus a prefixing rule living in application code; landing offers no competing convention because its sync-run tables identify a source by foreign key."
         }
     ],
     "open_questions": [
         "Should frontier identity collapse distinct requested URLs that resolve to the same canonical final URL?",
-        "Which AHSD query parameters identify distinct resources once HTML extraction exists?",
-        "When does measured crawl throughput justify concurrency greater than one?"
+        "Which AHSD query parameters demonstrate stable resource identity strongly enough to enter the allowlist?",
+        "When does measured crawl throughput justify concurrency greater than one?",
+        "Should district PDFs keep the CDN final URL as their Funes identity, or should the pre-redirect allowed-host URL be recorded instead?",
+        "When does inventory size justify a payload-free existence read on ObservationStore instead of find()?"
     ],
     "constraints": [
         "Only public GET and HEAD retrievals are permitted.",
         "Page count, depth, timeouts, redirects, response size, retries, and host rate are bounded.",
         "External URLs must never be recursively crawled.",
         "Aleph must not become a second canonical content store.",
-        "A run cannot complete while required Funes acceptance has failed."
+        "A run cannot complete while required Funes acceptance has failed.",
+        "SchoolMessenger may be investigated only through captured working requests; no endpoint may be constructed from identifiers found in markup.",
+        "The inventory derives on read and adds no store.",
+        "The same crawl state must export byte-identical JSON and CSV.",
+        "Package tables may add columns, but may not introduce a name the master schema already spells differently.",
+        "An inventory may only be produced for a run belonging to the named source."
     ],
     "glossary": {
         "capability": "An operation Aleph can execute; currently only web.crawl.",
         "ingestion_run": "A bounded execution of one capability for one source.",
         "frontier": "The retained operational set of pending, fetching, fetched, failed, and skipped canonical URLs.",
         "observation": "An immutable Funes content record created or reused for a retrieved response.",
-        "disposition": "Funes' first, unchanged, or changed classification for accepted content."
+        "disposition": "Funes' first, unchanged, or changed classification for accepted content.",
+        "mechanical_extraction": "A versioned HTML, PDF, or unsupported derivation recorded against one immutable Funes observation.",
+        "discovery_relationship": "A link, iframe, or embed edge from an observed parent resource to a canonical discovered resource.",
+        "inventory": "A deterministic report of one ingestion run: bounds, totals, and one row per frontier candidate joined to what Funes returned.",
+        "crawl_bounds": "The limits and policy a run actually applied, read back from its recorded parameters.",
+        "freshness": "Whether a row's content evidence is current, stale, or unobserved.",
+        "calendar_signal": "Why a resource is calendar-like: path or embedded_in_calendar.",
+        "external_embed": "An inventory row outside the allowed hosts whose discovery origin is iframe or embed.",
+        "source_reference": "The prefixed identity of a source, web:<key>, spelled identically in aleph_ingestion_runs and funes_sources.",
+        "extraction_status": "The typed outcome of one mechanical extraction: succeeded or failed."
     },
     "features": {
-        "implemented": ["ALEPH-001 ingestion-run and web.crawl capability subset", "ALEPH-005", "ALEPH-006", "ALEPH-007"],
-        "not_implemented": ["connector manifests", "generic checkpoints", "HTML link extraction", "resource extraction", "concurrent fetching"]
+        "implemented": [
+            "ALEPH-001 ingestion-run and web.crawl capability subset",
+            "ALEPH-005",
+            "ALEPH-006",
+            "ALEPH-007",
+            "ALEPH-008",
+            "ALEPH-009",
+            "ALEPH-010",
+            "ALEPH-011",
+            "ALEPH-012"
+        ],
+        "not_implemented": [
+            "connector manifests",
+            "generic checkpoints",
+            "provider-specific calendar transport",
+            "OCR",
+            "concurrent fetching",
+            "script execution"
+        ]
     },
     "workflows": {
-        "crawl": ["resolve configured source", "start or resume ingestion run", "seed frontier", "claim one candidate", "fetch within HTTP policy", "canonicalize and record discoveries", "accept retrieved response through Funes", "record observation reference and disposition", "complete with deterministic totals"],
-        "resume_submission_failure": ["interrupt run", "retain candidate in fetching", "resume same run", "release fetching candidate to pending", "repeat idempotent fetch and Funes acceptance", "complete only after acceptance"]
+        "crawl": [
+            "resolve configured source",
+            "start or resume ingestion run",
+            "seed frontier",
+            "claim one candidate",
+            "fetch within HTTP policy",
+            "classify response and select versioned extractor",
+            "extract text and typed discoveries",
+            "canonicalize discoveries and record allowed or skipped frontier evidence",
+            "accept raw response bytes and typed discoveries through Funes",
+            "record versioned extraction outcome",
+            "record observation reference and disposition",
+            "complete with deterministic stats"
+        ],
+        "resume_submission_failure": [
+            "interrupt run",
+            "retain candidate in fetching",
+            "resume same run",
+            "release fetching candidate to pending",
+            "repeat idempotent fetch and Funes acceptance",
+            "complete only after acceptance"
+        ],
+        "inventory": [
+            "resolve configured source",
+            "resolve the named or latest ingestion run",
+            "apply the crawl parameters the run recorded",
+            "read every frontier candidate with its parent",
+            "classify calendar-like resources by path then by embedding",
+            "probe Funes for prior observations of candidates this run did not retrieve",
+            "sort by canonical url",
+            "encode deterministic json and csv"
+        ]
     },
     "content_opportunities": [
         {
@@ -68,6 +200,26 @@
             "audience": "backend application developers",
             "skill_level": "intermediate",
             "hook": "A page is not fetched until the history boundary says it is."
+        },
+        {
+            "format": "short video",
+            "user_problem": "An external embedded artifact matters, but crawling its host would violate scope.",
+            "concept": "Queryable provenance without recursive retrieval",
+            "technology": "DOM extraction, canonical URLs, typed Funes discovery relationships",
+            "project_context": "Waverly calendar page to external Google Drive PDF",
+            "audience": "data ingestion developers",
+            "skill_level": "intermediate",
+            "hook": "Record the edge, skip the request, keep the proof."
+        },
+        {
+            "format": "post",
+            "user_problem": "An investigation of a third-party platform turns into confident recall dressed as evidence.",
+            "concept": "Captured-request-only investigation, including the negative result",
+            "technology": "robots.txt policy, client-rendered components, provenance records",
+            "project_context": "Aleph investigating SchoolMessenger Presence for AHSD",
+            "audience": "data ingestion developers",
+            "skill_level": "intermediate",
+            "hook": "The capture disproved what I remembered, and the endpoint I could have guessed was disallowed anyway."
         }
     ]
 }

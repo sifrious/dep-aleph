@@ -6,8 +6,6 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
-use Sifrious\Aleph\Tests\Fixtures\HrefLinks;
-use Sifrious\Aleph\Web\LinkSource;
 
 function page(string ...$hrefs)
 {
@@ -16,13 +14,13 @@ function page(string ...$hrefs)
     return Http::response("<html><body>{$body}</body></html>", 200, ['Content-Type' => 'text/html']);
 }
 
-function crawlTotals(array $options = []): array
+function crawlStats(array $options = []): array
 {
     test()->artisan('aleph:crawl', array_replace(['source' => 'ahsd'], $options))->assertSuccessful();
 
     $run = DB::table('aleph_ingestion_runs')->orderByDesc('id')->first();
 
-    return json_decode((string) $run->totals, true, 512, JSON_THROW_ON_ERROR);
+    return json_decode((string) $run->stats, true, 512, JSON_THROW_ON_ERROR);
 }
 
 beforeEach(function (): void {
@@ -33,7 +31,6 @@ beforeEach(function (): void {
         'limits' => ['max_pages' => 50, 'max_depth' => 2],
     ]));
 
-    app()->instance(LinkSource::class, new HrefLinks);
 });
 
 it('crawls a small site over http and reports what happened', function (): void {
@@ -46,9 +43,9 @@ it('crawls a small site over http and reports what happened', function (): void 
         'https://ahsd.test/broken' => fn () => throw new ConnectionException('cURL error 7: Failed to connect'),
     ]);
 
-    $totals = crawlTotals();
+    $stats = crawlStats();
 
-    expect($totals)->toMatchArray([
+    expect($stats)->toMatchArray([
         'fetched' => 4,
         'unsuccessful' => 1,
         'failed' => 2,
@@ -56,7 +53,7 @@ it('crawls a small site over http and reports what happened', function (): void 
         'remaining' => 0,
     ]);
 
-    expect($totals['skipped_by_reason'])->toBe(['external_host' => 1]);
+    expect($stats['skipped_by_reason'])->toBe(['external_host' => 1]);
 });
 
 it('records a robots refusal as failure evidence without stopping the crawl', function (): void {
@@ -66,7 +63,7 @@ it('records a robots refusal as failure evidence without stopping the crawl', fu
         'https://ahsd.test/news' => page(),
     ]);
 
-    crawlTotals();
+    crawlStats();
 
     $refused = DB::table('aleph_frontier_candidates')
         ->where('canonical_url', 'https://ahsd.test/private/secret')
@@ -86,7 +83,7 @@ it('never issues a request outside the allowed hosts', function (): void {
         'https://ms.ahsd.test/' => page(),
     ]);
 
-    crawlTotals();
+    crawlStats();
 
     Http::assertNotSent(fn (Request $request): bool => str_contains($request->url(), 'facebook.test'));
     Http::assertSent(fn (Request $request): bool => $request->url() === 'https://ms.ahsd.test/');
@@ -99,9 +96,9 @@ it('stops requesting once the page limit is reached', function (): void {
         '*' => page(),
     ]);
 
-    $totals = crawlTotals(['--max-pages' => '2']);
+    $stats = crawlStats(['--max-pages' => '2']);
 
-    expect($totals)->toMatchArray(['fetched' => 2, 'stopped_by' => 'page_limit']);
+    expect($stats)->toMatchArray(['fetched' => 2, 'stopped_by' => 'page_limit']);
 
     $pageRequests = collect(Http::recorded())
         ->reject(fn (array $pair): bool => str_ends_with($pair[0]->url(), '/robots.txt'))
@@ -119,9 +116,9 @@ it('abandons an oversized response without failing the run', function (): void {
         'https://ahsd.test/small' => page(),
     ]);
 
-    $totals = crawlTotals();
+    $stats = crawlStats();
 
-    expect($totals)->toMatchArray(['fetched' => 2, 'failed' => 1, 'stopped_by' => 'frontier_exhausted']);
+    expect($stats)->toMatchArray(['fetched' => 2, 'failed' => 1, 'stopped_by' => 'frontier_exhausted']);
 
     expect(DB::table('aleph_frontier_candidates')->where('canonical_url', 'https://ahsd.test/huge')->value('failure'))
         ->toBe('too_large');

@@ -9,8 +9,14 @@ use Sifrious\Funes\Persistence\ObservationStore;
 
 function persistenceSite(string $root = '<html>first</html>'): FakeSite
 {
+    $body = str_replace(
+        '</html>',
+        '<a href="/inside">inside</a><iframe src="https://external.test/embed"></iframe></html>',
+        $root,
+    );
+
     return (new FakeSite)
-        ->page('https://ahsd.test/', ['/inside', 'https://external.test/embed'], body: $root)
+        ->page('https://ahsd.test/', body: $body)
         ->page('https://ahsd.test/inside', body: '<html>inside</html>');
 }
 
@@ -32,7 +38,7 @@ it('persists retrieved content and discovery provenance exclusively through Fune
 
     expect(DB::table('funes_observations')->count())->toBe(2)
         ->and($root->observation_disposition)->toBe('first')
-        ->and($observation?->payload)->toBe('<html>first</html>')
+        ->and($observation?->payload)->toBe('<html>first<a href="/inside">inside</a><iframe src="https://external.test/embed"></iframe></html>')
         ->and($observation?->metadata)->toMatchArray([
             'http_status' => 200,
             'requested_url' => 'https://ahsd.test/',
@@ -42,6 +48,7 @@ it('persists retrieved content and discovery provenance exclusively through Fune
         ->and($observation?->discoveries)->toHaveCount(2)
         ->and($externalProvenance)->toHaveCount(1)
         ->and($externalProvenance[0]->parentResourceReference)->toBe('https://ahsd.test/')
+        ->and($externalProvenance[0]->relationship)->toBe('iframe')
         ->and($external->state)->toBe('skipped')
         ->and(DB::table('funes_resources')->where('canonical_reference', 'https://external.test/embed')->exists())->toBeTrue()
         ->and($site->requested)->not->toContain('https://external.test/embed');

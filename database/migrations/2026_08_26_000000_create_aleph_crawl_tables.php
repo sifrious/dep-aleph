@@ -16,8 +16,8 @@ return new class extends Migration
             $table->string('capability');
             $table->string('status');
             $table->json('parameters');
-            $table->json('totals')->nullable();
-            $table->text('failure')->nullable();
+            $table->json('stats')->nullable();
+            $table->text('error')->nullable();
             $table->timestampTz('started_at');
             $table->timestampTz('finished_at')->nullable();
             $table->index(['source_reference', 'capability', 'status']);
@@ -42,7 +42,14 @@ return new class extends Migration
             $table->text('failure_message')->nullable();
             $table->ulid('observation_id')->nullable();
             $table->string('observation_disposition')->nullable();
-            $table->timestampTz('fetched_at')->nullable();
+            $table->char('payload_hash', 64)->nullable();
+            $table->unsignedBigInteger('byte_size')->nullable();
+            $table->string('extractor')->nullable();
+            $table->string('extraction_version')->nullable();
+            $table->string('extraction_status')->nullable();
+            $table->text('extraction_error')->nullable();
+            $table->timestampTz('observed_at')->nullable();
+            $table->timestampTz('ingested_at')->nullable();
             $table->timestampTz('created_at');
             $table->unique(['run_id', 'canonical_hash']);
             $table->index(['run_id', 'state', 'depth', 'id']);

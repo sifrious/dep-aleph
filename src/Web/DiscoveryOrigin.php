@@ -8,4 +8,6 @@ enum DiscoveryOrigin: string
 {
     case Seed = 'seed';
     case Link = 'link';
+    case Iframe = 'iframe';
+    case Embed = 'embed';
 }
