@@ -399,7 +399,8 @@
             "MME-1105 SlackSyncRun migration adapter and Slack run projection",
             "MME-824 multi-workspace Slack polling, Events API, checkpoint, Funes, and attachment handoff",
             "MME-1236 Telegram F28 communication ingestion and accepted-through checkpoints",
-            "MME-1237 SMS and MMS F28 ingestion with source-address identity"
+            "MME-1237 SMS and MMS F28 ingestion with source-address identity",
+            "MME-1238 Discord F28 ingestion with gateway replay convergence"
         ],
         "not_implemented": [
             "connector manifests",
@@ -1079,6 +1080,16 @@
             "audience": "backend and data-platform developers",
             "skill_level": "intermediate",
             "hook": "A phone number is evidence, not a person."
+        },
+        {
+            "format": "post",
+            "user_problem": "A Discord importer flattens thread and deletion evidence into message text or absence.",
+            "concept": "Reconstructable provider structure inside a neutral communication contract",
+            "technology": "Discord gateway sequences, F28 provider extensions, Funes acceptance, Digory references",
+            "project_context": "Aleph MME-1238 Discord ingestion",
+            "audience": "backend and integration developers",
+            "skill_level": "intermediate",
+            "hook": "A deleted channel is still a historical event."
         }
     ]
 }

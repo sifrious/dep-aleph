@@ -1277,3 +1277,20 @@ immutable history.
 delivery/read state, original and normalized addresses, and MMS media references without identity
 inference. Duplicate collector rows converge by source/message/revision identity. Live collectors,
 credential storage, outbound delivery, and person resolution remain outside Aleph.
+
+## D-087 — Discord event structure remains reconstructable inside F28
+
+**Decision.** Discord gateway/API events normalize to F28 while retaining guild, channel, thread,
+message, author, bot, webhook, reply, reaction, mention, embed, attachment, event, and revision
+identities in source-backed fields and reconciliation metadata. Deleted and unavailable evidence is
+submitted as explicit lifecycle state. Gateway sequence or API cursors advance only after acceptance.
+
+**Rationale.** Flattening a thread into message text loses the server structure needed to reconstruct
+the conversation. Discord SDK objects and credentials are transport concerns, while silently removing
+a deleted channel or message creates a false historical gap. Gateway/API overlap should converge on
+provider event and revision identity rather than transport execution.
+
+**Consequence.** Replayed events remain idempotent, bounded sync resumes from accepted state, and bot
+or webhook authors stay distinguishable from people without identity resolution. Attachment metadata
+points to Digory without copying media. Bot setup, permission management, credentials, provider
+clients, and UI remain consuming-host responsibilities.

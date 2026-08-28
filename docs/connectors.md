@@ -205,6 +205,13 @@ attachments. It deliberately emits no person identity. MMS media uses stable
 `digory:sms-attachment` references; carrier credentials and backup encryption secrets stay behind
 the registered source boundary.
 
+`DiscordMessageAdapter` maps gateway and API records while retaining guild, channel, thread,
+message, event, author, bot, webhook, reply, reaction, mention, embed, and attachment evidence.
+Edits, deletes, and unavailable channels or threads become explicit F28 changes. Gateway sequence or
+API cursors use the shared acceptance-gated checkpoint. Attachments use stable
+`digory:discord-attachment` references; bot/OAuth credentials and Discord SDK values remain behind
+the source boundary.
+
 ## Fakes
 
 Composable doubles live in `Sifrious\Aleph\Testing\Fakes` so orchestration tests need no real

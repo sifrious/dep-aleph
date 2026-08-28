@@ -265,3 +265,6 @@ provenance when Aleph cannot yet interpret its message-specific content.
 
 **SMS source identity** — a stable identity derived from the exact provider or device address; it
 retains original and normalized forms but makes no claim about the person controlling the address.
+
+**Unavailable communication object** — explicit source evidence that a provider channel, thread, or
+message no longer exposes content; absence is retained as lifecycle state instead of a missing row.
