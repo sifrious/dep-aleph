@@ -201,3 +201,7 @@ and backoff without owning repository history.
 
 **Repository watch trigger** — one provider-neutral change identity claimed within a repository watch.
 Its uniqueness coalesces webhook and poll observations before duplicate ingestion work is launched.
+
+**Repository watch signal** — a provider-neutral poll, webhook, or reconciliation observation naming
+one repository ref and head. The watch/ref/head tuple, rather than its transport delivery ID, defines
+the incremental-run identity.

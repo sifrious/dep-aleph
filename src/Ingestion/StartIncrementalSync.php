@@ -68,7 +68,7 @@ final readonly class StartIncrementalSync
             connectorId: $installation->connectorId,
             sourceInstallationId: $installation->id,
             idempotencyKey: $key,
-            trigger: IngestionTrigger::Manual,
+            trigger: $request->trigger,
             requestedBy: $request->authorization->actorReference,
             authorizationDecision: $request->authorization->decisionReference,
         );

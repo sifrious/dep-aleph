@@ -1076,3 +1076,22 @@ GitHub SDK, commit, pull-request, or file objects across the package seam. Disab
 watches are not due. An error remains explicit after backoff expires so a retry can be selected. A
 successful pass clears failure state, advances its operational checkpoint, and schedules the next due
 time. Scheduler dispatch and application UI remain outside this model.
+
+## D-076 — Repository change signals converge beneath incremental-run identity
+
+**Decision.** Host polling, webhook, and reconciliation adapters emit a repository ref/head signal.
+Aleph validates watch enablement, backoff, and ref policy, then derives one trigger identity from the
+watch, ref, and head. That identity starts the existing incremental-sync workflow against the watch's
+source stream and accepted checkpoint. Poll and reconciliation signals request a full reconciliation;
+webhooks request prompt incremental work. A poll-only watch uses high-water semantics, while webhook
+and hybrid watches declare webhook strategy and therefore require periodic reconciliation.
+
+**Rationale.** A separate watch job lifecycle would duplicate queue, retry, checkpoint, health, and
+run behavior. Delivery IDs cannot coalesce polling with webhooks, but repository ref/head identity can.
+Advancing the watch head before the ingestion checkpoint succeeds would hide failed work.
+
+**Consequence.** Webhook-only and polling-only changes launch promptly, overlap and debounce reuse one
+run and queued attempt, and a later poll repairs a missed webhook. A changed head launches even when
+history was force-pushed; an unchanged head launches nothing. Queue or checkpoint-launch failure keeps
+the old head/checkpoint and records retryable watch error/backoff. Host schedulers and webhook routes
+only translate external events into this contract.

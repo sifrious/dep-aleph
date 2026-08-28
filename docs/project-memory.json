@@ -45,7 +45,8 @@
         "Historical backfills require formatted range bounds, deterministic partitions, explicit rate/work budgets, cumulative progress, checkpoints, and all-partitions-complete termination.",
         "Incremental streams declare cursor, high-water, webhook, hash, or reconcile strategy; only Funes-accepted material changes advance checkpoints, while unchanged polls accept zero changes.",
         "GitHub polling and verified webhooks submit canonical node revisions through one history identity; GraphQL cursors advance after Funes acceptance, webhook deliveries are encrypted and replayable, and delivery identity is isolated by source installation.",
-        "Repository watches retain only portable orchestration state and coalesce duplicate poll/webhook triggers; repository, commit, pull-request, and file history remains outside Aleph watch storage."
+        "Repository watches retain only portable orchestration state and coalesce duplicate poll/webhook triggers; repository, commit, pull-request, and file history remains outside Aleph watch storage.",
+        "Repository poll, webhook, and reconciliation signals converge on watch/ref/head identity and launch the existing checkpointed incremental workflow; watch head state does not advance during launch."
     ],
     "assumptions": [
         "A sequential concurrency ceiling of one is sufficient for the bounded AHSD crawl.",
@@ -213,6 +214,10 @@
         {
             "decision": "Model repository watches as portable orchestration state with per-watch trigger coalescing.",
             "rationale": "Cadence, checkpoint, enablement, due time, error, and backoff decide when ingestion runs, while provider history belongs in Funes and transport-specific payloads belong behind adapters."
+        },
+        {
+            "decision": "Route repository watch signals through existing incremental-run identity using watch, ref, and head.",
+            "rationale": "This coalesces polling and webhooks without duplicating lifecycle machinery, lets polling repair missed webhooks, and prevents a watch head from advancing before accepted checkpoint completion."
         }
     ],
     "open_questions": [
@@ -292,6 +297,7 @@
         "github_webhook_delivery": "A signature-verified encrypted payload unique by source installation and delivery ID, retaining accepted history references for replay.",
         "repository_watch": "Portable poll, webhook, or hybrid orchestration state for one installation and stable repository reference.",
         "repository_watch_trigger": "A stable per-watch change identity that coalesces duplicate provider observations before work is launched.",
+        "repository_watch_signal": "A provider-neutral poll, webhook, or reconciliation observation naming one repository ref and head.",
         "domain_ingestion_run": "A DNS-specific projection that adds stable account/domain scope and provider reconciliation references to the shared ingestion run.",
         "manual_launch": "An authorized idempotent request that persists a pending run before host dispatch.",
         "authorization_decision_reference": "A stable host-issued reference to the evaluated decision that allowed a manual run."
@@ -327,7 +333,8 @@
             "MME-815 SHA-addressed Git repository and history ingestion",
             "MME-954 GitHubSyncRun migration adapter and GitHub run projection",
             "MME-816 GitHub activity backfill, incremental polling, and verified webhook ingestion",
-            "MME-1069 deterministic RepoWatch migration and provider-neutral watch state"
+            "MME-1069 deterministic RepoWatch migration and provider-neutral watch state",
+            "MME-831 idempotent repository-watch triggering across polling, webhooks, and reconciliation"
         ],
         "not_implemented": [
             "connector manifests",
@@ -559,6 +566,17 @@
             "query only enabled due watches whose backoff has elapsed",
             "record success or failure without discarding prior checkpoint state",
             "replay migration without duplication and retain Landing persistence through reconciliation"
+        ],
+        "repository_watch_triggering": [
+            "receive one poll, webhook, or reconciliation ref/head signal from a host adapter",
+            "reject a disabled or backed-off watch and a ref outside its portable policy",
+            "return unchanged without work when the accepted watch head already matches",
+            "resolve or create the repository source stream with strategy from watch mode",
+            "derive one idempotency key from watch, ref, and head across all transports",
+            "start the existing incremental workflow from its accepted checkpoint",
+            "request full reconciliation for polling so missed webhooks are repaired",
+            "coalesce overlap and debounce onto one run, attempt, and trigger claim",
+            "retain old checkpoint and head while recording error/backoff when launch fails"
         ]
     },
     "content_opportunities": [
@@ -801,6 +819,16 @@
             "audience": "backend and data-platform developers",
             "skill_level": "intermediate",
             "hook": "A watch decides when to look. It is not what it saw."
+        },
+        {
+            "format": "post",
+            "user_problem": "A webhook and the repair poll both queue work for the same repository head.",
+            "concept": "Transport-independent repository change identity",
+            "technology": "Laravel package commands, ref checkpoints, idempotent runs, queue attempts",
+            "project_context": "Aleph MME-831 repository watching",
+            "audience": "backend and integration developers",
+            "skill_level": "intermediate",
+            "hook": "Webhook fast. Polling complete. One run."
         }
     ]
 }

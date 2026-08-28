@@ -14,5 +14,6 @@ final readonly class IncrementalSyncRequest
         public ContinuationBudget $budget,
         public string $idempotencyKey,
         public LaunchAuthorization $authorization,
+        public IngestionTrigger $trigger = IngestionTrigger::Manual,
     ) {}
 }
