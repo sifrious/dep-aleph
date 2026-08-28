@@ -46,7 +46,8 @@
         "Incremental streams declare cursor, high-water, webhook, hash, or reconcile strategy; only Funes-accepted material changes advance checkpoints, while unchanged polls accept zero changes.",
         "GitHub polling and verified webhooks submit canonical node revisions through one history identity; GraphQL cursors advance after Funes acceptance, webhook deliveries are encrypted and replayable, and delivery identity is isolated by source installation.",
         "Repository watches retain only portable orchestration state and coalesce duplicate poll/webhook triggers; repository, commit, pull-request, and file history remains outside Aleph watch storage.",
-        "Repository poll, webhook, and reconciliation signals converge on watch/ref/head identity and launch the existing checkpointed incremental workflow; watch head state does not advance during launch."
+        "Repository poll, webhook, and reconciliation signals converge on watch/ref/head identity and launch the existing checkpointed incremental workflow; watch head state does not advance during launch.",
+        "Zsh, Atuin, and Claude Bash adapters normalize shell commands with host/user execution context; shell.secrets:1 redacts credentials before Funes acceptance and exact source-record revisions replay idempotently."
     ],
     "assumptions": [
         "A sequential concurrency ceiling of one is sufficient for the bounded AHSD crawl.",
@@ -218,6 +219,10 @@
         {
             "decision": "Route repository watch signals through existing incremental-run identity using watch, ref, and head.",
             "rationale": "This coalesces polling and webhooks without duplicating lifecycle machinery, lets polling repair missed webhooks, and prevents a watch head from advancing before accepted checkpoint completion."
+        },
+        {
+            "decision": "Apply deterministic shell secret redaction before constructing immutable Funes envelopes.",
+            "rationale": "Commands and output commonly contain credentials, and an immutable acceptance boundary is too late to remove them; source revision and host/user context provide replay-safe identity without retaining raw adapter metadata."
         }
     ],
     "open_questions": [
@@ -298,6 +303,8 @@
         "repository_watch": "Portable poll, webhook, or hybrid orchestration state for one installation and stable repository reference.",
         "repository_watch_trigger": "A stable per-watch change identity that coalesces duplicate provider observations before work is launched.",
         "repository_watch_signal": "A provider-neutral poll, webhook, or reconciliation observation naming one repository ref and head.",
+        "shell_command_observation": "A human or agent command with stable source revision and complete host/user execution context.",
+        "shell_redaction_decision": "A retained or redacted pre-acceptance outcome carrying policy identity, reasons, and original command hash.",
         "domain_ingestion_run": "A DNS-specific projection that adds stable account/domain scope and provider reconciliation references to the shared ingestion run.",
         "manual_launch": "An authorized idempotent request that persists a pending run before host dispatch.",
         "authorization_decision_reference": "A stable host-issued reference to the evaluated decision that allowed a manual run."
@@ -334,7 +341,8 @@
             "MME-954 GitHubSyncRun migration adapter and GitHub run projection",
             "MME-816 GitHub activity backfill, incremental polling, and verified webhook ingestion",
             "MME-1069 deterministic RepoWatch migration and provider-neutral watch state",
-            "MME-831 idempotent repository-watch triggering across polling, webhooks, and reconciliation"
+            "MME-831 idempotent repository-watch triggering across polling, webhooks, and reconciliation",
+            "MME-817 zsh, Atuin, and Claude Bash history ingestion with pre-acceptance secret redaction"
         ],
         "not_implemented": [
             "connector manifests",
@@ -577,6 +585,17 @@
             "request full reconciliation for polling so missed webhooks are repaired",
             "coalesce overlap and debounce onto one run, attempt, and trigger claim",
             "retain old checkpoint and head while recording error/backoff when launch fails"
+        ],
+        "shell_history_ingestion": [
+            "read accessible zsh, Atuin, or Claude Bash records through a host adapter",
+            "normalize stable record ID, source revision, actor, command outcome, and execution context",
+            "reject malformed provider records before envelope construction",
+            "apply shell.secrets:1 to command and output",
+            "retain redaction decision, reasons, and original command hash without secret text",
+            "submit one source-record revision through Funes with raw source reference provenance",
+            "replay an exact scan without duplicate history",
+            "retain a changed source revision as new history",
+            "isolate equal provider IDs by host, user, source reference, and installation"
         ]
     },
     "content_opportunities": [
@@ -829,6 +848,16 @@
             "audience": "backend and integration developers",
             "skill_level": "intermediate",
             "hook": "Webhook fast. Polling complete. One run."
+        },
+        {
+            "format": "short video",
+            "user_problem": "A shell-history importer permanently stores an API token before a later scrubber can run.",
+            "concept": "Redaction as a pre-acceptance boundary",
+            "technology": "PHP adapters, deterministic policy evidence, Funes immutable envelopes",
+            "project_context": "Aleph MME-817 shell history ingestion",
+            "audience": "backend, security, and developer-tool engineers",
+            "skill_level": "intermediate",
+            "hook": "Immutable means redact first."
         }
     ]
 }

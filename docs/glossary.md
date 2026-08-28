@@ -205,3 +205,9 @@ Its uniqueness coalesces webhook and poll observations before duplicate ingestio
 **Repository watch signal** — a provider-neutral poll, webhook, or reconciliation observation naming
 one repository ref and head. The watch/ref/head tuple, rather than its transport delivery ID, defines
 the incremental-run identity.
+
+**Shell command observation** — a human or agent command tied to a stable source record/revision and
+host, user, shell, cwd, session, environment, time, duration, exit, and output context.
+
+**Shell redaction decision** — the retained or redacted result of applying a named policy before Funes
+acceptance. Redacted payloads keep an original command hash and reasons but no original secret text.

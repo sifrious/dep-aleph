@@ -1095,3 +1095,22 @@ run and queued attempt, and a later poll repairs a missed webhook. A changed hea
 history was force-pushed; an unchanged head launches nothing. Queue or checkpoint-launch failure keeps
 the old head/checkpoint and records retryable watch error/backoff. Host schedulers and webhook routes
 only translate external events into this contract.
+
+## D-077 — Shell secrets are transformed before immutable acceptance
+
+**Decision.** Zsh, Atuin, and Claude Bash adapters produce one neutral command observation with actor,
+stable source record and revision, host, user, shell, cwd, session, environment reference, timing,
+duration, exit code, command, and output. Before envelope construction, `shell.secrets:1` replaces
+credential assignments, bearer/provider tokens, and URL credentials in command and output. The Funes
+payload retains the redacted text, original command SHA-256, decision, reasons, source revision, and a
+provenance raw reference, but not adapter raw metadata or original secret material.
+
+**Rationale.** Landing currently stores command and output directly and applies no secret boundary.
+Redacting after Funes acceptance cannot remove an immutable leaked credential. Dedupe based only on
+command text also collapses distinct host/user histories and cannot explain a changed source file.
+
+**Consequence.** Repeated scans of the same source record and revision reuse accepted history. A new
+source revision remains distinct. Equal provider IDs on different host/user source installations do
+not collide. Every accepted command declares retained or redacted policy evidence and complete
+execution context, while malformed adapter records fail before acceptance. File/database access and
+terminal presentation remain host responsibilities.

@@ -33,6 +33,10 @@ use Sifrious\Aleph\Connector\GitHub\ImportGitHubActivities;
 use Sifrious\Aleph\Connector\Health\ConnectorHealthChecks;
 use Sifrious\Aleph\Connector\Health\ConnectorHealthQueries;
 use Sifrious\Aleph\Connector\RegisterSourceAccount;
+use Sifrious\Aleph\Connector\Shell\IngestShellHistory;
+use Sifrious\Aleph\Connector\Shell\ShellCommandTokenizer;
+use Sifrious\Aleph\Connector\Shell\ShellHistorySources;
+use Sifrious\Aleph\Connector\Shell\ShellRedactionPolicy;
 use Sifrious\Aleph\Connector\Watch\RepositoryWatches;
 use Sifrious\Aleph\Console\CrawlCommand;
 use Sifrious\Aleph\Console\InventoryCommand;
@@ -168,6 +172,19 @@ class AlephServiceProvider extends ServiceProvider
         ));
 
         $this->app->singleton(ConnectorRegistry::class);
+        $this->app->singleton(ShellHistorySources::class);
+        $this->app->singleton(ShellCommandTokenizer::class);
+        $this->app->singleton(ShellRedactionPolicy::class);
+
+        $this->app->singleton(
+            IngestShellHistory::class,
+            fn (Application $app): IngestShellHistory => new IngestShellHistory(
+                $app->make(ConnectorInstallations::class),
+                $app->make(EnvelopeSubmitter::class),
+                $app->make(ShellRedactionPolicy::class),
+                $app->make(ShellCommandTokenizer::class),
+            ),
+        );
 
         $this->app->singleton(
             RepositoryWatches::class,

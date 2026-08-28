@@ -119,6 +119,14 @@ owns cursor advancement, Funes submission, signature validation, encrypted deliv
 isolation, and rate-limit failure evidence. OAuth callbacks, token acquisition, provider clients, and
 HTTP route handling stay in the consuming application.
 
+## Shell history adapters
+
+`ShellHistoryConnector` accepts registered sources composed from `ZshHistoryAdapter`,
+`AtuinHistoryAdapter`, or `ClaudeBashHistoryAdapter` observations. A source installation identifies
+the host/user/shell boundary. The package applies `shell.secrets:1` before constructing a Funes
+envelope, retains source revision and execution context, and makes exact rescans idempotent. Hosts own
+filesystem and SQLite access; adapter raw metadata is not copied into immutable payloads.
+
 ## Fakes
 
 Composable doubles live in `Sifrious\Aleph\Testing\Fakes` so orchestration tests need no real
