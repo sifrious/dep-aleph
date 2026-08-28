@@ -186,3 +186,11 @@ Deletion retains the prior blob SHA; rename retains both paths and the shared bl
 **GitHub ingestion run** — the GitHub projection of a provider-neutral ingestion run. It adds
 account, repository, repository-watch, target, reconciliation, and all/project/repo/pull-request/watch
 scope without owning GitHub historical records.
+
+**GitHub activity** — a canonical repository, pull-request, review, comment, reaction, or contributor
+revision identified by repository coordinates, provider node ID, and provider update time. Polling
+and webhook delivery are observation transports, not separate historical identities.
+
+**GitHub webhook delivery** — one signature-verified encrypted payload identified within a source
+installation by GitHub's delivery ID. Its processed state retains the accepted Funes references so
+replay does not repeat provider history.

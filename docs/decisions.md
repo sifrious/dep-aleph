@@ -1038,3 +1038,22 @@ package.
 shape as every connector while retaining their provider-specific operational scope. Historical
 repositories, pull requests, and comments remain Funes references. Landing persistence remains in
 place until a consuming-host reconciliation proves count and ID parity.
+
+## D-074 — GitHub polling and webhooks share one canonical activity identity
+
+**Decision.** GitHub provider adapters produce canonical repository, pull-request, review, comment,
+reaction, and contributor activities using repository coordinates, stable node IDs, update times,
+and deterministic payloads. Polling traverses GraphQL cursors and commits them only after complete
+Funes acceptance. Webhooks are verified with their installation-specific secret, encrypted for
+replay, and unique by installation and GitHub delivery ID before entering the same activity submitter.
+
+**Rationale.** Landing's poller and webhook controller are separate entry points, and the controller
+currently stops after signature validation. If transport details define history identity, an overlap
+window records the same provider change twice. If delivery IDs are global, two authenticated accounts
+can collide. If webhook bodies are discarded, a verified delivery cannot be recovered after failure.
+
+**Consequence.** A polling page and webhook describing the same node revision resolve to one accepted
+Funes observation while retaining transport provenance. Delivery replay returns its prior accepted
+references, equal delivery IDs remain isolated by source installation, invalid signatures never enter
+durable storage, non-advancing cursors fail safely, and rate limits create retryable attempts with an
+explicit recovery instant. OAuth UI and HTTP/GraphQL clients remain host integration concerns.

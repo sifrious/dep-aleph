@@ -22,6 +22,14 @@ use Sifrious\Aleph\Connector\ConnectorRegistry;
 use Sifrious\Aleph\Connector\Git\GitChangeDetector;
 use Sifrious\Aleph\Connector\Git\GitRepositorySources;
 use Sifrious\Aleph\Connector\Git\ImportGitHistory;
+use Sifrious\Aleph\Connector\GitHub\ConsumeGitHubWebhook;
+use Sifrious\Aleph\Connector\GitHub\GitHubActivitySources;
+use Sifrious\Aleph\Connector\GitHub\GitHubActivitySubmitter;
+use Sifrious\Aleph\Connector\GitHub\GitHubWebhookDeliveries;
+use Sifrious\Aleph\Connector\GitHub\GitHubWebhookNormalizer;
+use Sifrious\Aleph\Connector\GitHub\GitHubWebhookSecrets;
+use Sifrious\Aleph\Connector\GitHub\GitHubWebhookVerifier;
+use Sifrious\Aleph\Connector\GitHub\ImportGitHubActivities;
 use Sifrious\Aleph\Connector\Health\ConnectorHealthChecks;
 use Sifrious\Aleph\Connector\Health\ConnectorHealthQueries;
 use Sifrious\Aleph\Connector\RegisterSourceAccount;
@@ -163,6 +171,44 @@ class AlephServiceProvider extends ServiceProvider
         $this->app->singleton(GitRepositorySources::class);
 
         $this->app->singleton(GitChangeDetector::class);
+
+        $this->app->singleton(GitHubActivitySources::class);
+        $this->app->singleton(GitHubWebhookSecrets::class);
+        $this->app->singleton(GitHubWebhookVerifier::class);
+        $this->app->singleton(GitHubWebhookNormalizer::class);
+        $this->app->singleton(GitHubActivitySubmitter::class);
+
+        $this->app->singleton(
+            GitHubWebhookDeliveries::class,
+            fn (Application $app): GitHubWebhookDeliveries => new GitHubWebhookDeliveries(
+                $this->connection($app),
+                $app->make(Encrypter::class),
+            ),
+        );
+
+        $this->app->singleton(
+            ImportGitHubActivities::class,
+            fn (Application $app): ImportGitHubActivities => new ImportGitHubActivities(
+                $app->make(GitHubActivitySources::class),
+                $app->make(ConnectorInstallations::class),
+                $app->make(SourceStreams::class),
+                $app->make(IngestionRuns::class),
+                $app->make(IngestionCheckpoints::class),
+                $app->make(GitHubActivitySubmitter::class),
+            ),
+        );
+
+        $this->app->singleton(
+            ConsumeGitHubWebhook::class,
+            fn (Application $app): ConsumeGitHubWebhook => new ConsumeGitHubWebhook(
+                $app->make(GitHubWebhookSecrets::class),
+                $app->make(GitHubWebhookVerifier::class),
+                $app->make(GitHubWebhookDeliveries::class),
+                $app->make(GitHubWebhookNormalizer::class),
+                $app->make(ConnectorInstallations::class),
+                $app->make(GitHubActivitySubmitter::class),
+            ),
+        );
 
         $this->app->singleton(
             ImportGitHistory::class,

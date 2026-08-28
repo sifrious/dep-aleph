@@ -110,6 +110,15 @@ it('conforms to the Aleph connector contract', function (): void {
 not marked secret), and manifest agreement. `probeAll()` invokes every capability you declare with
 a synthetic request and verifies the return type.
 
+## GitHub activity adapters
+
+`GitHubActivityConnector` owns backfill, incremental, and webhook behavior. A consuming application
+registers an account-specific `GitHubActivitySource` that translates REST or GraphQL responses into
+canonical activities and registers its resolved webhook secret by source installation. The package
+owns cursor advancement, Funes submission, signature validation, encrypted delivery replay, account
+isolation, and rate-limit failure evidence. OAuth callbacks, token acquisition, provider clients, and
+HTTP route handling stay in the consuming application.
+
 ## Fakes
 
 Composable doubles live in `Sifrious\Aleph\Testing\Fakes` so orchestration tests need no real

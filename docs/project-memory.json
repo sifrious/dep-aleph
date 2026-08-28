@@ -43,7 +43,8 @@
         "Connector health is an immutable expiring result per installation dimension, aggregated with explicit unknown evidence and coded remediation.",
         "Recurring ingestion schedules validate connector capabilities, calculate timezone-aware next runs, use expiring distributed claims, and record every schedule occurrence against its ingestion run.",
         "Historical backfills require formatted range bounds, deterministic partitions, explicit rate/work budgets, cumulative progress, checkpoints, and all-partitions-complete termination.",
-        "Incremental streams declare cursor, high-water, webhook, hash, or reconcile strategy; only Funes-accepted material changes advance checkpoints, while unchanged polls accept zero changes."
+        "Incremental streams declare cursor, high-water, webhook, hash, or reconcile strategy; only Funes-accepted material changes advance checkpoints, while unchanged polls accept zero changes.",
+        "GitHub polling and verified webhooks submit canonical node revisions through one history identity; GraphQL cursors advance after Funes acceptance, webhook deliveries are encrypted and replayable, and delivery identity is isolated by source installation."
     ],
     "assumptions": [
         "A sequential concurrency ceiling of one is sufficient for the bounded AHSD crawl.",
@@ -203,6 +204,10 @@
         {
             "decision": "Import Landing GitHub runs as deterministic shared ingestion runs with GitHub-only scope in an extension projection.",
             "rationale": "Status, timing, retry, checkpoint, progress, and failure behavior are provider-neutral, while repository watches, targets, and reconciliation IDs must remain operational rather than historical payloads."
+        },
+        {
+            "decision": "Use one canonical GitHub activity identity for polling and webhook transports.",
+            "rationale": "Repository coordinates, node ID, update time, and canonical payload describe provider history; cursor, delivery, and transport details are operational provenance that must not duplicate the same change."
         }
     ],
     "open_questions": [
@@ -278,6 +283,8 @@
         "git_ref_movement": "A previous-SHA to head-SHA observation that explicitly records broken ancestry.",
         "git_file_change": "An added, modified, deleted, or renamed path derived from previous and current trees.",
         "github_ingestion_run": "A shared ingestion run projected with GitHub account, repository, watch, target, reconciliation, and scope metadata.",
+        "github_activity": "A canonical GitHub node revision shared by poll and webhook observation paths.",
+        "github_webhook_delivery": "A signature-verified encrypted payload unique by source installation and delivery ID, retaining accepted history references for replay.",
         "domain_ingestion_run": "A DNS-specific projection that adds stable account/domain scope and provider reconciliation references to the shared ingestion run.",
         "manual_launch": "An authorized idempotent request that persists a pending run before host dispatch.",
         "authorization_decision_reference": "A stable host-issued reference to the evaluated decision that allowed a manual run."
@@ -311,7 +318,8 @@
             "MME-813 independently authenticated multiple source accounts",
             "MME-1174 executable Aleph package-boundary validation",
             "MME-815 SHA-addressed Git repository and history ingestion",
-            "MME-954 GitHubSyncRun migration adapter and GitHub run projection"
+            "MME-954 GitHubSyncRun migration adapter and GitHub run projection",
+            "MME-816 GitHub activity backfill, incremental polling, and verified webhook ingestion"
         ],
         "not_implemented": [
             "connector manifests",
@@ -521,6 +529,18 @@
             "retain accepted GitHub history only as stable Funes references",
             "replay import without duplicating the run",
             "retain Landing persistence until consuming-host reconciliation passes"
+        ],
+        "github_activity_ingestion": [
+            "resolve one authenticated source installation and repository stream",
+            "page provider activity through an adapter-owned GraphQL cursor",
+            "canonicalize repository, pull request, review, comment, reaction, and contributor revisions",
+            "submit every activity through Funes with account and repository provenance",
+            "advance the cursor only after complete acceptance",
+            "verify webhook signatures with the installation-specific secret",
+            "persist verified webhook bodies encrypted and isolate delivery IDs by installation",
+            "replay a processed delivery from its accepted references",
+            "converge polling and webhook overlap on one accepted history identity",
+            "record rate-limit recovery time on a retryable attempt"
         ]
     },
     "content_opportunities": [
@@ -743,6 +763,16 @@
             "audience": "backend and platform developers",
             "skill_level": "intermediate",
             "hook": "One lifecycle, provider-specific scope."
+        },
+        {
+            "format": "post",
+            "user_problem": "A GitHub poll and webhook observe the same pull request and create two history records.",
+            "concept": "Canonical provider identity across overlapping transports",
+            "technology": "GraphQL cursors, HMAC webhook verification, encrypted replay, Funes idempotent acceptance",
+            "project_context": "Aleph MME-816 GitHub activity ingestion",
+            "audience": "backend and integration developers",
+            "skill_level": "intermediate",
+            "hook": "Two transports. One provider change."
         }
     ]
 }
