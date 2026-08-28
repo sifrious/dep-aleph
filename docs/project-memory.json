@@ -50,7 +50,8 @@
         "Zsh, Atuin, and Claude Bash adapters normalize shell commands with host/user execution context; shell.secrets:1 redacts credentials before Funes acceptance and exact source-record revisions replay idempotently.",
         "Claude, Codex, and alternate-provider adapters preserve raw message blocks and references beside neutral chronology, authorship, parent, thread, branch, sidechain, agent, and part values.",
         "Landing LinearSyncRun rows import under deterministic identity into the shared lifecycle, with Linear workspace/project scope, provider reconciliation, targets, and cursors isolated in a typed extension.",
-        "Linear workspaces ingest independently through package-owned pagination; each resource stream has its own accepted-through cursor, while verified webhooks and polling share canonical activity identity."
+        "Linear workspaces ingest independently through package-owned pagination; each resource stream has its own accepted-through cursor, while verified webhooks and polling share canonical activity identity.",
+        "Gmail, Microsoft Graph, and IMAP records normalize to provider-neutral F28 messages; bounded mailbox pages advance opaque provider checkpoints only after Funes acceptance, and attachments remain Digory references."
     ],
     "assumptions": [
         "A sequential concurrency ceiling of one is sufficient for the bounded AHSD crawl.",
@@ -238,6 +239,10 @@
         {
             "decision": "Checkpoint Linear resource streams independently and converge polling and webhooks before Funes acceptance.",
             "rationale": "Projects, issues, and updates paginate independently, transport overlap must not duplicate provider history, and attachment provenance does not justify an Aleph artifact store."
+        },
+        {
+            "decision": "Normalize Gmail, Microsoft Graph, and IMAP to F28 before history and checkpoint each bounded page after acceptance.",
+            "rationale": "Original transport evidence must survive without SDK or credential leakage, participant resolution requires an external authority, and advancing provider state before Funes acceptance can skip mail permanently."
         }
     ],
     "open_questions": [
@@ -325,6 +330,9 @@
         "linear_ingestion_run": "A shared ingestion run projected with Linear workspace/project scope, provider run and reconciliation IDs, targets, and per-stream cursors.",
         "linear_activity": "A canonical Linear resource revision identified by workspace, kind, provider ID, source timestamp, and provider payload.",
         "linear_stream_checkpoint": "An accepted-through cursor isolated to one independently paginated Linear workspace stream.",
+        "f28_email_message": "A provider-neutral email revision retaining provider and RFC identity, threading, original source values, normalized fields, mailbox state, attachment references, and provenance.",
+        "email_provider_checkpoint": "An opaque Gmail history ID, Graph delta link, or IMAP UID state committed after Funes acceptance.",
+        "digory_attachment_handoff": "A stable reference to provider-owned attachment content that Aleph does not retrieve or store.",
         "domain_ingestion_run": "A DNS-specific projection that adds stable account/domain scope and provider reconciliation references to the shared ingestion run.",
         "manual_launch": "An authorized idempotent request that persists a pending run before host dispatch.",
         "authorization_decision_reference": "A stable host-issued reference to the evaluated decision that allowed a manual run."
@@ -365,7 +373,8 @@
             "MME-817 zsh, Atuin, and Claude Bash history ingestion with pre-acceptance secret redaction",
             "MME-818 provider-neutral Claude, Codex, and alternate AI conversation ingestion",
             "MME-990 LinearSyncRun migration adapter and Linear run projection",
-            "MME-822 multi-workspace Linear polling, checkpoint, webhook, and Funes ingestion"
+            "MME-822 multi-workspace Linear polling, checkpoint, webhook, and Funes ingestion",
+            "MME-823 Gmail, Microsoft Graph, and IMAP F28 email ingestion"
         ],
         "not_implemented": [
             "connector manifests",
@@ -651,6 +660,17 @@
             "verify and encrypt webhook deliveries before normalization",
             "replay delivery from accepted references and converge polling overlap",
             "return the same operation result to HTTP, CLI, queue, and scheduler adapters"
+        ],
+        "email_ingestion": [
+            "resolve one registered mailbox source and installation",
+            "adapt Gmail, Microsoft Graph, or IMAP records to F28 without provider SDK values",
+            "retain provider and RFC identity, threading, original headers and addresses, normalized participants, dates, bodies, and mailbox state",
+            "retain attachment metadata as Digory historical references without bytes",
+            "submit each provider revision through Funes",
+            "record creation, edits, state changes, and deletion without duplicate replay",
+            "commit the source-specific checkpoint only after page acceptance",
+            "pause at a bounded page budget and resume from the committed checkpoint",
+            "exclude credentials and unsourced person resolution from persistence"
         ]
     },
     "content_opportunities": [
@@ -943,6 +963,16 @@
             "audience": "backend and integration developers",
             "skill_level": "intermediate",
             "hook": "One workspace. Seven streams. No shared cursor."
+        },
+        {
+            "format": "post",
+            "user_problem": "An email importer advances its provider cursor before immutable history accepts the page.",
+            "concept": "Provider-neutral email normalization with acceptance-gated checkpoints",
+            "technology": "Gmail history IDs, Graph delta links, IMAP UID state, Funes idempotent acceptance",
+            "project_context": "Aleph MME-823 email ingestion",
+            "audience": "backend and integration developers",
+            "skill_level": "intermediate",
+            "hook": "Do not move the mailbox cursor past history."
         }
     ]
 }

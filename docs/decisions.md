@@ -1172,3 +1172,21 @@ stream's accepted cursor, and poll/webhook overlap resolves to one Funes observa
 and provider IDs retain provenance without artifact persistence. HTTP, CLI, queue, and scheduler
 adapters receive the same operation result without owning pagination, mapping, checkpoint, or envelope
 logic. Credentials, authorization, runtime dispatch, and presentation remain host responsibilities.
+
+## D-081 — Email normalizes before history and checkpoints after acceptance
+
+**Decision.** Gmail, Microsoft Graph, and IMAP records normalize to one F28 message contract before
+Funes submission. The contract retains provider identity and revision, RFC identifiers, threading,
+original headers and address strings, normalized participants, timestamps, bodies, labels, folders,
+flags, attachment references, and raw-record provenance. Each mailbox source owns an opaque provider
+checkpoint format. A bounded page commits that checkpoint only after its messages are accepted.
+
+**Rationale.** Provider SDK objects and credentials are integration concerns, not historical facts.
+Flattening original addresses or headers would destroy evidence, while resolving participants to
+people would create unsourced identity claims. Advancing Gmail history, Graph delta, or IMAP UID
+state before acceptance could permanently skip mail after interruption.
+
+**Consequence.** Backfills pause and resume without duplicate history; creation, edits, mailbox-state
+changes, and deletion remain distinct provider revisions. Attachment bytes stay outside Aleph and
+are represented by Digory handoff references. Authentication, provider clients, credential refresh,
+mailbox authorization, and attachment retrieval remain host responsibilities.

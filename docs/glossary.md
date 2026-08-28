@@ -226,3 +226,13 @@ identified by workspace, resource kind, Linear ID, source update time, and provi
 
 **Linear stream checkpoint** — an accepted-through cursor isolated to one independently paginated
 Linear workspace stream.
+
+**F28 email message** — a provider-neutral email revision retaining provider and RFC identity,
+threading, original headers and addresses, normalized participants, timestamps, bodies, mailbox
+state, attachment references, and raw-source provenance.
+
+**Email provider checkpoint** — an opaque Gmail history ID, Microsoft Graph delta link, or IMAP
+UIDVALIDITY/UID value committed only after the preceding page is accepted by Funes.
+
+**Digory attachment handoff** — a stable historical reference to provider-owned attachment content;
+Aleph retains identity and metadata while artifact retrieval and storage remain Digory concerns.

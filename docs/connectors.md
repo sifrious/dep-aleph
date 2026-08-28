@@ -146,6 +146,18 @@ deliveries are encrypted and replayable; attachment IDs and URLs remain referenc
 artifact records. Host HTTP, CLI, queue, and scheduler code only creates or dispatches operation
 requests and formats the returned result.
 
+## Email adapters
+
+`EmailConnector` owns bounded backfill and incremental ingestion after a host registers an
+`EmailSource`. Gmail, Microsoft Graph, and IMAP adapters normalize provider records to F28 messages
+without carrying provider SDK values across the boundary. Sources expose opaque provider checkpoints:
+Gmail history IDs, Graph delta links, or IMAP UIDVALIDITY/UID state. Aleph advances a checkpoint only
+after the page's messages are accepted by Funes, so a page budget can pause and resume safely.
+Original address and header values remain beside normalized addresses. Attachments retain stable
+`digory:email-attachment` references for later artifact handling; Aleph stores neither attachment
+bytes nor inferred people. Hosts own authentication, provider clients, mailbox authorization, and
+credential refresh, and must not include credentials in adapter records.
+
 ## Fakes
 
 Composable doubles live in `Sifrious\Aleph\Testing\Fakes` so orchestration tests need no real

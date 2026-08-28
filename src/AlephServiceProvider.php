@@ -21,6 +21,9 @@ use Sifrious\Aleph\Connector\ConnectorInstallations;
 use Sifrious\Aleph\Connector\ConnectorRegistry;
 use Sifrious\Aleph\Connector\Conversation\AiConversationSources;
 use Sifrious\Aleph\Connector\Conversation\IngestAiConversations;
+use Sifrious\Aleph\Connector\Email\EmailMessageSubmitter;
+use Sifrious\Aleph\Connector\Email\EmailSources;
+use Sifrious\Aleph\Connector\Email\ImportEmailMessages;
 use Sifrious\Aleph\Connector\Git\GitChangeDetector;
 use Sifrious\Aleph\Connector\Git\GitRepositorySources;
 use Sifrious\Aleph\Connector\Git\ImportGitHistory;
@@ -190,6 +193,20 @@ class AlephServiceProvider extends ServiceProvider
 
         $this->app->singleton(ConnectorRegistry::class);
         $this->app->singleton(AiConversationSources::class);
+        $this->app->singleton(EmailSources::class);
+        $this->app->singleton(EmailMessageSubmitter::class);
+
+        $this->app->singleton(
+            ImportEmailMessages::class,
+            fn (Application $app): ImportEmailMessages => new ImportEmailMessages(
+                $app->make(EmailSources::class),
+                $app->make(ConnectorInstallations::class),
+                $app->make(SourceStreams::class),
+                $app->make(IngestionRuns::class),
+                $app->make(IngestionCheckpoints::class),
+                $app->make(EmailMessageSubmitter::class),
+            ),
+        );
 
         $this->app->singleton(
             IngestAiConversations::class,
