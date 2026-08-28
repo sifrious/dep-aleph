@@ -23,8 +23,10 @@ use Sifrious\Aleph\Console\InventoryCommand;
 use Sifrious\Aleph\Envelope\EnvelopeDrafter;
 use Sifrious\Aleph\Envelope\EnvelopeSubmitter;
 use Sifrious\Aleph\Ingestion\DomainRunQueries;
+use Sifrious\Aleph\Ingestion\IngestionCheckpoints;
 use Sifrious\Aleph\Ingestion\IngestionRunQueries;
 use Sifrious\Aleph\Ingestion\IngestionRuns;
+use Sifrious\Aleph\Ingestion\SourceStreams;
 use Sifrious\Aleph\Inventory\InventoryReader;
 use Sifrious\Aleph\Normalization\CandidateValidator;
 use Sifrious\Aleph\Normalization\NormalizationAttempts;
@@ -62,6 +64,20 @@ class AlephServiceProvider extends ServiceProvider
         $this->app->singleton(
             IngestionRunQueries::class,
             fn (Application $app): IngestionRunQueries => new IngestionRunQueries($app->make(IngestionRuns::class)),
+        );
+
+        $this->app->singleton(
+            SourceStreams::class,
+            fn (Application $app): SourceStreams => new SourceStreams($this->connection($app)),
+        );
+
+        $this->app->singleton(
+            IngestionCheckpoints::class,
+            fn (Application $app): IngestionCheckpoints => new IngestionCheckpoints(
+                $this->connection($app),
+                $app->make(IngestionRuns::class),
+                $app->make(Submissions::class),
+            ),
         );
 
         $this->app->singleton(

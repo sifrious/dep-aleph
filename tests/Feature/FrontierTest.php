@@ -67,6 +67,7 @@ function accepted(string $resource): AcceptedRetrieval
                 [],
                 [],
                 [],
+                [],
             ),
             ObservationDisposition::First,
         ),

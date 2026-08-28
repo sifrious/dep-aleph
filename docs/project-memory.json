@@ -34,7 +34,8 @@
         "Landing DomainSyncRun repeats the common run lifecycle and adds account/domain scope, targets, DNS counters, and provider-account/domain foreign keys.",
         "Landing manual ingestion entry points create provider-specific run rows and dispatch through commands, jobs, or detached processes without one universal request contract.",
         "Funes stores Aleph envelope metadata as append-only typed assertions: aleph:envelope for universal attributes and aleph:extension/<namespace> for connector extensions.",
-        "Every queued connector unit is a durable Aleph ingestion attempt with queue class, priority, tags, dispatch policy, runtime job and worker identity, heartbeat, and retry lineage."
+        "Every queued connector unit is a durable Aleph ingestion attempt with queue class, priority, tags, dispatch policy, runtime job and worker identity, heartbeat, and retry lineage.",
+        "Checkpoint history is isolated by source stream, capability, and partition and records connector serialization, optimistic version, progression rule, committing run/attempt, and accepted-through Funes references."
     ],
     "assumptions": [
         "A sequential concurrency ceiling of one is sufficient for the bounded AHSD crawl.",
@@ -47,7 +48,8 @@
         "Hosts schedule eligible retries, while Aleph owns transition and retry-eligibility semantics.",
         "A domain-run migration reconciler supplies stable provider-account and domain references instead of promoting Landing foreign keys or labels.",
         "Hosts authenticate callers and evaluate manual-launch policy before supplying Aleph with stable actor and authorization-decision references.",
-        "Queue adapters enforce the concurrency and rate policy supplied by Aleph and may prune their own transport records without affecting attempt observability."
+        "Queue adapters enforce the concurrency and rate policy supplied by Aleph and may prune their own transport records without affecting attempt observability.",
+        "Connectors own opaque checkpoint serialization; monotonic checkpoints additionally expose a comparable non-negative position."
     ],
     "decisions": [
         {
@@ -141,6 +143,10 @@
         {
             "decision": "Create a durable pending ingestion attempt before dispatching a runtime-neutral queued unit.",
             "rationale": "Queue tables are disposable transport state; the existing numbered attempt is the smallest durable place for queue class, priority, tags, policy, heartbeat, worker identity, failure, and retry lineage."
+        },
+        {
+            "decision": "Store checkpoints as append-only accepted-through commits keyed by stream, capability, and partition.",
+            "rationale": "Opaque run JSON cannot detect competing writers, isolate partitions, preserve serializer evolution, or prove which Funes observations were safe before a cursor advanced."
         }
     ],
     "open_questions": [
@@ -154,7 +160,8 @@
         "Should provider retry timing remain entirely host-scheduled, or will two consumers demonstrate timing semantics that belong in Aleph?",
         "Which source-backed DNS provider reconciliation identifiers should each connector retain long term?",
         "Will a demonstrated host require authorization expiry or policy-version evidence beyond actor and decision references?",
-        "Which connectors demonstrate stable queue priority, concurrency, or rate budgets that should override the per-installation defaults?"
+        "Which connectors demonstrate stable queue priority, concurrency, or rate budgets that should override the per-installation defaults?",
+        "Which Landing timestamp and cursor fields can be retired after each connector reconciles its active stream checkpoint history?"
     ],
     "constraints": [
         "Only public GET and HEAD retrievals are permitted.",
@@ -311,6 +318,16 @@
             "expire a stale heartbeat into a retryable structured failure",
             "retry as the next attempt number on the same logical run",
             "retain full observability after runtime queue records are pruned"
+        ],
+        "checkpoint_commit": [
+            "resolve one enabled source stream, capability, and partition",
+            "serialize the connector-owned value with an explicit format and version",
+            "read the current optimistic checkpoint version",
+            "prove every accepted-through reference belongs to the run and exists in Funes",
+            "enforce replace or monotonic progression semantics",
+            "append one immutable checkpoint history row",
+            "return the original row when the identical commit is replayed",
+            "query latest state without discarding historical commits"
         ]
     },
     "content_opportunities": [
@@ -403,6 +420,16 @@
             "audience": "backend and platform developers",
             "skill_level": "intermediate",
             "hook": "The queue job disappeared. The attempt did not."
+        },
+        {
+            "format": "short video",
+            "user_problem": "A provider cursor advances even though the records before it never reached durable history.",
+            "concept": "Accepted-through checkpoint commits",
+            "technology": "Optimistic versions, partitioned ledgers, opaque serializers, Funes observation references",
+            "project_context": "Aleph MME-806 checkpoint tracking",
+            "audience": "data ingestion developers",
+            "skill_level": "intermediate",
+            "hook": "The cursor moves only after history does."
         }
     ]
 }

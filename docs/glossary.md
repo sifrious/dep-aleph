@@ -109,3 +109,9 @@ own its history.
 
 **Attempt heartbeat** — the latest durable proof that a worker is executing an ingestion attempt.
 Crossing the host-selected timeout boundary turns the attempt into a retryable failure.
+
+**Source stream** — a stable, enableable unit inside one source installation, optionally scoped to
+a provider object. Checkpoints are isolated by stream, capability, and partition.
+
+**Accepted-through checkpoint** — an append-only checkpoint commit whose Funes references state
+exactly which immutable observations were accepted before the connector-owned cursor advanced.

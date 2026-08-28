@@ -105,6 +105,14 @@ final readonly class Submissions
         ));
     }
 
+    public function accepted(string $acceptedId): bool
+    {
+        return $this->table()
+            ->where('accepted_id', $acceptedId)
+            ->whereIn('status', [SubmissionStatus::Accepted->value, SubmissionStatus::Replayed->value])
+            ->exists();
+    }
+
     private function hydrate(stdClass $row): Submission
     {
         return new Submission(

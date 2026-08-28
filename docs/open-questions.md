@@ -108,3 +108,10 @@ The default dispatch policy allows one concurrent unit and sixty starts per minu
 installation, with priority 50. Callers can supply a stricter typed policy now. Add connector-owned
 configuration only when measured provider limits demonstrate stable values that should apply across
 hosts.
+
+## Q-016 — Which Landing timestamp fields can be retired after checkpoint cutover?
+
+`last_synced_at` is status, not a cursor. `repo_watches.last_indexed_ref`, Slack channel
+`last_synced_ts`, and backfill completion fields are migration inputs with different semantics.
+Each connector cutover must reconcile its active streams and checkpoint history before an
+application-owned field can be removed.

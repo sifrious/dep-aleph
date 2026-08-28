@@ -815,3 +815,21 @@ framework.
 adapter receives explicit per-installation concurrency and rate budgets and returns one opaque job
 identity. Starting work records the worker and first heartbeat; an expired heartbeat becomes a
 retryable failed attempt, and retries increment the attempt number on the same logical run.
+
+## D-061 — Checkpoints are append-only accepted-through commits
+
+**Decision.** A checkpoint identity is source stream, capability, and partition. Each commit stores
+the connector-owned format, serializer version, opaque value, replace or monotonic rule, optional
+monotonic position, optimistic version, committing run/attempt, and the cumulative Funes observation
+references accepted through that point. History is append-only; the latest value is a query.
+
+**Rationale.** Landing mixes durable refs, timestamps, and transient provider cursors across models.
+A single untyped JSON field on the run cannot isolate partitions, detect competing writers, explain
+serializer changes, or prove which facts were safe before a cursor moved. Aleph need not understand
+provider cursor bytes, but it must own commit identity and acceptance coupling.
+
+**Consequence.** Commits fail when their expected version is stale, their monotonic position does
+not advance, their stream is disabled, their capability/attempt belongs to another run, or any
+accepted-through reference is absent from both the run and Funes. Identical commits replay the
+original history row. Replace-mode checkpoints may intentionally move to any connector-defined
+value.

@@ -78,3 +78,9 @@ Aleph owns queue classification, priority, tags, and per-installation concurrenc
 host adapter applies those values to its runtime and returns the runtime job identity. The contract
 tests exercise that behavior with an in-memory runtime so package semantics do not depend on
 Laravel queue tables or Horizon.
+
+## A-014 — Connectors own checkpoint serialization
+
+Aleph treats checkpoint bytes as opaque and preserves a connector-supplied format and serializer
+version. Monotonic streams additionally supply a non-negative numeric position that Aleph can
+compare without parsing provider values. Replace-mode streams make no ordering claim.

@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Sifrious\Aleph\Tests\Fixtures;
 
 use RuntimeException;
+use Sifrious\Funes\Association\EntityAssociation;
 use Sifrious\Funes\Persistence\ObservationStore;
+use Sifrious\Funes\Reference\CrossPackageReference;
 use Sifrious\Funes\Value\AcceptedObservation;
 use Sifrious\Funes\Value\DiscoveryProvenance;
 use Sifrious\Funes\Value\ExtractionDraft;
@@ -39,6 +41,14 @@ final class FailingObservationStore implements ObservationStore
     public function get(string $observationId): ?Observation
     {
         return $this->store->get($observationId);
+    }
+
+    /**
+     * @return list<EntityAssociation>
+     */
+    public function associationsTo(CrossPackageReference $entity): array
+    {
+        return $this->store->associationsTo($entity);
     }
 
     /**
