@@ -1133,3 +1133,21 @@ without becoming shared schema. Exact rescans reuse accepted history, while a ch
 is separately observable. Claude, Codex, and another fixture answer the same chronology, authorship,
 and threading questions. Filesystem discovery, provider authentication, transcript UI, and semantic
 interpretation remain outside the package.
+
+## D-079 — Linear runs project provider scope over the shared lifecycle
+
+**Decision.** Landing `LinearSyncRun` rows import into the provider-neutral ingestion-run lifecycle
+under deterministic legacy identity. Status, timing, numeric counters, failure, retryability,
+completeness, checkpoints, source installation, and Funes references remain shared fields. Linear-only
+all, workspace, and project scope plus workspace/project references, provider run/reconciliation IDs,
+and targets live in a typed `linear` extension projection.
+
+**Rationale.** Landing currently implements one global run story and repeats the same pending,
+running, succeeded, and failed lifecycle already used by other connectors. Linear's multi-stream
+cursors and workspace/project scope are operationally necessary but do not justify a second lifecycle
+or leaking GraphQL client values into package contracts.
+
+**Consequence.** Existing global-run fixtures retain their behavior, while workspace and project
+scope can be represented without changing shared run semantics. Retries and resume restore the same
+per-stream checkpoint through numbered attempts. Linear issue, project, and update history remains
+Funes-owned. Landing persistence stays in place until a consuming-host reconciliation passes.

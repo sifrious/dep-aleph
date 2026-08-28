@@ -48,7 +48,8 @@
         "Repository watches retain only portable orchestration state and coalesce duplicate poll/webhook triggers; repository, commit, pull-request, and file history remains outside Aleph watch storage.",
         "Repository poll, webhook, and reconciliation signals converge on watch/ref/head identity and launch the existing checkpointed incremental workflow; watch head state does not advance during launch.",
         "Zsh, Atuin, and Claude Bash adapters normalize shell commands with host/user execution context; shell.secrets:1 redacts credentials before Funes acceptance and exact source-record revisions replay idempotently.",
-        "Claude, Codex, and alternate-provider adapters preserve raw message blocks and references beside neutral chronology, authorship, parent, thread, branch, sidechain, agent, and part values."
+        "Claude, Codex, and alternate-provider adapters preserve raw message blocks and references beside neutral chronology, authorship, parent, thread, branch, sidechain, agent, and part values.",
+        "Landing LinearSyncRun rows import under deterministic identity into the shared lifecycle, with Linear workspace/project scope, provider reconciliation, targets, and cursors isolated in a typed extension."
     ],
     "assumptions": [
         "A sequential concurrency ceiling of one is sufficient for the bounded AHSD crawl.",
@@ -228,6 +229,10 @@
         {
             "decision": "Retain provider-specific AI records and blocks inside a neutral message graph.",
             "rationale": "Common roles, authors, chronology, and parent links support cross-provider queries, while untouched provider evidence preserves tool linkage and fields that do not justify universal schema."
+        },
+        {
+            "decision": "Model LinearSyncRun as a typed Linear projection over the shared ingestion-run lifecycle.",
+            "rationale": "Status, timing, retry, failure, counters, checkpoints, and accepted history are already shared semantics; only workspace/project scope and provider reconciliation belong in the Linear extension."
         }
     ],
     "open_questions": [
@@ -312,6 +317,7 @@
         "shell_redaction_decision": "A retained or redacted pre-acceptance outcome carrying policy identity, reasons, and original command hash.",
         "ai_conversation": "One provider session with a stable provider ID, source revision, raw reference, metadata, and ordered neutral message graph.",
         "ai_message_part": "One ordered neutral content part that retains its raw provider block and optional tool-call linkage.",
+        "linear_ingestion_run": "A shared ingestion run projected with Linear workspace/project scope, provider run and reconciliation IDs, targets, and per-stream cursors.",
         "domain_ingestion_run": "A DNS-specific projection that adds stable account/domain scope and provider reconciliation references to the shared ingestion run.",
         "manual_launch": "An authorized idempotent request that persists a pending run before host dispatch.",
         "authorization_decision_reference": "A stable host-issued reference to the evaluated decision that allowed a manual run."
@@ -350,7 +356,8 @@
             "MME-1069 deterministic RepoWatch migration and provider-neutral watch state",
             "MME-831 idempotent repository-watch triggering across polling, webhooks, and reconciliation",
             "MME-817 zsh, Atuin, and Claude Bash history ingestion with pre-acceptance secret redaction",
-            "MME-818 provider-neutral Claude, Codex, and alternate AI conversation ingestion"
+            "MME-818 provider-neutral Claude, Codex, and alternate AI conversation ingestion",
+            "MME-990 LinearSyncRun migration adapter and Linear run projection"
         ],
         "not_implemented": [
             "connector manifests",
@@ -614,6 +621,16 @@
             "query chronology and authorship across providers and ancestor threads within a conversation",
             "replay an exact scan without duplicate history",
             "retain a changed source revision as new history"
+        ],
+        "linear_run_migration": [
+            "read a Landing LinearSyncRun characterization row",
+            "derive deterministic run identity from the stable legacy ID",
+            "map shared status, timing, counters, failure, retryability, completeness, and checkpoint state",
+            "project Linear workspace/project scope, targets, provider run, and reconciliation IDs",
+            "retain imported Linear history only as stable Funes references",
+            "resume and retry from the same per-stream checkpoint through shared attempts",
+            "replay import without duplication",
+            "retain Landing persistence until consuming-host reconciliation passes"
         ]
     },
     "content_opportunities": [
@@ -886,6 +903,16 @@
             "audience": "developer-tool and data-platform engineers",
             "skill_level": "intermediate",
             "hook": "Normalize the graph. Keep the evidence."
+        },
+        {
+            "format": "short video",
+            "user_problem": "A Linear sync invents another status and retry lifecycle just to carry workspace and cursor fields.",
+            "concept": "Provider-specific run projections over one operational lifecycle",
+            "technology": "Laravel migration adapters, typed extensions, deterministic IDs",
+            "project_context": "Aleph MME-990 LinearSyncRun migration",
+            "audience": "backend and platform developers",
+            "skill_level": "intermediate",
+            "hook": "One lifecycle. Linear-shaped scope."
         }
     ]
 }

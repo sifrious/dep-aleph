@@ -53,6 +53,7 @@ use Sifrious\Aleph\Ingestion\IngestionPartitions;
 use Sifrious\Aleph\Ingestion\IngestionRunQueries;
 use Sifrious\Aleph\Ingestion\IngestionRuns;
 use Sifrious\Aleph\Ingestion\IngestionSchedules;
+use Sifrious\Aleph\Ingestion\LinearRunQueries;
 use Sifrious\Aleph\Ingestion\SourceStreams;
 use Sifrious\Aleph\Ingestion\SourceStreamStatuses;
 use Sifrious\Aleph\Inventory\InventoryReader;
@@ -97,6 +98,11 @@ class AlephServiceProvider extends ServiceProvider
         $this->app->singleton(
             GitHubRunQueries::class,
             fn (Application $app): GitHubRunQueries => new GitHubRunQueries($app->make(IngestionRunQueries::class)),
+        );
+
+        $this->app->singleton(
+            LinearRunQueries::class,
+            fn (Application $app): LinearRunQueries => new LinearRunQueries($app->make(IngestionRunQueries::class)),
         );
 
         $this->app->singleton(

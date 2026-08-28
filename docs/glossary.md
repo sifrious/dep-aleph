@@ -217,3 +217,6 @@ reference, provider metadata, and an ordered graph of neutral messages.
 
 **AI message part** — one ordered text, thinking, tool-use, tool-result, or provider-specific block
 that retains its raw provider structure beside neutral text and tool-call linkage.
+
+**Linear ingestion run** — the Linear projection of a shared ingestion run, adding workspace/project
+scope, provider run and reconciliation IDs, targets, and per-stream cursors without owning history.
