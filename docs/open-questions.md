@@ -83,3 +83,9 @@ The generic `SyncRun` has repository and watch references but no connector-insta
 Provider-specific `GithubSyncRun`, `SlackSyncRun`, `LinearSyncRun`, and `DomainSyncRun` migrations
 must resolve installations independently and must not infer an account from a display label. Their
 model-catalogue tickets own that reconciliation.
+
+## Q-012 — Where should provider retry timing live?
+
+Aleph preserves retry classification and provider details such as `retry_after`, while the host
+scheduler decides when to dispatch the next attempt. Revisit only if two hosts demonstrate
+incompatible timing behavior that belongs in the package contract.

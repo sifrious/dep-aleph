@@ -53,3 +53,9 @@ Characterization confirms that `steps` is an ordered repository-pipeline tree us
 UI, while live per-item counts may come from Laravel job batches. Aleph preserves the stored tree
 and current step as an opaque checkpoint; it does not claim that those values form a universal
 connector lifecycle.
+
+## A-010 — Hosts schedule retries but do not decide lifecycle semantics
+
+Laravel workers and schedulers determine when an eligible attempt runs. Aleph determines whether a
+run may start, resume, retry, fail, or complete and exposes the next safe action. No current package
+requirement justifies owning queue transport or retry delays.

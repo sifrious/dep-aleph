@@ -729,3 +729,18 @@ step semantics would make every connector pretend to be a GitHub repository pipe
 **Consequence.** Legacy IDs map deterministically to ULIDs, repeated imports and launch keys return
 the original run, partial and incomplete outcomes remain explicit, and Landing retains its table
 until a consuming-host reconciliation proves cutover.
+
+## D-056 — Attempts are durable children of one idempotent ingestion run
+
+**Decision.** A logical source window has one ingestion run and one or more numbered attempts. Each
+attempt records its own checkpoint, counters, structured failure, and timing. The run projects the
+latest operational state and retains deduplicated stable references to history accepted by Funes.
+
+**Rationale.** Treating every queue retry as a new run loses lineage and makes already accepted
+observations look like new work. Keeping attempts only in queue metadata loses the evidence an
+operator needs after a worker exits. A separate provider orchestration framework is unnecessary;
+the run, attempt, transition rules, and query are the smallest coherent boundary.
+
+**Consequence.** Retry resumes from the committed checkpoint, fatal failures cannot be retried,
+partial and retryable failures remain diagnosable, and two hosts can inspect the same stable read
+model without querying package tables or importing Landing types.

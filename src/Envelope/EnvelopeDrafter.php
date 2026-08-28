@@ -24,8 +24,17 @@ final readonly class EnvelopeDrafter
             sourceReference: $envelope->sourceReference,
             sourceName: $envelope->sourceName,
             resourceReference: $envelope->resourceReference,
+            producerReference: 'aleph:connector/'.$envelope->provenance->connectorId,
+            producerName: $envelope->provenance->connectorId,
             observedAt: $envelope->observedAt,
             payload: $envelope->payload,
+            occurredAt: $envelope->occurredAt,
+            transformationLineage: $envelope->normalization === null
+                ? []
+                : [
+                    $envelope->normalization->normalizer->reference(),
+                    $envelope->normalization->schema->reference(),
+                ],
             contentType: $envelope->contentType,
             metadata: $metadata,
             discoveries: array_map(

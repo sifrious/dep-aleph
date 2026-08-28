@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sifrious\Aleph\Acceptance;
 
+use InvalidArgumentException;
 use Sifrious\Aleph\Envelope\EnvelopeDrafter;
 use Sifrious\Aleph\Normalization\CandidateEnvelope;
 use Sifrious\Aleph\Normalization\CandidateEnvelopes;
@@ -24,10 +25,18 @@ final readonly class AcceptanceClient
     {
         $key = (string) IdempotencyKey::for($candidate);
         $envelope = $candidate->toObservationEnvelope();
-        $draft = $this->drafter->draft($envelope);
-        $payloadHash = hash('sha256', $draft->payload);
-
+        $payloadHash = hash('sha256', $envelope->payload);
         $submission = $this->submissions->open($key, $payloadHash, $attemptId);
+
+        try {
+            $draft = $this->drafter->draft($envelope);
+        } catch (InvalidArgumentException $failure) {
+            return new AcceptanceOutcomeRecord($candidate, $this->submissions->settle(
+                $submission,
+                SubmissionStatus::Rejected,
+                error: $failure::class.': '.$failure->getMessage(),
+            ));
+        }
 
         try {
             $result = $this->gateway->accept(new FunesSubmission($key, $draft, $envelope->occurredAt));

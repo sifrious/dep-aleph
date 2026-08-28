@@ -136,9 +136,16 @@ final readonly class IngestionRuns
 
     public function resume(IngestionRun $run): IngestionRun
     {
+        $this->assertTransition($run, RunStatus::Running);
+
+        if ($run->status === RunStatus::Failed && $run->failure?->retryable !== true) {
+            throw InvalidRunTransition::from($run->status, RunStatus::Running);
+        }
+
         $this->table()->where('id', $run->id)->update([
             'status' => RunStatus::Running->value,
             'error' => null,
+            'failure' => null,
             'finished_at' => null,
         ]);
 
@@ -160,11 +167,161 @@ final readonly class IngestionRuns
         );
     }
 
+    public function beginAttempt(IngestionRun $run): IngestionAttempt
+    {
+        $active = $this->attemptsTable()
+            ->where('run_id', $run->id)
+            ->where('status', RunStatus::Running->value)
+            ->first();
+
+        if ($active !== null) {
+            return $this->hydrateAttempt($active);
+        }
+
+        $current = $run->status === RunStatus::Running ? $run : $this->resume($run);
+        $number = ((int) $this->attemptsTable()->where('run_id', $run->id)->max('number')) + 1;
+        $attempt = new IngestionAttempt(
+            id: (string) Str::ulid(),
+            runId: $run->id,
+            number: $number,
+            status: RunStatus::Running,
+            checkpoint: $current->checkpoint,
+            stats: $current->stats,
+            failure: null,
+            startedAt: new DateTimeImmutable,
+            finishedAt: null,
+        );
+
+        $this->attemptsTable()->insert([
+            'id' => $attempt->id,
+            'run_id' => $attempt->runId,
+            'number' => $attempt->number,
+            'status' => $attempt->status->value,
+            'checkpoint' => $attempt->checkpoint === [] ? null : json_encode($attempt->checkpoint, JSON_THROW_ON_ERROR),
+            'stats' => $attempt->stats === [] ? null : json_encode($attempt->stats, JSON_THROW_ON_ERROR),
+            'failure' => null,
+            'started_at' => $attempt->startedAt,
+            'finished_at' => null,
+        ]);
+
+        return $attempt;
+    }
+
+    /**
+     * @param  array<string, mixed>  $checkpoint
+     * @param  array<string, int|float>  $stats
+     * @param  list<string>  $acceptedReferences
+     */
+    public function recordProgress(
+        IngestionRun $run,
+        IngestionAttempt $attempt,
+        array $checkpoint,
+        array $stats,
+        array $acceptedReferences = [],
+    ): void {
+        $this->assertActiveAttempt($run, $attempt);
+        $references = $this->mergeAcceptedReferences($run, $acceptedReferences);
+
+        $this->attemptsTable()->where('id', $attempt->id)->update([
+            'checkpoint' => json_encode($checkpoint, JSON_THROW_ON_ERROR),
+            'stats' => json_encode($stats, JSON_THROW_ON_ERROR),
+        ]);
+        $this->table()->where('id', $run->id)->update([
+            'checkpoint' => json_encode($checkpoint, JSON_THROW_ON_ERROR),
+            'stats' => json_encode($stats, JSON_THROW_ON_ERROR),
+            'accepted_references' => json_encode($references, JSON_THROW_ON_ERROR),
+        ]);
+    }
+
+    /**
+     * @param  array<string, int|float>  $stats
+     * @param  list<string>  $acceptedReferences
+     */
+    public function succeedAttempt(
+        IngestionRun $run,
+        IngestionAttempt $attempt,
+        array $stats,
+        array $acceptedReferences = [],
+    ): void {
+        $this->assertActiveAttempt($run, $attempt);
+        $this->assertTransition($run, RunStatus::Completed);
+        $references = $this->mergeAcceptedReferences($run, $acceptedReferences);
+        $finishedAt = Carbon::now();
+
+        $this->attemptsTable()->where('id', $attempt->id)->update([
+            'status' => RunStatus::Completed->value,
+            'stats' => json_encode($stats, JSON_THROW_ON_ERROR),
+            'failure' => null,
+            'finished_at' => $finishedAt,
+        ]);
+        $this->table()->where('id', $run->id)->update([
+            'status' => RunStatus::Completed->value,
+            'completeness' => RunCompleteness::Complete->value,
+            'stats' => json_encode($stats, JSON_THROW_ON_ERROR),
+            'error' => null,
+            'failure' => null,
+            'accepted_references' => json_encode($references, JSON_THROW_ON_ERROR),
+            'finished_at' => $finishedAt,
+        ]);
+    }
+
+    /**
+     * @param  array<string, int|float>  $stats
+     * @param  list<string>  $acceptedReferences
+     */
+    public function failAttempt(
+        IngestionRun $run,
+        IngestionAttempt $attempt,
+        RunFailure $failure,
+        array $stats = [],
+        array $acceptedReferences = [],
+        bool $partial = false,
+    ): void {
+        $this->assertActiveAttempt($run, $attempt);
+        $status = $partial ? RunStatus::Partial : RunStatus::Failed;
+        $this->assertTransition($run, $status);
+        $completeness = $partial ? RunCompleteness::Partial : RunCompleteness::Incomplete;
+        $references = $this->mergeAcceptedReferences($run, $acceptedReferences);
+        $finishedAt = Carbon::now();
+        $encodedFailure = json_encode($failure->toArray(), JSON_THROW_ON_ERROR);
+
+        $this->attemptsTable()->where('id', $attempt->id)->update([
+            'status' => $status->value,
+            'stats' => json_encode($stats, JSON_THROW_ON_ERROR),
+            'failure' => $encodedFailure,
+            'finished_at' => $finishedAt,
+        ]);
+        $this->table()->where('id', $run->id)->update([
+            'status' => $status->value,
+            'completeness' => $completeness->value,
+            'stats' => json_encode($stats, JSON_THROW_ON_ERROR),
+            'error' => $failure->message,
+            'failure' => $encodedFailure,
+            'accepted_references' => json_encode($references, JSON_THROW_ON_ERROR),
+            'finished_at' => $finishedAt,
+        ]);
+    }
+
+    /**
+     * @return list<IngestionAttempt>
+     */
+    public function attempts(IngestionRun $run): array
+    {
+        return array_values($this->attemptsTable()
+            ->where('run_id', $run->id)
+            ->orderBy('number')
+            ->get()
+            ->map(fn (stdClass $row): IngestionAttempt => $this->hydrateAttempt($row))
+            ->all());
+    }
+
     /**
      * @param  array<string, mixed>  $stats
      */
     public function complete(IngestionRun $run, array $stats): void
     {
+        $this->assertTransition($run, RunStatus::Completed);
+
         $this->table()->where('id', $run->id)->update([
             'status' => RunStatus::Completed->value,
             'completeness' => RunCompleteness::Complete->value,
@@ -176,6 +333,8 @@ final readonly class IngestionRuns
 
     public function interrupt(IngestionRun $run, string $error): void
     {
+        $this->assertTransition($run, RunStatus::Interrupted);
+
         $this->table()->where('id', $run->id)->update([
             'status' => RunStatus::Interrupted->value,
             'completeness' => RunCompleteness::Incomplete->value,
@@ -246,8 +405,77 @@ final readonly class IngestionRuns
         );
     }
 
+    private function hydrateAttempt(stdClass $row): IngestionAttempt
+    {
+        $checkpoint = $row->checkpoint === null ? [] : json_decode((string) $row->checkpoint, true, 512, JSON_THROW_ON_ERROR);
+        $stats = $row->stats === null ? [] : json_decode((string) $row->stats, true, 512, JSON_THROW_ON_ERROR);
+        $failure = $row->failure === null ? null : json_decode((string) $row->failure, true, 512, JSON_THROW_ON_ERROR);
+
+        return new IngestionAttempt(
+            id: (string) $row->id,
+            runId: (string) $row->run_id,
+            number: (int) $row->number,
+            status: RunStatus::from((string) $row->status),
+            checkpoint: is_array($checkpoint) ? $checkpoint : [],
+            stats: is_array($stats) ? $stats : [],
+            failure: is_array($failure) ? RunFailure::fromArray($failure) : null,
+            startedAt: new DateTimeImmutable((string) $row->started_at),
+            finishedAt: $row->finished_at === null ? null : new DateTimeImmutable((string) $row->finished_at),
+        );
+    }
+
+    private function assertActiveAttempt(IngestionRun $run, IngestionAttempt $attempt): void
+    {
+        if ($attempt->runId !== $run->id || $attempt->status !== RunStatus::Running) {
+            throw InvalidRunTransition::from($attempt->status, RunStatus::Running);
+        }
+
+        $active = $this->attemptsTable()
+            ->where('id', $attempt->id)
+            ->where('run_id', $run->id)
+            ->where('status', RunStatus::Running->value)
+            ->exists();
+
+        if (! $active) {
+            throw InvalidRunTransition::from($attempt->status, RunStatus::Running);
+        }
+    }
+
+    private function assertTransition(IngestionRun $run, RunStatus $status): void
+    {
+        $current = $this->find($run->id);
+
+        if ($current === null) {
+            throw InvalidRunTransition::from($run->status, $status);
+        }
+
+        if (! $current->status->canTransitionTo($status)) {
+            throw InvalidRunTransition::from($current->status, $status);
+        }
+    }
+
+    /**
+     * @param  list<string>  $references
+     * @return list<string>
+     */
+    private function mergeAcceptedReferences(IngestionRun $run, array $references): array
+    {
+        $current = $this->find($run->id);
+
+        if ($current === null) {
+            return array_values(array_unique([...$run->acceptedReferences, ...$references]));
+        }
+
+        return array_values(array_unique([...$current->acceptedReferences, ...$references]));
+    }
+
     private function table(): Builder
     {
         return $this->connection->table('aleph_ingestion_runs');
+    }
+
+    private function attemptsTable(): Builder
+    {
+        return $this->connection->table('aleph_ingestion_attempts');
     }
 }

@@ -36,10 +36,12 @@ normalized response media type.
 **Skip reason** — why a candidate was recorded but never enqueued: `external_host`, `excluded`, or
 `depth_limit`.
 
-**Ingestion run** — one bounded execution of a declared capability against a source. A web crawl has
-its own frontier. Runs may be `running`, `interrupted`, or `completed`; `--fresh` starts a new one.
+**Ingestion run** — one idempotent logical execution of a declared capability against a connector
+source. It owns numbered attempts; a web crawl additionally owns a frontier.
 
-**Capability** — an operation Aleph can execute. The implemented set contains only `web.crawl`.
+**Capability** — a provider-neutral connector operation. `web.crawl` is the first with a complete
+executable package pipeline; the contract also names discovery, sync, webhook, artifact, and health
+operations used by connector packages.
 
 **Stop reason** — why the loop ended: `frontier_exhausted` or `page_limit`.
 
@@ -81,3 +83,9 @@ a stopped run never masquerades as a full observation of its source.
 
 **Legacy run reference** — the namespaced identity of an application-owned run before migration.
 It deterministically maps to one package ULID and remains visible in the portable read model.
+
+**Ingestion attempt** — one numbered execution inside a logical ingestion run. Retries add attempts
+without changing the run identity or duplicating accepted-history references.
+
+**Run read model** — a presentation-neutral projection of one run, its attempts, diagnostics, and
+next safe action. Hosts consume it instead of querying Aleph tables.
