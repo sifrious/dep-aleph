@@ -191,6 +191,10 @@
         {
             "decision": "Use one source installation as the isolation boundary for each provider account and keep managed credentials in encrypted referenced rows.",
             "rationale": "Provider-wide configuration collides across accounts, while Funes identity must not carry rotating secrets and provider-specific account tables would duplicate operational scoping."
+        },
+        {
+            "decision": "Enforce the Aleph package boundary with an executable end-to-end connector gate and structural dependency checks.",
+            "rationale": "Architecture prose and live-provider smoke tests cannot prove that Funes remains discovery-free, provider SDKs remain outside the core, or replay preserves one accepted historical effect."
         }
     ],
     "open_questions": [
@@ -292,7 +296,8 @@
             "MME-801 recurring ingestion schedules and scheduler adapter",
             "MME-811 bounded partitioned historical backfill command",
             "MME-812 strategy-aware incremental synchronization and change ledger",
-            "MME-813 independently authenticated multiple source accounts"
+            "MME-813 independently authenticated multiple source accounts",
+            "MME-1174 executable Aleph package-boundary validation"
         ],
         "not_implemented": [
             "connector manifests",
@@ -473,6 +478,16 @@
             "track credential kind, scopes, expiry, and refresh metadata",
             "scope streams, checkpoints, health, schedules, and queue policy by installation ID",
             "refresh one account credential without changing another account"
+        ],
+        "package_boundary_validation": [
+            "register an independent fake connector without Landing types",
+            "discover one external source through the public capability contract",
+            "construct a provenance-bearing observation envelope",
+            "submit it through the Funes acceptance gateway",
+            "replay the same observation and recover the identical accepted identity",
+            "read provider, source, account, stream, installation, and run provenance from Funes",
+            "verify health evidence does not mutate accepted history",
+            "inspect dependency direction, provider SDK isolation, and mutation surface"
         ]
     },
     "content_opportunities": [
@@ -665,6 +680,16 @@
             "audience": "backend and integration developers",
             "skill_level": "intermediate",
             "hook": "A provider is a connector. An account is an installation."
+        },
+        {
+            "format": "short video",
+            "user_problem": "A package boundary exists in a diagram but silently erodes as features accumulate.",
+            "concept": "Architecture boundaries as executable release gates",
+            "technology": "Laravel package tests, dependency inspection, idempotent Funes acceptance",
+            "project_context": "Aleph MME-1174 package-boundary validation",
+            "audience": "package and platform developers",
+            "skill_level": "intermediate",
+            "hook": "If the boundary matters, make the build prove it."
         }
     ]
 }

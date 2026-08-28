@@ -169,3 +169,7 @@ by the installation ID.
 **Connector credential** — encrypted account-specific authentication material addressed through an
 opaque reference. Its non-secret operational metadata includes credential kind, scopes, expiry, and
 refresh time; secret material never appears in its metadata projection.
+
+**Package boundary gate** — executable validation that one independent connector can cross Aleph's
+public observation contract into Funes while dependency direction, provider isolation, replay safety,
+provenance, health separation, and the default read-only surface remain intact.

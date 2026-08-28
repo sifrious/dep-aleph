@@ -987,3 +987,19 @@ their streams, checkpoints, health checks, schedules, and queue policy remain na
 installation ID. Credential metadata can be inspected without serializing secret material. OAuth
 callbacks and credential-entry screens stay in the consuming application, which supplies either
 managed material or an external opaque reference.
+
+## D-071 — The package boundary is an executable release gate
+
+**Decision.** Aleph's boundary is validated by an independent fake connector crossing discovery,
+envelope construction, acceptance, deterministic replay, and provenance retrieval, plus structural
+checks on dependency direction, provider SDK isolation, and the absence of generic mutation
+capabilities. The human-readable validation matrix points to these executable checks.
+
+**Rationale.** A boundary described only in architecture prose can erode while every local feature
+test remains green. A live-provider smoke test proves one adapter and one account, but cannot prove
+that Funes stays independent or that the reusable package contract is host- and provider-neutral.
+
+**Consequence.** Package releases can fail when discovery leaks into Funes, a provider SDK enters
+the Aleph core, replay creates duplicate history, provenance becomes incomplete, or a generic write
+surface appears. Individual connector tickets still own live-provider verification and any explicit,
+separately authorized mutation contract.
