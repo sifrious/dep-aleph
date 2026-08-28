@@ -6,8 +6,11 @@ use Sifrious\Aleph\Acceptance\AcceptanceClient;
 use Sifrious\Aleph\Acceptance\IdempotencyKey;
 use Sifrious\Aleph\Acceptance\Submissions;
 use Sifrious\Aleph\Acceptance\SubmissionStatus;
+use Sifrious\Aleph\Envelope\EnvelopeSubmitter;
+use Sifrious\Aleph\Envelope\ObservationEnvelope;
 use Sifrious\Aleph\Envelope\Provenance;
 use Sifrious\Aleph\Normalization\CandidateEnvelope;
+use Sifrious\Aleph\Normalization\CandidateEnvelopes;
 use Sifrious\Aleph\Normalization\NormalizationInput;
 use Sifrious\Aleph\Normalization\NormalizationRunner;
 use Sifrious\Aleph\Normalization\Reference\ShellCommandNormalizer;
@@ -148,4 +151,116 @@ it('lists retryable submissions without listing settled ones', function (): void
 
     expect($retryable)->toHaveCount(1)
         ->and($retryable[0]->idempotencyKey)->toBe('key-stranded');
+});
+
+function impossibleCandidate(string $payload = 'occurred after it was seen'): CandidateEnvelope
+{
+    return CandidateEnvelope::direct(new ObservationEnvelope(
+        sourceReference: 'shell:host/laptop',
+        sourceName: 'Laptop',
+        resourceReference: 'shell:command/'.substr(hash('sha256', $payload), 0, 8),
+        observedAt: new DateTimeImmutable('2026-08-27T09:00:00+00:00'),
+        payload: $payload,
+        provenance: new Provenance('pigeon-post', '0.3.1', 'inst-1', new DateTimeImmutable('2026-08-27T09:05:00+00:00')),
+        occurredAt: new DateTimeImmutable('2026-08-27T10:00:00+00:00'),
+    ));
+}
+
+it('settles each candidate in a batch independently', function (): void {
+    $records = app(AcceptanceClient::class)->submitAll(
+        new CandidateEnvelopes(candidateFor('one'), impossibleCandidate(), candidateFor('three')),
+        'attempt-batch',
+    );
+
+    expect(array_map(static fn ($r): string => $r->submission->status->value, $records))
+        ->toBe(['accepted', 'rejected', 'accepted'])
+        ->and(DB::table('funes_observations')->count())->toBe(2);
+});
+
+it('does not let one rejection discard the rest of a batch', function (): void {
+    app(AcceptanceClient::class)->submitAll(
+        new CandidateEnvelopes(impossibleCandidate(), candidateFor('survivor')),
+    );
+
+    expect(DB::table('funes_observations')->count())->toBe(1)
+        ->and(DB::table('aleph_funes_submissions')->where('status', 'accepted')->count())->toBe(1)
+        ->and(DB::table('aleph_funes_submissions')->where('status', 'rejected')->count())->toBe(1);
+});
+
+it('reserves no idempotency key for a rejected candidate', function (): void {
+    app(AcceptanceClient::class)->submit(impossibleCandidate());
+
+    expect(DB::table('funes_idempotency_keys')->count())->toBe(0);
+});
+
+it('reports in flight rather than accepted when another submitter holds the key', function (): void {
+    $candidate = candidateFor('contended');
+
+    DB::table('funes_idempotency_keys')->insert([
+        'key' => (string) IdempotencyKey::for($candidate),
+        'reserved_at' => new DateTimeImmutable,
+    ]);
+
+    $record = app(AcceptanceClient::class)->submit($candidate);
+
+    expect($record->submission->status)->toBe(SubmissionStatus::InFlight)
+        ->and($record->isAuthoritative())->toBeFalse()
+        ->and($record->submission->status->shouldRetry())->toBeTrue()
+        ->and(DB::table('funes_observations')->count())->toBe(0);
+});
+
+it('produces one accepted fact when a contended key is later resolved and retried', function (): void {
+    $candidate = candidateFor('contended');
+    $key = (string) IdempotencyKey::for($candidate);
+
+    DB::table('funes_idempotency_keys')->insert(['key' => $key, 'reserved_at' => new DateTimeImmutable]);
+    app(AcceptanceClient::class)->submit($candidate);
+
+    DB::table('funes_idempotency_keys')->where('key', $key)->delete();
+    $winner = app(AcceptanceClient::class)->submit($candidate);
+    $loser = app(AcceptanceClient::class)->submit($candidate);
+
+    expect($winner->submission->status)->toBe(SubmissionStatus::Accepted)
+        ->and($loser->submission->status)->toBe(SubmissionStatus::Replayed)
+        ->and($loser->acceptedId())->toBe($winner->acceptedId())
+        ->and(DB::table('funes_observations')->count())->toBe(1);
+});
+
+it('gives a connector no way to create history except a successful acceptance', function (): void {
+    $envelope = new ObservationEnvelope(
+        sourceReference: 'pigeon:loft/ashcroft',
+        sourceName: 'Ashcroft Loft',
+        resourceReference: 'pigeon:ring/AC-1',
+        observedAt: new DateTimeImmutable('2026-08-27T09:00:00+00:00'),
+        payload: 'wind fair, weight 412g',
+        provenance: new Provenance('pigeon-post', '0.3.1', 'inst-1', new DateTimeImmutable('2026-08-27T09:05:00+00:00')),
+    );
+
+    $record = app(EnvelopeSubmitter::class)->submit($envelope);
+
+    expect($record->isAuthoritative())->toBeTrue()
+        ->and(DB::table('funes_observations')->value('id'))->toBe($record->acceptedId())
+        ->and(DB::table('aleph_funes_submissions')->where('accepted_id', $record->acceptedId())->exists())
+        ->toBeTrue()
+        ->and(DB::table('funes_idempotency_keys')->where('accepted_id', $record->acceptedId())->exists())
+        ->toBeTrue();
+});
+
+it('keeps a directly submitted envelope traceable to its own raw evidence', function (): void {
+    $payload = 'wind fair, weight 412g';
+
+    app(EnvelopeSubmitter::class)->submit(new ObservationEnvelope(
+        sourceReference: 'pigeon:loft/ashcroft',
+        sourceName: 'Ashcroft Loft',
+        resourceReference: 'pigeon:ring/AC-1',
+        observedAt: new DateTimeImmutable('2026-08-27T09:00:00+00:00'),
+        payload: $payload,
+        provenance: new Provenance('pigeon-post', '0.3.1', 'inst-1', new DateTimeImmutable('2026-08-27T09:05:00+00:00')),
+    ));
+
+    $normalization = json_decode((string) DB::table('funes_observations')->value('metadata'), true)['aleph']['normalization'];
+
+    expect($normalization['normalizer'])->toBe('aleph.direct@1')
+        ->and($normalization['candidate_schema'])->toBe('aleph.envelope@1')
+        ->and($normalization['raw']['input_hash'])->toBe(hash('sha256', $payload));
 });

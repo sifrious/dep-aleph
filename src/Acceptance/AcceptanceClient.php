@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Sifrious\Aleph\Acceptance;
 
-use Sifrious\Aleph\Envelope\EnvelopeSubmitter;
+use Sifrious\Aleph\Envelope\EnvelopeDrafter;
 use Sifrious\Aleph\Normalization\CandidateEnvelope;
 use Sifrious\Aleph\Normalization\CandidateEnvelopes;
 use Sifrious\Funes\Acceptance\AcceptanceGateway;
@@ -17,14 +17,14 @@ final readonly class AcceptanceClient
     public function __construct(
         private AcceptanceGateway $gateway,
         private Submissions $submissions,
-        private EnvelopeSubmitter $submitter,
+        private EnvelopeDrafter $drafter,
     ) {}
 
     public function submit(CandidateEnvelope $candidate, ?string $attemptId = null): AcceptanceOutcomeRecord
     {
         $key = (string) IdempotencyKey::for($candidate);
         $envelope = $candidate->toObservationEnvelope();
-        $draft = $this->submitter->draft($envelope);
+        $draft = $this->drafter->draft($envelope);
         $payloadHash = hash('sha256', $draft->payload);
 
         $submission = $this->submissions->open($key, $payloadHash, $attemptId);

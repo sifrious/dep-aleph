@@ -12,7 +12,7 @@ final readonly class Crawler
     public function __construct(
         private Fetcher $fetcher,
         private ExtractorSelector $extractors,
-        private FunesObservationWriter $observations,
+        private FunesObservationWriter $retrievals,
     ) {}
 
     public function crawl(WebSource $source, Frontier $frontier, IngestionRun $run): CrawlSummary
@@ -106,7 +106,7 @@ final readonly class Crawler
                 }
             }
 
-            $accepted = $this->observations->accept(
+            $accepted = $this->retrievals->accept(
                 $source,
                 $run,
                 $candidate,

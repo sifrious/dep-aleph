@@ -4,37 +4,25 @@ declare(strict_types=1);
 
 namespace Sifrious\Aleph\Envelope;
 
-use Sifrious\Funes\Persistence\ObservationStore;
-use Sifrious\Funes\Value\AcceptedObservation;
-use Sifrious\Funes\Value\Discovery;
+use Sifrious\Aleph\Acceptance\AcceptanceClient;
+use Sifrious\Aleph\Acceptance\AcceptanceOutcomeRecord;
+use Sifrious\Aleph\Normalization\CandidateEnvelope;
 use Sifrious\Funes\Value\ObservationDraft;
 
 final readonly class EnvelopeSubmitter
 {
-    public function __construct(private ObservationStore $store) {}
+    public function __construct(
+        private AcceptanceClient $acceptance,
+        private EnvelopeDrafter $drafter,
+    ) {}
 
-    public function submit(ObservationEnvelope $envelope): AcceptedObservation
+    public function submit(ObservationEnvelope $envelope, ?string $attemptId = null): AcceptanceOutcomeRecord
     {
-        return $this->store->accept($this->draft($envelope));
+        return $this->acceptance->submit(CandidateEnvelope::forEnvelope($envelope), $attemptId);
     }
 
     public function draft(ObservationEnvelope $envelope): ObservationDraft
     {
-        return new ObservationDraft(
-            sourceReference: $envelope->sourceReference,
-            sourceName: $envelope->sourceName,
-            resourceReference: $envelope->resourceReference,
-            observedAt: $envelope->observedAt,
-            payload: $envelope->payload,
-            contentType: $envelope->contentType,
-            metadata: $envelope->metadata(),
-            discoveries: array_map(
-                static fn (DiscoveryReference $discovery): Discovery => new Discovery(
-                    $discovery->reference,
-                    $discovery->relationship,
-                ),
-                $envelope->discoveries,
-            ),
-        );
+        return $this->drafter->draft($envelope);
     }
 }

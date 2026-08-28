@@ -612,3 +612,89 @@ persistence tests now assert the new shape.
 
 Both were caught by pre-existing crawl tests rather than by new ones, which is the argument for
 migrating a mature path instead of a toy.
+
+## D-048 — `EnvelopeSubmitter::submit()` was the hole in A34's first pass
+
+**Decision.** `EnvelopeSubmitter` no longer holds an `ObservationStore`. Drafting moved to a new
+`EnvelopeDrafter`; `submit()` now wraps the envelope as a candidate and goes through
+`AcceptanceClient`, returning an `AcceptanceOutcomeRecord` instead of an `AcceptedObservation`.
+
+**Rationale.** A34's first pass migrated the crawl path but left A38's connector-facing API
+writing straight to `ObservationStore::accept()`. The sample connector used exactly that call, so
+MME-841's one binding criterion — no connector creates accepted history without a Funes acceptance
+result — was still false. The crawl migration was real; it just was not the whole boundary.
+
+**Consequence.** Connectors must now read the result. `PigeonPostConnector::backfill()` fails the
+operation when Funes does not accept, instead of counting an assumed success. The dependency
+`AcceptanceClient → EnvelopeDrafter → (values only)` has no cycle, and `EnvelopeSubmitter` no
+longer imports `Funes\Persistence` at all.
+
+## D-049 — A directly submitted envelope is its own candidate
+
+**Decision.** `CandidateEnvelope::forEnvelope()` reuses the envelope's existing
+`NormalizationLineage` when A32 produced one, and otherwise stamps
+`aleph.envelope@1` / `aleph.direct@1` with a raw reference hashed from the payload.
+
+**Rationale.** A connector that emits an envelope directly has done no normalization, and saying so
+is more honest than inventing a normalizer name. The first draft of this change stamped `direct` on
+every envelope and silently overwrote real `shell-command@3` lineage — caught by A32's seam test,
+which is the argument for keeping that test.
+
+**Consequence.** Direct submissions still carry lineage, still get a content-derived idempotency
+key, and are still replay-safe. They are distinguishable from normalized ones by normalizer id.
+
+## D-050 — The backfill reads a Funes backlog rather than guessing
+
+**Decision.** Funes exposes `AcceptanceBacklog::unkeyed()` — accepted observations with no
+idempotency key, i.e. history persisted before the boundary existed. Aleph's `Backfill` submits
+each one back through `AcceptanceClient` in bounded batches.
+
+**Rationale.** Only Funes can say which of its records were accepted without proof. Aleph asking
+"what have you not keyed?" keeps the judgement on the Funes side of the boundary, and the backfill
+uses the same acceptance contract as live ingestion rather than a privileged migration path.
+
+**Consequence.** Backfill does not duplicate history: `ObservationStore::accept()` already dedupes
+on payload hash, so a legacy row keeps its id and gains a key plus an
+`aleph_funes_submissions` row. Running it repeatedly is a no-op — the second run's backlog is
+empty. `occurred_at` survives, reconstructed from the stored `aleph.occurred_at` metadata.
+
+## D-051 — Batch acceptance settles per candidate, not per batch
+
+**Decision.** `AcceptanceClient::submitAll()` loops, and each candidate gets its own idempotency
+key, its own Funes transaction and its own `aleph_funes_submissions` row. A rejection does not roll
+back its neighbours.
+
+**Rationale.** The ticket asks for atomic semantics "where appropriate". Per-batch atomicity would
+mean one malformed record from a provider discards a whole page of good history, and a retry of the
+batch would then be indistinguishable from a retry of the failure. Per-candidate atomicity is the
+unit that actually matters: one candidate is one accepted fact.
+
+**Consequence.** A partially failing batch is a normal outcome, reported per record. An uncertain
+retry is safe because the candidates that succeeded replay by key. `acceptBatch()` on the Funes
+gateway keeps the same per-submission semantics.
+
+**Rejected.** Wrapping the batch in one transaction, which trades a real correctness property
+(good records land) for a cosmetic one (the batch is all-or-nothing).
+
+## D-052 — Parity is a fixture, not a paragraph
+
+**Decision.** `tests/Feature/CrawlParityTest.php` pins the pre-A34 metadata key list as a literal
+constant and asserts every key and value survives into
+`extensions[web.retrieval].data`, that the additions are exactly
+`envelope_version`, `event_type`, `provenance`, `normalization`, and that payload, references,
+content type, discovery relationships, dispositions, counts and extraction records are unchanged.
+
+**Rationale.** D-046 claimed parity in prose. Prose does not fail when someone drops a key. Writing
+the assertions found that two of my own expectations were wrong (`text/html; charset=utf-8`, and
+relationships `link`/`iframe` rather than `discovered`) — the second confirming D-047's fix holds.
+
+**Consequence.** The legacy crawl write path is retired rather than dual-written. Dual-writing was
+rejected because the migrated path *is* the only writer and a recorded fixture proves the same
+thing without shipping temporary architecture the ticket forbids making permanent.
+
+## D-053 — Follow-up connector migrations, not absorbed here
+
+The remaining historical writers stay in Landing, one ticket each, in this order: Slack (largest
+and most shape-stable), Claude history, Linear, GitHub, artifacts, research. `docs/historical-
+writers.md` records what each writes and which are operational rather than historical. Landing's
+~80 CRUD controllers are display-layer state and are not migration candidates.

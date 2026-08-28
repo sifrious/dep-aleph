@@ -12,6 +12,7 @@ use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Support\ServiceProvider;
 use Sifrious\Aleph\Acceptance\AcceptanceClient;
+use Sifrious\Aleph\Acceptance\Backfill;
 use Sifrious\Aleph\Acceptance\Submissions;
 use Sifrious\Aleph\Connector\ConnectorCatalogue;
 use Sifrious\Aleph\Connector\ConnectorDispatcher;
@@ -19,6 +20,7 @@ use Sifrious\Aleph\Connector\ConnectorInstallations;
 use Sifrious\Aleph\Connector\ConnectorRegistry;
 use Sifrious\Aleph\Console\CrawlCommand;
 use Sifrious\Aleph\Console\InventoryCommand;
+use Sifrious\Aleph\Envelope\EnvelopeDrafter;
 use Sifrious\Aleph\Envelope\EnvelopeSubmitter;
 use Sifrious\Aleph\Ingestion\IngestionRuns;
 use Sifrious\Aleph\Inventory\InventoryReader;
@@ -35,6 +37,7 @@ use Sifrious\Aleph\Web\HttpFetcher;
 use Sifrious\Aleph\Web\RobotsPolicy;
 use Sifrious\Aleph\Web\SystemClock;
 use Sifrious\Aleph\Web\WebSources;
+use Sifrious\Funes\Acceptance\AcceptanceBacklog;
 use Sifrious\Funes\Acceptance\AcceptanceGateway;
 use Sifrious\Funes\Persistence\ObservationStore;
 
@@ -96,10 +99,13 @@ class AlephServiceProvider extends ServiceProvider
             ),
         );
 
+        $this->app->singleton(EnvelopeDrafter::class);
+
         $this->app->singleton(
             EnvelopeSubmitter::class,
             fn (Application $app): EnvelopeSubmitter => new EnvelopeSubmitter(
-                $app->make(ObservationStore::class),
+                $app->make(AcceptanceClient::class),
+                $app->make(EnvelopeDrafter::class),
             ),
         );
 
@@ -139,7 +145,15 @@ class AlephServiceProvider extends ServiceProvider
             fn (Application $app): AcceptanceClient => new AcceptanceClient(
                 $app->make(AcceptanceGateway::class),
                 $app->make(Submissions::class),
-                $app->make(EnvelopeSubmitter::class),
+                $app->make(EnvelopeDrafter::class),
+            ),
+        );
+
+        $this->app->singleton(
+            Backfill::class,
+            fn (Application $app): Backfill => new Backfill(
+                $app->make(AcceptanceBacklog::class),
+                $app->make(AcceptanceClient::class),
             ),
         );
 

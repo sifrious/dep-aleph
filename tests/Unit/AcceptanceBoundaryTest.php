@@ -28,11 +28,35 @@ it('lets only the acceptance layer reach Funes persistence', function (): void {
 
     expect($offenders)->toBe([
         'Acceptance/AcceptanceClient.php',
+        'Acceptance/Backfill.php',
         'AlephServiceProvider.php',
-        'Envelope/EnvelopeSubmitter.php',
         'Inventory/InventoryReader.php',
         'Web/FunesObservationWriter.php',
     ]);
+});
+
+it('leaves no way to create accepted history except the acceptance gateway', function (): void {
+    $callers = [];
+
+    $files = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator(dirname(__DIR__, 2).'/src')
+    );
+
+    foreach ($files as $file) {
+        if (! $file->isFile() || $file->getExtension() !== 'php') {
+            continue;
+        }
+
+        $source = (string) file_get_contents($file->getPathname());
+
+        if (preg_match('/observations->accept\(|store->accept\(/', $source) !== 1) {
+            continue;
+        }
+
+        $callers[] = str_replace(dirname(__DIR__, 2).'/src/', '', $file->getPathname());
+    }
+
+    expect($callers)->toBe([]);
 });
 
 it('keeps connector packages away from Funes persistence entirely', function (): void {
