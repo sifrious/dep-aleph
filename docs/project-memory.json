@@ -39,7 +39,8 @@
         "Every incomplete ingestion run exposes remaining work, warning and error counts, an immutable failure timeline, and one machine-readable safe recovery action.",
         "A retry is a numbered child attempt reconstructed from the original run's durable parameters, checkpoint, counters, and idempotent identity.",
         "Resume reconstructs each partition from its latest accepted-through checkpoint under an expiring lease and explicit partition, record, and runtime budgets.",
-        "Every active source stream has a package freshness projection or an explicit never-synchronized read model, and freshness is recalculated against an explicit clock."
+        "Every active source stream has a package freshness projection or an explicit never-synchronized read model, and freshness is recalculated against an explicit clock.",
+        "Connector health is an immutable expiring result per installation dimension, aggregated with explicit unknown evidence and coded remediation."
     ],
     "assumptions": [
         "A sequential concurrency ceiling of one is sufficient for the bounded AHSD crawl.",
@@ -167,6 +168,10 @@
         {
             "decision": "Project source-stream timestamps durably while deriving current freshness from an explicit clock.",
             "rationale": "A stored healthy label ages without writes, while host-side derivation would split semantics across CLI, API, mobile, and desktop clients."
+        },
+        {
+            "decision": "Represent connector health as latest expiring evidence per dimension with coded remediation.",
+            "rationale": "A universal boolean hides the difference between bad credentials, provider reachability, rate state, stale data, queue backlog, and missing evidence."
         }
     ],
     "open_questions": [
@@ -228,6 +233,8 @@
         "continuation_lease": "An expiring exclusive claim on one stream capability partition during resume.",
         "source_stream_freshness": "The last-attempt, last-success, accepted-through, next-due, and current freshness projection for one stream.",
         "freshness_expectation": "The expected interval and stale boundary applied by the package freshness query.",
+        "connector_health_check": "An expiring immutable result for one installation health dimension.",
+        "health_remediation": "A coded plain-language next step attached to a health result.",
         "domain_ingestion_run": "A DNS-specific projection that adds stable account/domain scope and provider reconciliation references to the shared ingestion run.",
         "manual_launch": "An authorized idempotent request that persists a pending run before host dispatch.",
         "authorization_decision_reference": "A stable host-issued reference to the evaluated decision that allowed a manual run."
@@ -253,7 +260,8 @@
             "MME-810 incomplete synchronization outcomes and recovery actions",
             "MME-804 deterministic retry command and attempt lineage",
             "MME-805 bounded leased resume from accepted-through checkpoints",
-            "MME-809 provider-neutral source-stream freshness projection"
+            "MME-809 provider-neutral source-stream freshness projection",
+            "MME-808 connector health evidence, aggregation, and remediation contract"
         ],
         "not_implemented": [
             "connector manifests",
@@ -390,6 +398,14 @@
             "project completed run and accepted-through checkpoint times",
             "retain the next due time and per-stream freshness expectation",
             "derive healthy, due, stale, or never synchronized against the caller's clock"
+        ],
+        "connector_health": [
+            "record immutable expiring evidence for each health dimension",
+            "select the latest current result per installation and dimension",
+            "treat missing and expired evidence as unknown",
+            "override stale configuration evidence when the installation is disabled",
+            "aggregate by worst severity",
+            "return plain-language summary and deduplicated remediation codes"
         ]
     },
     "content_opportunities": [
@@ -532,6 +548,16 @@
             "audience": "backend and platform developers",
             "skill_level": "intermediate",
             "hook": "Health ages even when the database is quiet."
+        },
+        {
+            "format": "post",
+            "user_problem": "A red connector badge sends the operator to logs without saying whether credentials, rate limits, queues, or storage failed.",
+            "concept": "Health as expiring evidence with remediation",
+            "technology": "Laravel package queries, immutable checks, severity aggregation",
+            "project_context": "Aleph MME-808 connector health",
+            "audience": "backend and operations developers",
+            "skill_level": "intermediate",
+            "hook": "Unhealthy is not an explanation."
         }
     ]
 }

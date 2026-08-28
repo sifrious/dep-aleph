@@ -136,3 +136,10 @@ accepted-through time, next due time, and current healthy, due, stale, or never-
 
 **Freshness expectation** — a per-stream expected interval and stale boundary. The package query
 applies it to the caller's clock so freshness cannot freeze at the value last written.
+
+**Connector health check** — an expiring, immutable result for one installation dimension:
+configuration, authentication, reachability, rate limit, freshness, webhook, backlog, queue, Funes,
+or storage.
+
+**Health remediation** — a machine-readable code and plain-language next step attached to an
+unhealthy, degraded, unknown, or expired health dimension.

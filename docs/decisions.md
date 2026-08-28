@@ -898,3 +898,20 @@ no write occurs. Deriving freshness in every UI would repeat and eventually spli
 null success values and an explicit never-synchronized state. Failed attempts advance only last
 attempt, successful attempts preserve the checkpoint acceptance time, and CLI, API, mobile, and
 desktop hosts consume identical freshness semantics.
+
+## D-066 — Connector health is a set of expiring explanations
+
+**Decision.** Health checks are immutable, expiring results scoped to a source installation and one
+of configuration, authentication, reachability, rate limit, freshness, webhook, backlog, queue,
+Funes, or storage. Each result carries status, message, scalar metrics, and an optional coded
+remediation. The query selects the latest current result for every dimension and aggregates by the
+worst severity.
+
+**Rationale.** One boolean cannot distinguish bad credentials from a delayed queue or an expired
+reachability probe, and inspecting logs is not a portable remediation contract. Missing and expired
+checks are evidence gaps rather than proof of health.
+
+**Consequence.** Reports always contain every health dimension. Missing or expired evidence is
+`unknown` with an action to run the check, disabled installations are unhealthy regardless of stale
+configuration evidence, not-applicable dimensions do not reduce health, and hosts receive the same
+summary and remediation codes without provider-specific inference.

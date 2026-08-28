@@ -18,6 +18,8 @@ use Sifrious\Aleph\Connector\ConnectorCatalogue;
 use Sifrious\Aleph\Connector\ConnectorDispatcher;
 use Sifrious\Aleph\Connector\ConnectorInstallations;
 use Sifrious\Aleph\Connector\ConnectorRegistry;
+use Sifrious\Aleph\Connector\Health\ConnectorHealthChecks;
+use Sifrious\Aleph\Connector\Health\ConnectorHealthQueries;
 use Sifrious\Aleph\Console\CrawlCommand;
 use Sifrious\Aleph\Console\InventoryCommand;
 use Sifrious\Aleph\Envelope\EnvelopeDrafter;
@@ -142,6 +144,22 @@ class AlephServiceProvider extends ServiceProvider
             fn (Application $app): ConnectorInstallations => new ConnectorInstallations(
                 $this->connection($app),
                 $app->make(Encrypter::class),
+            ),
+        );
+
+        $this->app->singleton(
+            ConnectorHealthChecks::class,
+            fn (Application $app): ConnectorHealthChecks => new ConnectorHealthChecks(
+                $this->connection($app),
+                $app->make(ConnectorInstallations::class),
+            ),
+        );
+
+        $this->app->singleton(
+            ConnectorHealthQueries::class,
+            fn (Application $app): ConnectorHealthQueries => new ConnectorHealthQueries(
+                $app->make(ConnectorInstallations::class),
+                $app->make(ConnectorHealthChecks::class),
             ),
         );
 
