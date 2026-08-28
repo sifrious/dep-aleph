@@ -167,6 +167,14 @@ timestamps. Refresh and revocation call the secret store before updating portabl
 Landing migration adapter never accepts token values and leaves the legacy row in place until a host
 has verified secure cutover and independently removes it.
 
+## Slack run adapters
+
+`LandingSlackSyncRunAdapter` imports Slack channel-sweep and single-channel audit rows into the shared
+ingestion-run lifecycle. Workspace/channel scope, provider run and reconciliation references, and
+targets stay in the typed Slack projection. Reconciled continuation cursor, oldest boundary, and
+channel high-water state use the shared checkpoint. Slack history remains represented only by stable
+Funes references. Landing run persistence remains until a consuming host reconciles cutover.
+
 ## Fakes
 
 Composable doubles live in `Sifrious\Aleph\Testing\Fakes` so orchestration tests need no real

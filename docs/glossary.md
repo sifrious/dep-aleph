@@ -242,3 +242,7 @@ only by the host secret store; token values never enter Aleph portable persisten
 
 **Slack credential state** — the explicit active, expired, revoked, or missing availability of one
 workspace credential at a given time.
+
+**Slack ingestion run** — the Slack projection of a shared ingestion run, adding workspace/channel
+scope, provider run/reconciliation references, targets, and continuation checkpoint state without
+owning Slack history.

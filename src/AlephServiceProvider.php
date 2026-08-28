@@ -67,6 +67,7 @@ use Sifrious\Aleph\Ingestion\IngestionRunQueries;
 use Sifrious\Aleph\Ingestion\IngestionRuns;
 use Sifrious\Aleph\Ingestion\IngestionSchedules;
 use Sifrious\Aleph\Ingestion\LinearRunQueries;
+use Sifrious\Aleph\Ingestion\SlackRunQueries;
 use Sifrious\Aleph\Ingestion\SourceStreams;
 use Sifrious\Aleph\Ingestion\SourceStreamStatuses;
 use Sifrious\Aleph\Inventory\InventoryReader;
@@ -116,6 +117,11 @@ class AlephServiceProvider extends ServiceProvider
         $this->app->singleton(
             LinearRunQueries::class,
             fn (Application $app): LinearRunQueries => new LinearRunQueries($app->make(IngestionRunQueries::class)),
+        );
+
+        $this->app->singleton(
+            SlackRunQueries::class,
+            fn (Application $app): SlackRunQueries => new SlackRunQueries($app->make(IngestionRunQueries::class)),
         );
 
         $this->app->singleton(

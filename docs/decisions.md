@@ -1207,3 +1207,21 @@ before live connector parity is demonstrated.
 without token values. Connector code receives a deliberately non-serializable secret value from the
 host boundary. Refresh and revocation update the external secret before portable status. Legacy
 ciphertext removal remains an explicit consuming-host cutover step after live verification.
+
+## D-083 — Slack run scope projects over the shared ingestion lifecycle
+
+**Decision.** Landing `SlackSyncRun` rows import into the shared ingestion-run lifecycle under stable
+legacy identity. Status, timing, numeric counters, failure, retry, completeness, attempts,
+checkpoints, source installation, and Funes references remain shared. Slack workspace/channel scope,
+targets, provider run ID, and reconciliation references live in a typed Slack projection. Cursor,
+oldest boundary, and channel high-water state are reconciled from the job/channel sources that own
+them because Landing's run row does not contain those fields.
+
+**Rationale.** Landing's Slack audit row repeats the same four-state lifecycle already migrated for
+other providers. Copying queued-job cursor state into invented legacy columns would turn inference
+into fact, while omitting the reconciled checkpoint would lose safe continuation semantics.
+
+**Consequence.** Channel sweeps and single-channel history runs preserve their implemented stories
+and use one provider-neutral retry/resume engine. Slack SDK objects and message/file history stay out
+of Aleph run contracts. Landing persistence remains until consuming-host identity and count
+reconciliation passes.

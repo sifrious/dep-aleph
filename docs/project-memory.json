@@ -52,7 +52,8 @@
         "Landing LinearSyncRun rows import under deterministic identity into the shared lifecycle, with Linear workspace/project scope, provider reconciliation, targets, and cursors isolated in a typed extension.",
         "Linear workspaces ingest independently through package-owned pagination; each resource stream has its own accepted-through cursor, while verified webhooks and polling share canonical activity identity.",
         "Gmail, Microsoft Graph, and IMAP records normalize to provider-neutral F28 messages; bounded mailbox pages advance opaque provider checkpoints only after Funes acceptance, and attachments remain Digory references.",
-        "Slack credential migration retains workspace/account/scopes/status/timestamps and an opaque host secret-store reference; token material and legacy-row deletion remain outside Aleph."
+        "Slack credential migration retains workspace/account/scopes/status/timestamps and an opaque host secret-store reference; token material and legacy-row deletion remain outside Aleph.",
+        "Landing SlackSyncRun rows import into the shared lifecycle with Slack workspace/channel scope and reconciled cursor, oldest, and high-water checkpoint state."
     ],
     "assumptions": [
         "A sequential concurrency ceiling of one is sufficient for the bounded AHSD crawl.",
@@ -248,6 +249,10 @@
         {
             "decision": "Represent Slack tokens as portable status metadata plus an opaque host secret-store reference.",
             "rationale": "Connector orchestration needs workspace, scopes, availability, and lifecycle state but not token material; legacy ciphertext must remain until a host proves secure live cutover."
+        },
+        {
+            "decision": "Model SlackSyncRun as a typed Slack projection over the shared ingestion-run lifecycle.",
+            "rationale": "Landing repeats shared run status/timing/counter/failure behavior, while workspace/channel scope and reconciled continuation state are the only Slack-specific operational facts."
         }
     ],
     "open_questions": [
@@ -340,6 +345,7 @@
         "digory_attachment_handoff": "A stable reference to provider-owned attachment content that Aleph does not retrieve or store.",
         "slack_credential_handle": "Workspace-scoped metadata and an opaque reference resolved only by a host secret store.",
         "slack_credential_state": "The active, expired, revoked, or missing availability of one Slack workspace credential.",
+        "slack_ingestion_run": "A shared ingestion run projected with Slack workspace/channel scope, provider references, targets, and continuation checkpoint.",
         "domain_ingestion_run": "A DNS-specific projection that adds stable account/domain scope and provider reconciliation references to the shared ingestion run.",
         "manual_launch": "An authorized idempotent request that persists a pending run before host dispatch.",
         "authorization_decision_reference": "A stable host-issued reference to the evaluated decision that allowed a manual run."
@@ -382,7 +388,8 @@
             "MME-990 LinearSyncRun migration adapter and Linear run projection",
             "MME-822 multi-workspace Linear polling, checkpoint, webhook, and Funes ingestion",
             "MME-823 Gmail, Microsoft Graph, and IMAP F28 email ingestion",
-            "MME-1106 opaque Slack credential migration and lifecycle broker"
+            "MME-1106 opaque Slack credential migration and lifecycle broker",
+            "MME-1105 SlackSyncRun migration adapter and Slack run projection"
         ],
         "not_implemented": [
             "connector manifests",
@@ -689,6 +696,16 @@
             "refresh and revoke through the secret store before updating portable metadata",
             "replay migration without duplication",
             "retain the legacy token row until consuming-host parity and secure cutover pass"
+        ],
+        "slack_run_migration": [
+            "read one characterized Landing SlackSyncRun row",
+            "derive deterministic shared run identity from the stable legacy ID",
+            "map pending, running, succeeded, and failed lifecycle stories",
+            "project Slack workspace/channel scope, targets, provider run, and reconciliation references",
+            "reconcile cursor, oldest boundary, and channel high-water from their source-backed job/channel state",
+            "retain imported Slack history only as stable Funes references",
+            "resume and retry through the shared attempt lifecycle",
+            "replay import without duplication and retain Landing persistence through reconciliation"
         ]
     },
     "content_opportunities": [
@@ -1001,6 +1018,16 @@
             "audience": "backend and security engineers",
             "skill_level": "intermediate",
             "hook": "Encrypted is not the same as portable."
+        },
+        {
+            "format": "post",
+            "user_problem": "A provider audit row repeats the run lifecycle while its real resume cursor lives in a queue payload.",
+            "concept": "Provider run projections with reconciled source-backed checkpoints",
+            "technology": "Laravel migration adapters, durable attempts, Funes history references",
+            "project_context": "Aleph MME-1105 SlackSyncRun migration",
+            "audience": "backend and platform developers",
+            "skill_level": "intermediate",
+            "hook": "Migrate the run. Reconcile the cursor."
         }
     ]
 }
