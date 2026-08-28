@@ -262,3 +262,6 @@ follows has been accepted by Funes.
 
 **Unsupported communication update** — an explicit F28 record preserving the provider update and
 provenance when Aleph cannot yet interpret its message-specific content.
+
+**SMS source identity** — a stable identity derived from the exact provider or device address; it
+retains original and normalized forms but makes no claim about the person controlling the address.

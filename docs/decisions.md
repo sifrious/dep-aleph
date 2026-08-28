@@ -1260,3 +1260,20 @@ the provider event does not establish.
 updates converge by message and update identity. Media remains a stable Digory handoff reference.
 Authentication, provider clients, token storage, and UI stay in consuming hosts. The shared
 communication lifecycle can support other providers without sharing their mapping rules.
+
+## D-086 — SMS addresses remain source identities, not people
+
+**Decision.** SMS and MMS imports preserve each original source address beside a normalized matching
+form and a stable hashed source identity. They do not carry a person reference. Device backups and
+provider APIs adapt to F28 before Funes submission and use the shared acceptance-gated checkpoint
+lifecycle. Group participants and attachment references remain source-backed evidence.
+
+**Rationale.** Formatting normalization is useful for later matching but does not prove who controlled
+a phone number at a given time. Collector database rows, SDK objects, carrier credentials, and backup
+keys are transport concerns. Treating an address as a person would turn a matching hypothesis into
+immutable history.
+
+**Consequence.** Inbound, outbound, and group messages retain direction, timestamps, body, provider
+delivery/read state, original and normalized addresses, and MMS media references without identity
+inference. Duplicate collector rows converge by source/message/revision identity. Live collectors,
+credential storage, outbound delivery, and person resolution remain outside Aleph.

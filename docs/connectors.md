@@ -198,6 +198,13 @@ replies, reactions, media, and unsupported updates. Media uses stable
 `digory:telegram-attachment` references. Telegram clients and bot or user tokens remain behind the
 registered source boundary and must not be supplied to the adapter.
 
+`SmsMessageAdapter` maps replaceable device-backup and provider records into the same F28 lifecycle.
+It retains inbound/outbound direction, original addresses, normalized matching forms, stable hashed
+source identities, timestamps, body, source-backed delivery/read state, group participants, and MMS
+attachments. It deliberately emits no person identity. MMS media uses stable
+`digory:sms-attachment` references; carrier credentials and backup encryption secrets stay behind
+the registered source boundary.
+
 ## Fakes
 
 Composable doubles live in `Sifrious\Aleph\Testing\Fakes` so orchestration tests need no real

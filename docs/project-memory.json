@@ -398,7 +398,8 @@
             "MME-1106 opaque Slack credential migration and lifecycle broker",
             "MME-1105 SlackSyncRun migration adapter and Slack run projection",
             "MME-824 multi-workspace Slack polling, Events API, checkpoint, Funes, and attachment handoff",
-            "MME-1236 Telegram F28 communication ingestion and accepted-through checkpoints"
+            "MME-1236 Telegram F28 communication ingestion and accepted-through checkpoints",
+            "MME-1237 SMS and MMS F28 ingestion with source-address identity"
         ],
         "not_implemented": [
             "connector manifests",
@@ -1068,6 +1069,16 @@
             "audience": "backend and integration developers",
             "skill_level": "intermediate",
             "hook": "Unknown is evidence. Preserve it before advancing the offset."
+        },
+        {
+            "format": "short video",
+            "user_problem": "A text-message importer treats a normalized phone number as a proven person identity.",
+            "concept": "Preserve matching representations without promoting identity hypotheses to facts",
+            "technology": "SMS/MMS exports, F28 source identities, Funes immutable acceptance",
+            "project_context": "Aleph MME-1237 SMS ingestion",
+            "audience": "backend and data-platform developers",
+            "skill_level": "intermediate",
+            "hook": "A phone number is evidence, not a person."
         }
     ]
 }
