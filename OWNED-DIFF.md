@@ -11,3 +11,13 @@ CHARGES WHEN: limited-maintenance releases require compatibility work, malformed
 TRIGGER: ALEPH-010 requires embedded PDF text extraction now; PHP and Laravel provide no PDF text parser
 
 Signals: v2.12.5 released 2026-04-21; 76 historical committers; 198 open issues and 7 open pull requests; the maintainers explicitly describe the project as under limited maintenance
+
+## dep: symfony/uid — 2026-08-28, MME-1568
+
+SEAM: borrowed — ULID generation, serviced by Symfony; transitive: 1 new package, and zero in any host that already has laravel/framework.
+
+PAYS WHEN: `Acceptance\Submissions` calls `Str::ulid()`, which it does for every submission.
+
+CHARGES WHEN: never seriously.
+
+TRIGGER: fired now — Aleph was relying on `laravel/framework` to pull this in. In a host built on the split `illuminate/*` packages (Laravel Zero, which Stacks is) it is absent, and the first acceptance fails with `Class "Symfony\Component\Uid\Ulid" not found`. Found by running Aleph inside Stacks; a package that calls it should require it.
