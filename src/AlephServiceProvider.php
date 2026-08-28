@@ -33,6 +33,7 @@ use Sifrious\Aleph\Connector\GitHub\ImportGitHubActivities;
 use Sifrious\Aleph\Connector\Health\ConnectorHealthChecks;
 use Sifrious\Aleph\Connector\Health\ConnectorHealthQueries;
 use Sifrious\Aleph\Connector\RegisterSourceAccount;
+use Sifrious\Aleph\Connector\Watch\RepositoryWatches;
 use Sifrious\Aleph\Console\CrawlCommand;
 use Sifrious\Aleph\Console\InventoryCommand;
 use Sifrious\Aleph\Envelope\EnvelopeDrafter;
@@ -167,6 +168,14 @@ class AlephServiceProvider extends ServiceProvider
         ));
 
         $this->app->singleton(ConnectorRegistry::class);
+
+        $this->app->singleton(
+            RepositoryWatches::class,
+            fn (Application $app): RepositoryWatches => new RepositoryWatches(
+                $this->connection($app),
+                $app->make(ConnectorInstallations::class),
+            ),
+        );
 
         $this->app->singleton(GitRepositorySources::class);
 

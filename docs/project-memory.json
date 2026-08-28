@@ -44,7 +44,8 @@
         "Recurring ingestion schedules validate connector capabilities, calculate timezone-aware next runs, use expiring distributed claims, and record every schedule occurrence against its ingestion run.",
         "Historical backfills require formatted range bounds, deterministic partitions, explicit rate/work budgets, cumulative progress, checkpoints, and all-partitions-complete termination.",
         "Incremental streams declare cursor, high-water, webhook, hash, or reconcile strategy; only Funes-accepted material changes advance checkpoints, while unchanged polls accept zero changes.",
-        "GitHub polling and verified webhooks submit canonical node revisions through one history identity; GraphQL cursors advance after Funes acceptance, webhook deliveries are encrypted and replayable, and delivery identity is isolated by source installation."
+        "GitHub polling and verified webhooks submit canonical node revisions through one history identity; GraphQL cursors advance after Funes acceptance, webhook deliveries are encrypted and replayable, and delivery identity is isolated by source installation.",
+        "Repository watches retain only portable orchestration state and coalesce duplicate poll/webhook triggers; repository, commit, pull-request, and file history remains outside Aleph watch storage."
     ],
     "assumptions": [
         "A sequential concurrency ceiling of one is sufficient for the bounded AHSD crawl.",
@@ -208,6 +209,10 @@
         {
             "decision": "Use one canonical GitHub activity identity for polling and webhook transports.",
             "rationale": "Repository coordinates, node ID, update time, and canonical payload describe provider history; cursor, delivery, and transport details are operational provenance that must not duplicate the same change."
+        },
+        {
+            "decision": "Model repository watches as portable orchestration state with per-watch trigger coalescing.",
+            "rationale": "Cadence, checkpoint, enablement, due time, error, and backoff decide when ingestion runs, while provider history belongs in Funes and transport-specific payloads belong behind adapters."
         }
     ],
     "open_questions": [
@@ -285,6 +290,8 @@
         "github_ingestion_run": "A shared ingestion run projected with GitHub account, repository, watch, target, reconciliation, and scope metadata.",
         "github_activity": "A canonical GitHub node revision shared by poll and webhook observation paths.",
         "github_webhook_delivery": "A signature-verified encrypted payload unique by source installation and delivery ID, retaining accepted history references for replay.",
+        "repository_watch": "Portable poll, webhook, or hybrid orchestration state for one installation and stable repository reference.",
+        "repository_watch_trigger": "A stable per-watch change identity that coalesces duplicate provider observations before work is launched.",
         "domain_ingestion_run": "A DNS-specific projection that adds stable account/domain scope and provider reconciliation references to the shared ingestion run.",
         "manual_launch": "An authorized idempotent request that persists a pending run before host dispatch.",
         "authorization_decision_reference": "A stable host-issued reference to the evaluated decision that allowed a manual run."
@@ -319,7 +326,8 @@
             "MME-1174 executable Aleph package-boundary validation",
             "MME-815 SHA-addressed Git repository and history ingestion",
             "MME-954 GitHubSyncRun migration adapter and GitHub run projection",
-            "MME-816 GitHub activity backfill, incremental polling, and verified webhook ingestion"
+            "MME-816 GitHub activity backfill, incremental polling, and verified webhook ingestion",
+            "MME-1069 deterministic RepoWatch migration and provider-neutral watch state"
         ],
         "not_implemented": [
             "connector manifests",
@@ -541,6 +549,16 @@
             "replay a processed delivery from its accepted references",
             "converge polling and webhook overlap on one accepted history identity",
             "record rate-limit recovery time on a retryable attempt"
+        ],
+        "repository_watch_migration": [
+            "replace Landing user and repository foreign keys with stable installation, source, and repository references",
+            "derive a deterministic package watch identity from the Landing watch reference",
+            "preserve mode, portable filters, cadence, checkpoint, head, enablement, timing, completion, error, and backoff",
+            "exclude provider payloads and repository history from the portable contract",
+            "claim one stable trigger key per watch so webhook and polling overlap coalesces",
+            "query only enabled due watches whose backoff has elapsed",
+            "record success or failure without discarding prior checkpoint state",
+            "replay migration without duplication and retain Landing persistence through reconciliation"
         ]
     },
     "content_opportunities": [
@@ -773,6 +791,16 @@
             "audience": "backend and integration developers",
             "skill_level": "intermediate",
             "hook": "Two transports. One provider change."
+        },
+        {
+            "format": "short video",
+            "user_problem": "A repository watch table slowly becomes a second database for commits, files, and pull requests.",
+            "concept": "Separating orchestration state from immutable provider history",
+            "technology": "Laravel package models, stable references, deterministic migration, trigger coalescing",
+            "project_context": "Aleph MME-1069 RepoWatch migration",
+            "audience": "backend and data-platform developers",
+            "skill_level": "intermediate",
+            "hook": "A watch decides when to look. It is not what it saw."
         }
     ]
 }

@@ -1057,3 +1057,22 @@ Funes observation while retaining transport provenance. Delivery replay returns 
 references, equal delivery IDs remain isolated by source installation, invalid signatures never enter
 durable storage, non-advancing cursors fail safely, and rate limits create retryable attempts with an
 explicit recovery instant. OAuth UI and HTTP/GraphQL clients remain host integration concerns.
+
+## D-075 — Repository watches retain orchestration state, not repository history
+
+**Decision.** A repository watch belongs to one source installation and stable source/repository
+reference. It retains poll, webhook, or hybrid mode, portable filters, cadence, cursor/checkpoint,
+accepted head reference, enablement, due and sync times, backfill completion, error, and backoff.
+Provider observations coalesce through a stable trigger key unique within the watch. Landing rows
+import under deterministic identities and remain in place until a host reconciliation passes.
+
+**Rationale.** Landing `RepoWatch` combines durable scheduling state with GitHub-specific dispatch
+code, while commits and files already have a historical owner. Moving provider payloads or repository
+history into the watch would duplicate Funes; treating poll and webhook deliveries as unrelated work
+would queue the same revision twice.
+
+**Consequence.** Existing watches preserve their source-backed state without carrying user, Eloquent,
+GitHub SDK, commit, pull-request, or file objects across the package seam. Disabled and backed-off
+watches are not due. An error remains explicit after backoff expires so a retry can be selected. A
+successful pass clears failure state, advances its operational checkpoint, and schedules the next due
+time. Scheduler dispatch and application UI remain outside this model.

@@ -194,3 +194,10 @@ and webhook delivery are observation transports, not separate historical identit
 **GitHub webhook delivery** — one signature-verified encrypted payload identified within a source
 installation by GitHub's delivery ID. Its processed state retains the accepted Funes references so
 replay does not repeat provider history.
+
+**Repository watch** — package-owned orchestration state that observes one stable repository through
+polling, webhooks, or both. It retains cadence, checkpoint, head, due, completion, enablement, error,
+and backoff without owning repository history.
+
+**Repository watch trigger** — one provider-neutral change identity claimed within a repository watch.
+Its uniqueness coalesces webhook and poll observations before duplicate ingestion work is launched.
