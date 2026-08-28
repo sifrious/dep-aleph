@@ -127,6 +127,15 @@ the host/user/shell boundary. The package applies `shell.secrets:1` before const
 envelope, retains source revision and execution context, and makes exact rescans idempotent. Hosts own
 filesystem and SQLite access; adapter raw metadata is not copied into immutable payloads.
 
+## AI conversation adapters
+
+`AiConversationConnector` accepts registered sources composed with `ClaudeConversationAdapter`,
+`CodexConversationAdapter`, or `AlternateConversationAdapter`. Adapters normalize conversation and
+message identity, chronology, authorship, parent/thread/branch links, sidechains, agents, and ordered
+parts while retaining each provider record, block, and raw reference in the accepted envelope.
+`AiConversationQueries` provides provider-neutral chronology, author, and ancestor-thread queries.
+Hosts own transcript discovery and access; Kilgore or another consumer owns semantic interpretation.
+
 ## Fakes
 
 Composable doubles live in `Sifrious\Aleph\Testing\Fakes` so orchestration tests need no real

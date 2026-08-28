@@ -211,3 +211,9 @@ host, user, shell, cwd, session, environment, time, duration, exit, and output c
 
 **Shell redaction decision** — the retained or redacted result of applying a named policy before Funes
 acceptance. Redacted payloads keep an original command hash and reasons but no original secret text.
+
+**AI conversation** — one provider session normalized to a stable provider ID, source revision, raw
+reference, provider metadata, and an ordered graph of neutral messages.
+
+**AI message part** — one ordered text, thinking, tool-use, tool-result, or provider-specific block
+that retains its raw provider structure beside neutral text and tool-call linkage.

@@ -1114,3 +1114,22 @@ source revision remains distinct. Equal provider IDs on different host/user sour
 not collide. Every accepted command declares retained or redacted policy evidence and complete
 execution context, while malformed adapter records fail before acceptance. File/database access and
 terminal presentation remain host responsibilities.
+
+## D-078 — AI provider structure remains evidence inside a neutral message graph
+
+**Decision.** Claude, Codex, and alternate-provider adapters produce neutral conversations, messages,
+roles, authors, parent links, ordinals, timestamps, thread and branch IDs, sidechain state, agents,
+and ordered message parts. Each message and part also retains its provider record or block and exact
+raw reference. Funes identity combines the source installation, provider, conversation, message, and
+source revision. Common chronology, author, and ancestor-thread queries operate on the neutral values.
+
+**Rationale.** Landing's Claude schema already proves the need for parent UUIDs, sidechains, agent
+identity, content JSON, and message parts. Flattening provider blocks into text would discard tool
+linkage and future provider fields; making the entire provider payload the common model would prevent
+queries across providers and couple every consumer to transcript formats.
+
+**Consequence.** Provider-specific thinking, tool, annotation, and content blocks survive acceptance
+without becoming shared schema. Exact rescans reuse accepted history, while a changed source revision
+is separately observable. Claude, Codex, and another fixture answer the same chronology, authorship,
+and threading questions. Filesystem discovery, provider authentication, transcript UI, and semantic
+interpretation remain outside the package.

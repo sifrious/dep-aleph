@@ -19,6 +19,8 @@ use Sifrious\Aleph\Connector\ConnectorCredentials;
 use Sifrious\Aleph\Connector\ConnectorDispatcher;
 use Sifrious\Aleph\Connector\ConnectorInstallations;
 use Sifrious\Aleph\Connector\ConnectorRegistry;
+use Sifrious\Aleph\Connector\Conversation\AiConversationSources;
+use Sifrious\Aleph\Connector\Conversation\IngestAiConversations;
 use Sifrious\Aleph\Connector\Git\GitChangeDetector;
 use Sifrious\Aleph\Connector\Git\GitRepositorySources;
 use Sifrious\Aleph\Connector\Git\ImportGitHistory;
@@ -172,6 +174,16 @@ class AlephServiceProvider extends ServiceProvider
         ));
 
         $this->app->singleton(ConnectorRegistry::class);
+        $this->app->singleton(AiConversationSources::class);
+
+        $this->app->singleton(
+            IngestAiConversations::class,
+            fn (Application $app): IngestAiConversations => new IngestAiConversations(
+                $app->make(ConnectorInstallations::class),
+                $app->make(EnvelopeSubmitter::class),
+            ),
+        );
+
         $this->app->singleton(ShellHistorySources::class);
         $this->app->singleton(ShellCommandTokenizer::class);
         $this->app->singleton(ShellRedactionPolicy::class);

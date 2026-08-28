@@ -47,7 +47,8 @@
         "GitHub polling and verified webhooks submit canonical node revisions through one history identity; GraphQL cursors advance after Funes acceptance, webhook deliveries are encrypted and replayable, and delivery identity is isolated by source installation.",
         "Repository watches retain only portable orchestration state and coalesce duplicate poll/webhook triggers; repository, commit, pull-request, and file history remains outside Aleph watch storage.",
         "Repository poll, webhook, and reconciliation signals converge on watch/ref/head identity and launch the existing checkpointed incremental workflow; watch head state does not advance during launch.",
-        "Zsh, Atuin, and Claude Bash adapters normalize shell commands with host/user execution context; shell.secrets:1 redacts credentials before Funes acceptance and exact source-record revisions replay idempotently."
+        "Zsh, Atuin, and Claude Bash adapters normalize shell commands with host/user execution context; shell.secrets:1 redacts credentials before Funes acceptance and exact source-record revisions replay idempotently.",
+        "Claude, Codex, and alternate-provider adapters preserve raw message blocks and references beside neutral chronology, authorship, parent, thread, branch, sidechain, agent, and part values."
     ],
     "assumptions": [
         "A sequential concurrency ceiling of one is sufficient for the bounded AHSD crawl.",
@@ -223,6 +224,10 @@
         {
             "decision": "Apply deterministic shell secret redaction before constructing immutable Funes envelopes.",
             "rationale": "Commands and output commonly contain credentials, and an immutable acceptance boundary is too late to remove them; source revision and host/user context provide replay-safe identity without retaining raw adapter metadata."
+        },
+        {
+            "decision": "Retain provider-specific AI records and blocks inside a neutral message graph.",
+            "rationale": "Common roles, authors, chronology, and parent links support cross-provider queries, while untouched provider evidence preserves tool linkage and fields that do not justify universal schema."
         }
     ],
     "open_questions": [
@@ -305,6 +310,8 @@
         "repository_watch_signal": "A provider-neutral poll, webhook, or reconciliation observation naming one repository ref and head.",
         "shell_command_observation": "A human or agent command with stable source revision and complete host/user execution context.",
         "shell_redaction_decision": "A retained or redacted pre-acceptance outcome carrying policy identity, reasons, and original command hash.",
+        "ai_conversation": "One provider session with a stable provider ID, source revision, raw reference, metadata, and ordered neutral message graph.",
+        "ai_message_part": "One ordered neutral content part that retains its raw provider block and optional tool-call linkage.",
         "domain_ingestion_run": "A DNS-specific projection that adds stable account/domain scope and provider reconciliation references to the shared ingestion run.",
         "manual_launch": "An authorized idempotent request that persists a pending run before host dispatch.",
         "authorization_decision_reference": "A stable host-issued reference to the evaluated decision that allowed a manual run."
@@ -342,7 +349,8 @@
             "MME-816 GitHub activity backfill, incremental polling, and verified webhook ingestion",
             "MME-1069 deterministic RepoWatch migration and provider-neutral watch state",
             "MME-831 idempotent repository-watch triggering across polling, webhooks, and reconciliation",
-            "MME-817 zsh, Atuin, and Claude Bash history ingestion with pre-acceptance secret redaction"
+            "MME-817 zsh, Atuin, and Claude Bash history ingestion with pre-acceptance secret redaction",
+            "MME-818 provider-neutral Claude, Codex, and alternate AI conversation ingestion"
         ],
         "not_implemented": [
             "connector manifests",
@@ -596,6 +604,16 @@
             "replay an exact scan without duplicate history",
             "retain a changed source revision as new history",
             "isolate equal provider IDs by host, user, source reference, and installation"
+        ],
+        "ai_conversation_ingestion": [
+            "read provider transcripts through a registered host source adapter",
+            "normalize conversation and message identity, roles, authors, chronology, and parent links",
+            "retain thread, branch, sidechain, agent, and ordered message-part structure",
+            "preserve provider records, provider blocks, and exact raw references",
+            "submit each message revision through Funes",
+            "query chronology and authorship across providers and ancestor threads within a conversation",
+            "replay an exact scan without duplicate history",
+            "retain a changed source revision as new history"
         ]
     },
     "content_opportunities": [
@@ -858,6 +876,16 @@
             "audience": "backend, security, and developer-tool engineers",
             "skill_level": "intermediate",
             "hook": "Immutable means redact first."
+        },
+        {
+            "format": "post",
+            "user_problem": "A multi-provider conversation importer either flattens tool blocks into text or forces every query to understand each transcript format.",
+            "concept": "Neutral message graphs with lossless provider evidence",
+            "technology": "PHP adapters, parent and branch links, Funes immutable envelopes",
+            "project_context": "Aleph MME-818 AI conversation ingestion",
+            "audience": "developer-tool and data-platform engineers",
+            "skill_level": "intermediate",
+            "hook": "Normalize the graph. Keep the evidence."
         }
     ]
 }
