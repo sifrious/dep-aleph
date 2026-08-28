@@ -27,7 +27,9 @@
         "aleph_ingestion_runs.source_reference stores the prefixed web:ahsd form, byte-identical to funes_sources.reference; WebSource::reference() is the only place the prefix is written.",
         "Neither aleph_ nor funes_ tables exist in landing's database yet, so no persisted row changes meaning.",
         "Landing has provider-specific project, path, domain, Slack-contact, and GitHub-contributor associations but no portable source-scope relation.",
-        "Aleph source-scope associations use typed namespaced Funes references and snapshot their resolution state into accepted observation metadata."
+        "Aleph source-scope associations use typed namespaced Funes references and snapshot their resolution state into accepted observation metadata.",
+        "Landing SyncRun combines repository pipeline state with subway-map presentation and stores its current step and ordered steps as JSON.",
+        "Aleph ingestion runs now preserve connector/source identity, stable legacy references, replay keys, checkpoints, completeness, failures, counters, and accepted Funes references."
     ],
     "assumptions": [
         "A sequential concurrency ceiling of one is sufficient for the bounded AHSD crawl.",
@@ -35,7 +37,8 @@
         "The configured query-parameter allowlist defines URL identity for each web source.",
         "Every configured calendar signal traces to a captured working request and is revisited when the captures change.",
         "SchoolMessenger calendar event data is out of reach by policy rather than merely unbuilt.",
-        "Existing Landing associations are migration inputs and become package facts only when they contain confirmed stable references."
+        "Existing Landing associations are migration inputs and become package facts only when they contain confirmed stable references.",
+        "Landing SyncRun step trees are source-backed opaque checkpoints rather than universal connector lifecycle semantics."
     ],
     "decisions": [
         {
@@ -105,6 +108,10 @@
         {
             "decision": "Represent source scopes with typed namespaced opaque references and explicit confirmed, ambiguous, rejected, or superseded state.",
             "rationale": "Host database IDs, display names, and path inference are not portable facts; multiple rows preserve many-to-many truth and ambiguity without guessing."
+        },
+        {
+            "decision": "Evolve the existing Aleph ingestion run into the portable SyncRun object while preserving Landing's repository step tree as an opaque checkpoint.",
+            "rationale": "A second package run model would split lifecycle authority, and copying a GitHub-specific UI model would force accidental complexity onto every connector."
         }
     ],
     "open_questions": [
@@ -113,7 +120,8 @@
         "When does measured crawl throughput justify concurrency greater than one?",
         "Should district PDFs keep the CDN final URL as their Funes identity, or should the pre-redirect allowed-host URL be recorded instead?",
         "When does inventory size justify a payload-free existence read on ObservationStore instead of find()?",
-        "Which authority will issue canonical project references when several stable namespaces describe the same project?"
+        "Which authority will issue canonical project references when several stable namespaces describe the same project?",
+        "Which stable connector installation should each provider-specific Landing run family reference during migration?"
     ],
     "constraints": [
         "Only public GET and HEAD retrievals are permitted.",
@@ -127,7 +135,9 @@
         "Package tables may add columns, but may not introduce a name the master schema already spells differently.",
         "An inventory may only be produced for a run belonging to the named source.",
         "A source scope may not use an unqualified display name or host database integer as a cross-package identity.",
-        "Ambiguous associations must remain explicit and must not be promoted by name similarity."
+        "Ambiguous associations must remain explicit and must not be promoted by name similarity.",
+        "Historical records stay in Funes; ingestion runs may retain only stable accepted-history references.",
+        "Landing sync-run persistence remains until cutover reconciliation passes."
     ],
     "glossary": {
         "capability": "An operation Aleph can execute; currently only web.crawl.",
@@ -145,7 +155,9 @@
         "source_reference": "The prefixed identity of a source, web:<key>, spelled identically in aleph_ingestion_runs and funes_sources.",
         "extraction_status": "The typed outcome of one mechanical extraction: succeeded or failed.",
         "entity_reference": "A typed namespaced opaque Funes reference for a project, identity, repository, organization, or domain.",
-        "source_scope_association": "A state-bearing relation from a source installation or stream to an entity reference."
+        "source_scope_association": "A state-bearing relation from a source installation or stream to an entity reference.",
+        "run_completeness": "Whether a run observed all, some, or not-yet-all of its requested source range.",
+        "legacy_run_reference": "A namespaced stable identity retained from an application-owned run before package migration."
     },
     "features": {
         "implemented": [
@@ -158,7 +170,8 @@
             "ALEPH-010",
             "ALEPH-011",
             "ALEPH-012",
-            "MME-814 / A15 source-scope associations"
+            "MME-814 / A15 source-scope associations",
+            "MME-1114 provider-neutral SyncRun model and Landing migration adapter"
         ],
         "not_implemented": [
             "connector manifests",
@@ -209,6 +222,15 @@
             "project absence as unassigned",
             "snapshot account, stream, state, and associations into observation metadata",
             "submit immutable history through the Funes acceptance boundary"
+        ],
+        "sync_run_migration": [
+            "read one characterized Landing SyncRun shape",
+            "replace host foreign keys with stable source references",
+            "map the legacy reference deterministically to a package ULID",
+            "preserve current step and ordered steps as an opaque checkpoint",
+            "preserve status, completeness, timing, counters, failure, and Funes references",
+            "return the original package run on replay",
+            "retain Landing persistence until reconciliation passes"
         ]
     },
     "content_opportunities": [
@@ -251,6 +273,16 @@
             "audience": "integration and data-platform developers",
             "skill_level": "intermediate",
             "hook": "Keep both candidates. Make the uncertainty queryable."
+        },
+        {
+            "format": "post",
+            "user_problem": "A reusable ingestion run inherits a provider-specific progress UI and becomes impossible to reuse.",
+            "concept": "Preserve checkpoints without promoting presentation into domain state",
+            "technology": "Laravel package migrations, deterministic ULIDs, immutable read models",
+            "project_context": "Aleph MME-1114 SyncRun migration",
+            "audience": "backend and integration developers",
+            "skill_level": "intermediate",
+            "hook": "The subway map survived migration, but it did not become the train system."
         }
     ]
 }

@@ -714,3 +714,18 @@ many-to-many truth and unresolved candidates without selecting a winner.
 **Consequence.** Acceptance snapshots the installation, stream, resolution state, and every
 association into the immutable observation metadata. Later changes to current associations do not
 rewrite the explanation attached to earlier history.
+
+## D-055 — One provider-neutral ingestion run absorbs `SyncRun` without copying its UI model
+
+**Decision.** The existing Aleph ingestion run remains the package object and gains connector and
+installation identity, stable legacy reference, replay key, checkpoint, completeness, structured
+failure, counters, accepted Funes references, and stable serialization. Landing's ordered subway
+step tree crosses the boundary as an opaque checkpoint, not as Aleph's lifecycle model.
+
+**Rationale.** Landing's `SyncRun` mixes useful transport state with repository and presentation
+details. Creating a second package run abstraction would split lifecycle authority, while copying
+step semantics would make every connector pretend to be a GitHub repository pipeline.
+
+**Consequence.** Legacy IDs map deterministically to ULIDs, repeated imports and launch keys return
+the original run, partial and incomplete outcomes remain explicit, and Landing retains its table
+until a consuming-host reconciliation proves cutover.

@@ -76,3 +76,10 @@ The contract accepts namespaced stable references but does not declare whether a
 entity catalogue, Linear project ID, or another package issues the canonical project identifier.
 No current behavior requires choosing. Importers must retain their namespace and must not collapse
 two references until an authorized reconciliation records that decision.
+
+## Q-011 — Which Landing run families can share an installation identity during migration?
+
+The generic `SyncRun` has repository and watch references but no connector-installation ID.
+Provider-specific `GithubSyncRun`, `SlackSyncRun`, `LinearSyncRun`, and `DomainSyncRun` migrations
+must resolve installations independently and must not infer an account from a display label. Their
+model-catalogue tickets own that reconciliation.

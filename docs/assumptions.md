@@ -46,3 +46,10 @@ Confirmed by characterization of `Project`, `ProjectPath`, `ProviderAccount`, `D
 `SlackContact`, and `GithubContributor`: useful links exist, but several terminate in Landing
 foreign keys or inferred path matches. Importers must translate only confirmed stable provider or
 Funes references; ambiguous candidates remain ambiguous.
+
+## A-009 — Landing `SyncRun.steps` is source-backed checkpoint data
+
+Characterization confirms that `steps` is an ordered repository-pipeline tree used by the subway
+UI, while live per-item counts may come from Laravel job batches. Aleph preserves the stored tree
+and current step as an opaque checkpoint; it does not claim that those values form a universal
+connector lifecycle.

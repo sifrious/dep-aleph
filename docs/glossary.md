@@ -75,3 +75,9 @@ repository, organization, or domain. It is portable across hosts and never a Lan
 **Source-scope association** — an explicit relation from a connector installation or one of its
 streams to an entity reference, with confirmed, ambiguous, rejected, or superseded state. No active
 association projects as unassigned.
+
+**Run completeness** — `incomplete`, `partial`, or `complete`, separate from operational status so
+a stopped run never masquerades as a full observation of its source.
+
+**Legacy run reference** — the namespaced identity of an application-owned run before migration.
+It deterministically maps to one package ULID and remains visible in the portable read model.
