@@ -401,3 +401,67 @@ churn.
 
 **Follow-up.** If a second connector implements `ExtractsContent`, check whether the web
 extractors should be expressed through it. Not now.
+
+## D-032 — Funes was already provider-neutral; A38 froze the Aleph side
+
+**Decision.** No change to Funes. `ObservationEnvelope` (Aleph) plus `EnvelopeSubmitter` is the
+one place Aleph talks to `ObservationStore`.
+
+**Rationale.** Inspection found Funes' schema already universal — `funes_sources`,
+`funes_resources`, `funes_payloads`, `funes_observations`, `funes_discoveries`,
+`funes_extractions`, with `metadata` as a JSON slot and no provider column anywhere. The gap A38
+names was never in Funes; it was the absence of a *frozen, versioned* contract on the Aleph side
+telling connectors how to fill that slot.
+
+**Rejected.** Adding envelope classes to Funes. Funes would then own a concept only Aleph uses.
+
+## D-033 — Reserved `aleph` namespace, everything else is a versioned extension
+
+**Decision.** Observation metadata has exactly two top-level keys: `aleph` (envelope version,
+account, stream, event type, provider id/revision, artifacts, provenance) and `extensions` (a
+list of `{namespace, version, data}`). `aleph` and `funes` are reserved namespace roots and
+`ExtensionMetadata` refuses them.
+
+**Rationale.** Funes must preserve provider-specific data without understanding it. A reserved
+namespace for fields Funes-adjacent tooling may one day read generically, and a versioned list for
+everything else, keeps those two populations separable forever. Refusing the reserved roots at
+construction stops a connector squatting on them.
+
+**Rejected.** Flat metadata merging, which makes provider keys indistinguishable from universal
+ones and collides the first time two connectors pick the same key.
+
+## D-034 — No `connectors` table; the catalogue is projected
+
+**Decision.** `ConnectorCatalogue` projects from `ConnectorRegistry` at runtime, deriving the
+package name by reflecting the connector class file up to its `composer.json`. Global
+enable/disable is `aleph.connectors.disabled` in config.
+
+**Rationale.** Same reasoning as D-029. Installed software is a property of the deployed
+filesystem: a `connectors` table would be a cache of Composer's state, stale after every deploy.
+Deriving the package name means the connector author declares nothing extra.
+
+**Rejected.** Persisting `connectors` rows. The ticket offers it; it would be a second source of
+truth for something Composer already knows.
+
+## D-035 — Installations are persisted, because they are operator state
+
+**Decision.** `aleph_connector_installations` exists and stores configuration encrypted via
+Laravel's `Encrypter`, plus a `credentials_reference` pointer rather than credential values.
+
+**Rationale.** Unlike the catalogue, a configured installation is not derivable from code. It is
+what an operator created. It must survive deploys and support several installations of one
+connector, so it is genuinely persisted state rather than a projection.
+
+**Rejected.** Storing raw configuration JSON. Connector configuration routinely contains
+host names, account identifiers, and occasionally worse; encrypting the column costs nothing and
+keeps secrets out of database dumps. Credential *values* still belong in a secret store, which is
+why the row holds a reference.
+
+## D-036 — The sample connector is a pigeon courier, not Slack
+
+**Decision.** `sifrious/aleph-connector-pigeonpost` is the plugin-boundary proof.
+
+**Rationale.** The ticket asks for something no existing shortcut could accidentally support. A
+loft receiving ring-numbered dispatches with wind readings has no analogue anywhere in Aleph or
+Funes, so a passing test cannot be explained by a latent provider assumption. Slack or GitHub
+would have been ambiguous evidence.

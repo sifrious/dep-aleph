@@ -5,14 +5,18 @@ declare(strict_types=1);
 namespace Sifrious\Aleph;
 
 use Illuminate\Contracts\Config\Repository as Config;
+use Illuminate\Contracts\Encryption\Encrypter;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Support\ServiceProvider;
+use Sifrious\Aleph\Connector\ConnectorCatalogue;
 use Sifrious\Aleph\Connector\ConnectorDispatcher;
+use Sifrious\Aleph\Connector\ConnectorInstallations;
 use Sifrious\Aleph\Connector\ConnectorRegistry;
 use Sifrious\Aleph\Console\CrawlCommand;
 use Sifrious\Aleph\Console\InventoryCommand;
+use Sifrious\Aleph\Envelope\EnvelopeSubmitter;
 use Sifrious\Aleph\Ingestion\IngestionRuns;
 use Sifrious\Aleph\Inventory\InventoryReader;
 use Sifrious\Aleph\Web\Clock;
@@ -63,6 +67,32 @@ class AlephServiceProvider extends ServiceProvider
         $this->app->singleton(
             ConnectorDispatcher::class,
             fn (Application $app): ConnectorDispatcher => new ConnectorDispatcher($app->make(ConnectorRegistry::class)),
+        );
+
+        $this->app->singleton(
+            ConnectorCatalogue::class,
+            fn (Application $app): ConnectorCatalogue => new ConnectorCatalogue(
+                $app->make(ConnectorRegistry::class),
+                array_values(array_map(
+                    strval(...),
+                    (array) $app->make(Config::class)->get('aleph.connectors.disabled', []),
+                )),
+            ),
+        );
+
+        $this->app->singleton(
+            ConnectorInstallations::class,
+            fn (Application $app): ConnectorInstallations => new ConnectorInstallations(
+                $this->connection($app),
+                $app->make(Encrypter::class),
+            ),
+        );
+
+        $this->app->singleton(
+            EnvelopeSubmitter::class,
+            fn (Application $app): EnvelopeSubmitter => new EnvelopeSubmitter(
+                $app->make(ObservationStore::class),
+            ),
         );
 
         $this->app->singleton(Clock::class, SystemClock::class);

@@ -5,6 +5,10 @@ declare(strict_types=1);
 return [
     'connection' => null,
 
+    'connectors' => [
+        'disabled' => [],
+    ],
+
     'http' => [
         'user_agent' => 'AlephCrawler/0.1 (+https://github.com/sifrious/aleph)',
         'connect_timeout' => 5,
