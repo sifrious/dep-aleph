@@ -195,6 +195,10 @@
         {
             "decision": "Enforce the Aleph package boundary with an executable end-to-end connector gate and structural dependency checks.",
             "rationale": "Architecture prose and live-provider smoke tests cannot prove that Funes remains discovery-free, provider SDKs remain outside the core, or replay preserves one accepted historical effect."
+        },
+        {
+            "decision": "Observe Git as SHA-addressed repository, ref movement, commit, tree, file, change, diff, and blame facts behind a replaceable source contract.",
+            "rationale": "A current-file projection erases deletions and force-pushes, while local paths, GitHub payloads, and symbol interpretation do not belong in the portable observation contract."
         }
     ],
     "open_questions": [
@@ -266,6 +270,9 @@
         "incremental_change": "One idempotent Funes-accepted added, updated, or deleted provider event.",
         "source_account": "One independently enabled connector installation with provider and Funes account identities.",
         "connector_credential": "Encrypted account-specific authentication material addressed by an opaque reference with scopes, expiry, and refresh metadata.",
+        "git_repository_source": "A replaceable reader that returns stable repository identity and captured ref snapshots.",
+        "git_ref_movement": "A previous-SHA to head-SHA observation that explicitly records broken ancestry.",
+        "git_file_change": "An added, modified, deleted, or renamed path derived from previous and current trees.",
         "domain_ingestion_run": "A DNS-specific projection that adds stable account/domain scope and provider reconciliation references to the shared ingestion run.",
         "manual_launch": "An authorized idempotent request that persists a pending run before host dispatch.",
         "authorization_decision_reference": "A stable host-issued reference to the evaluated decision that allowed a manual run."
@@ -297,7 +304,8 @@
             "MME-811 bounded partitioned historical backfill command",
             "MME-812 strategy-aware incremental synchronization and change ledger",
             "MME-813 independently authenticated multiple source accounts",
-            "MME-1174 executable Aleph package-boundary validation"
+            "MME-1174 executable Aleph package-boundary validation",
+            "MME-815 SHA-addressed Git repository and history ingestion"
         ],
         "not_implemented": [
             "connector manifests",
@@ -488,6 +496,16 @@
             "read provider, source, account, stream, installation, and run provenance from Funes",
             "verify health evidence does not mutate accepted history",
             "inspect dependency direction, provider SDK isolation, and mutation surface"
+        ],
+        "git_history_ingestion": [
+            "resolve a registered Git repository source and named ref",
+            "read the prior accepted ref SHA from the stream checkpoint",
+            "capture commits, previous and current trees, diff, and blame",
+            "derive added, modified, deleted, and renamed paths",
+            "emit repository, ref movement, commit, tree, file, change, diff, and blame envelopes",
+            "accept every envelope through Funes",
+            "advance the ref checkpoint only after complete acceptance",
+            "replay an unchanged ref without another historical effect"
         ]
     },
     "content_opportunities": [
@@ -690,6 +708,16 @@
             "audience": "package and platform developers",
             "skill_level": "intermediate",
             "hook": "If the boundary matters, make the build prove it."
+        },
+        {
+            "format": "post",
+            "user_problem": "A repository index shows today's files but cannot explain a force-push or deleted path.",
+            "concept": "Git ref movement and tree differences as immutable observations",
+            "technology": "Git SHAs, replaceable source adapters, Laravel package checkpoints, Funes provenance",
+            "project_context": "Aleph MME-815 Git history ingestion",
+            "audience": "developer-tool and data-platform engineers",
+            "skill_level": "advanced",
+            "hook": "A branch is a moving pointer, not history."
         }
     ]
 }

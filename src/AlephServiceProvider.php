@@ -19,6 +19,9 @@ use Sifrious\Aleph\Connector\ConnectorCredentials;
 use Sifrious\Aleph\Connector\ConnectorDispatcher;
 use Sifrious\Aleph\Connector\ConnectorInstallations;
 use Sifrious\Aleph\Connector\ConnectorRegistry;
+use Sifrious\Aleph\Connector\Git\GitChangeDetector;
+use Sifrious\Aleph\Connector\Git\GitRepositorySources;
+use Sifrious\Aleph\Connector\Git\ImportGitHistory;
 use Sifrious\Aleph\Connector\Health\ConnectorHealthChecks;
 use Sifrious\Aleph\Connector\Health\ConnectorHealthQueries;
 use Sifrious\Aleph\Connector\RegisterSourceAccount;
@@ -150,6 +153,22 @@ class AlephServiceProvider extends ServiceProvider
         ));
 
         $this->app->singleton(ConnectorRegistry::class);
+
+        $this->app->singleton(GitRepositorySources::class);
+
+        $this->app->singleton(GitChangeDetector::class);
+
+        $this->app->singleton(
+            ImportGitHistory::class,
+            fn (Application $app): ImportGitHistory => new ImportGitHistory(
+                $app->make(GitRepositorySources::class),
+                $app->make(SourceStreams::class),
+                $app->make(IngestionRuns::class),
+                $app->make(IngestionCheckpoints::class),
+                $app->make(EnvelopeSubmitter::class),
+                $app->make(GitChangeDetector::class),
+            ),
+        );
 
         $this->app->singleton(
             ConnectorDispatcher::class,

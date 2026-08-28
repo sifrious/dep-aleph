@@ -173,3 +173,12 @@ refresh time; secret material never appears in its metadata projection.
 **Package boundary gate** — executable validation that one independent connector can cross Aleph's
 public observation contract into Funes while dependency direction, provider isolation, replay safety,
 provenance, health separation, and the default read-only surface remain intact.
+
+**Git repository source** — replaceable reader that supplies a stable repository identity and a
+captured ref snapshot without exposing local paths, GitHub SDK values, or host database models.
+
+**Git ref movement** — an observation that one named ref moved from a previous SHA to a new SHA. It
+records broken ancestry explicitly so a force-push remains distinct from ordinary advancement.
+
+**Git file change** — an added, modified, deleted, or renamed path derived by comparing two trees.
+Deletion retains the prior blob SHA; rename retains both paths and the shared blob SHA.

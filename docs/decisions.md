@@ -1003,3 +1003,20 @@ that Funes stays independent or that the reusable package contract is host- and 
 the Aleph core, replay creates duplicate history, provenance becomes incomplete, or a generic write
 surface appears. Individual connector tickets still own live-provider verification and any explicit,
 separately authorized mutation contract.
+
+## D-072 — Git history is observed as SHA-addressed facts and explicit ref movement
+
+**Decision.** Replaceable Git repository sources return one ref snapshot containing commits,
+previous and current trees, diff, blame, and capture time. Aleph detects added, modified, deleted,
+and same-blob renamed paths, then submits separate repository, ref, ref-movement, commit, tree, file,
+change, diff, and blame envelopes. A ref checkpoint advances to the accepted head SHA only after all
+snapshot envelopes cross Funes.
+
+**Rationale.** Landing's local and GitHub sources already share read behavior, but database rows mix
+current file projections with historical evidence and interpretation jobs. Treating a ref name as
+identity hides force-pushes; treating only current files as truth erases deletions and renames.
+
+**Consequence.** Re-importing an unchanged ref reuses accepted Funes identities, while a ref movement
+from one SHA to another remains a distinct event and records whether ancestry was broken. File
+revisions use repository/ref/SHA/path provenance, deletions preserve the prior blob, and rename
+detection preserves both paths. Symbol, test, and dataflow interpretation remains outside Aleph.
