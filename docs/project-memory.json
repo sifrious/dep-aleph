@@ -33,7 +33,8 @@
         "A logical connector ingestion run owns numbered durable attempts and exposes a presentation-neutral inspection read model.",
         "Landing DomainSyncRun repeats the common run lifecycle and adds account/domain scope, targets, DNS counters, and provider-account/domain foreign keys.",
         "Landing manual ingestion entry points create provider-specific run rows and dispatch through commands, jobs, or detached processes without one universal request contract.",
-        "Funes stores Aleph envelope metadata as append-only typed assertions: aleph:envelope for universal attributes and aleph:extension/<namespace> for connector extensions."
+        "Funes stores Aleph envelope metadata as append-only typed assertions: aleph:envelope for universal attributes and aleph:extension/<namespace> for connector extensions.",
+        "Every queued connector unit is a durable Aleph ingestion attempt with queue class, priority, tags, dispatch policy, runtime job and worker identity, heartbeat, and retry lineage."
     ],
     "assumptions": [
         "A sequential concurrency ceiling of one is sufficient for the bounded AHSD crawl.",
@@ -45,7 +46,8 @@
         "Landing SyncRun step trees are source-backed opaque checkpoints rather than universal connector lifecycle semantics.",
         "Hosts schedule eligible retries, while Aleph owns transition and retry-eligibility semantics.",
         "A domain-run migration reconciler supplies stable provider-account and domain references instead of promoting Landing foreign keys or labels.",
-        "Hosts authenticate callers and evaluate manual-launch policy before supplying Aleph with stable actor and authorization-decision references."
+        "Hosts authenticate callers and evaluate manual-launch policy before supplying Aleph with stable actor and authorization-decision references.",
+        "Queue adapters enforce the concurrency and rate policy supplied by Aleph and may prune their own transport records without affecting attempt observability."
     ],
     "decisions": [
         {
@@ -135,6 +137,10 @@
         {
             "decision": "Project universal envelope data and each connector extension into separate versioned Funes metadata assertions.",
             "rationale": "The Funes boundary now preserves namespace, schema version, provenance, and assertion time; rebuilding the legacy nested JSON slot would discard those semantics and duplicate its metadata model."
+        },
+        {
+            "decision": "Create a durable pending ingestion attempt before dispatching a runtime-neutral queued unit.",
+            "rationale": "Queue tables are disposable transport state; the existing numbered attempt is the smallest durable place for queue class, priority, tags, policy, heartbeat, worker identity, failure, and retry lineage."
         }
     ],
     "open_questions": [
@@ -147,7 +153,8 @@
         "Which stable connector installation should each provider-specific Landing run family reference during migration?",
         "Should provider retry timing remain entirely host-scheduled, or will two consumers demonstrate timing semantics that belong in Aleph?",
         "Which source-backed DNS provider reconciliation identifiers should each connector retain long term?",
-        "Will a demonstrated host require authorization expiry or policy-version evidence beyond actor and decision references?"
+        "Will a demonstrated host require authorization expiry or policy-version evidence beyond actor and decision references?",
+        "Which connectors demonstrate stable queue priority, concurrency, or rate budgets that should override the per-installation defaults?"
     ],
     "constraints": [
         "Only public GET and HEAD retrievals are permitted.",
@@ -294,6 +301,16 @@
             "create or resolve one pending logical run from the scoped idempotency key",
             "dispatch only a newly created run through the host port",
             "return the same stable result shape to every adapter"
+        ],
+        "queued_ingestion": [
+            "select ingest, normalize, media, or agentic queue policy for the run",
+            "persist a numbered pending attempt with priority, tags, and limits",
+            "dispatch the durable attempt through the host queue port",
+            "record the opaque runtime job identity without depending on runtime tables",
+            "record worker identity and heartbeat when execution starts",
+            "expire a stale heartbeat into a retryable structured failure",
+            "retry as the next attempt number on the same logical run",
+            "retain full observability after runtime queue records are pruned"
         ]
     },
     "content_opportunities": [
@@ -376,6 +393,16 @@
             "audience": "backend and platform developers",
             "skill_level": "intermediate",
             "hook": "Three buttons, one run."
+        },
+        {
+            "format": "post",
+            "user_problem": "A queue dashboard prunes the only record explaining which connector work ran.",
+            "concept": "Durable attempts with disposable queue transport",
+            "technology": "Laravel package ports, queue tags and priority, heartbeat timeouts, concurrency policy",
+            "project_context": "Aleph MME-803 queued ingestion",
+            "audience": "backend and platform developers",
+            "skill_level": "intermediate",
+            "hook": "The queue job disappeared. The attempt did not."
         }
     ]
 }

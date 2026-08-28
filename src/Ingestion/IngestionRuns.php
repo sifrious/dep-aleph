@@ -10,6 +10,7 @@ use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use stdClass;
+use Throwable;
 
 final readonly class IngestionRuns
 {
@@ -238,6 +239,7 @@ final readonly class IngestionRuns
             failure: null,
             startedAt: new DateTimeImmutable,
             finishedAt: null,
+            heartbeatAt: new DateTimeImmutable,
         );
 
         $this->attemptsTable()->insert([
@@ -249,10 +251,189 @@ final readonly class IngestionRuns
             'stats' => $attempt->stats === [] ? null : json_encode($attempt->stats, JSON_THROW_ON_ERROR),
             'failure' => null,
             'started_at' => $attempt->startedAt,
+            'heartbeat_at' => $attempt->heartbeatAt,
             'finished_at' => null,
         ]);
 
         return $attempt;
+    }
+
+    public function queueAttempt(IngestionRun $run, QueueDispatchPolicy $policy): IngestionAttempt
+    {
+        $currentRun = $this->find($run->id);
+
+        if ($currentRun === null
+            || in_array($currentRun->status, [RunStatus::Canceled, RunStatus::Completed], true)
+            || ($currentRun->status === RunStatus::Failed && $currentRun->failure?->retryable !== true)
+        ) {
+            throw InvalidRunTransition::from(($currentRun ?? $run)->status, RunStatus::Pending);
+        }
+
+        $active = $this->attemptsTable()
+            ->where('run_id', $run->id)
+            ->whereIn('status', [RunStatus::Pending->value, RunStatus::Running->value])
+            ->orderByDesc('number')
+            ->first();
+
+        if ($active !== null) {
+            return $this->hydrateAttempt($active);
+        }
+
+        $number = ((int) $this->attemptsTable()->where('run_id', $run->id)->max('number')) + 1;
+        $id = (string) Str::ulid();
+        $tags = array_values(array_filter([
+            $run->connectorId === null ? null : 'connector:'.$run->connectorId,
+            $run->sourceInstallationId === null ? null : 'source-installation:'.$run->sourceInstallationId,
+            'run:'.$run->id,
+            'attempt:'.$id,
+        ]));
+        $attempt = new IngestionAttempt(
+            id: $id,
+            runId: $run->id,
+            number: $number,
+            status: RunStatus::Pending,
+            checkpoint: $run->checkpoint,
+            stats: $run->stats,
+            failure: null,
+            startedAt: null,
+            finishedAt: null,
+            queue: $policy->queue,
+            priority: $policy->priority,
+            tags: $tags,
+            dispatchPolicy: $policy,
+            queuedAt: new DateTimeImmutable,
+        );
+
+        $this->attemptsTable()->insert([
+            'id' => $attempt->id,
+            'run_id' => $attempt->runId,
+            'number' => $attempt->number,
+            'queue' => $attempt->queue?->value,
+            'priority' => $attempt->priority,
+            'tags' => json_encode($attempt->tags, JSON_THROW_ON_ERROR),
+            'dispatch_policy' => json_encode($policy->toArray(), JSON_THROW_ON_ERROR),
+            'status' => $attempt->status->value,
+            'checkpoint' => $attempt->checkpoint === [] ? null : json_encode($attempt->checkpoint, JSON_THROW_ON_ERROR),
+            'stats' => $attempt->stats === [] ? null : json_encode($attempt->stats, JSON_THROW_ON_ERROR),
+            'failure' => null,
+            'queued_at' => $attempt->queuedAt,
+            'started_at' => null,
+            'heartbeat_at' => null,
+            'finished_at' => null,
+        ]);
+
+        return $attempt;
+    }
+
+    public function recordQueueReceipt(IngestionAttempt $attempt, QueueReceipt $receipt): IngestionAttempt
+    {
+        $this->attemptsTable()->where('id', $attempt->id)->where('status', RunStatus::Pending->value)->update([
+            'queue_job_id' => $receipt->jobId,
+        ]);
+
+        return $this->attempt($attempt->id) ?? $attempt;
+    }
+
+    public function failQueuedAttempt(IngestionAttempt $attempt, Throwable $failure): void
+    {
+        $runFailure = new RunFailure('queue_dispatch', $failure->getMessage(), true, [
+            'exception' => $failure::class,
+        ]);
+
+        $this->attemptsTable()->where('id', $attempt->id)->where('status', RunStatus::Pending->value)->update([
+            'status' => RunStatus::Failed->value,
+            'failure' => json_encode($runFailure->toArray(), JSON_THROW_ON_ERROR),
+            'error_class' => $failure::class,
+            'error_message' => $failure->getMessage(),
+            'finished_at' => Carbon::now(),
+        ]);
+    }
+
+    public function startQueuedAttempt(IngestionAttempt $attempt, string $workerId): IngestionAttempt
+    {
+        if (trim($workerId) === '') {
+            throw new \InvalidArgumentException('A queued attempt requires a stable worker identity.');
+        }
+
+        $current = $this->attempt($attempt->id);
+
+        if ($current === null || $current->status !== RunStatus::Pending) {
+            throw InvalidRunTransition::from(($current ?? $attempt)->status, RunStatus::Running);
+        }
+
+        $run = $this->find($current->runId);
+
+        if ($run === null) {
+            throw InvalidRunTransition::from($current->status, RunStatus::Running);
+        }
+
+        $startedAt = new DateTimeImmutable;
+        if ($run->status !== RunStatus::Running) {
+            $this->resume($run);
+        }
+        $this->attemptsTable()->where('id', $current->id)->update([
+            'status' => RunStatus::Running->value,
+            'worker_id' => $workerId,
+            'started_at' => $startedAt,
+            'heartbeat_at' => $startedAt,
+        ]);
+
+        return $this->attempt($current->id) ?? $current;
+    }
+
+    public function heartbeat(IngestionAttempt $attempt, ?DateTimeImmutable $at = null): IngestionAttempt
+    {
+        $current = $this->attempt($attempt->id);
+
+        if ($current === null || $current->status !== RunStatus::Running) {
+            throw InvalidRunTransition::from(($current ?? $attempt)->status, RunStatus::Running);
+        }
+
+        $this->attemptsTable()->where('id', $current->id)->update([
+            'heartbeat_at' => $at ?? new DateTimeImmutable,
+        ]);
+
+        return $this->attempt($current->id) ?? $current;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function expireStaleAttempts(DateTimeImmutable $before): array
+    {
+        $expired = [];
+        $rows = $this->attemptsTable()
+            ->where('status', RunStatus::Running->value)
+            ->where('heartbeat_at', '<=', $before)
+            ->get();
+
+        foreach ($rows as $row) {
+            $attempt = $this->hydrateAttempt($row);
+            $run = $this->find($attempt->runId);
+
+            if ($run === null) {
+                continue;
+            }
+
+            $failure = new RunFailure('heartbeat_timeout', 'The ingestion worker heartbeat expired.', true, [
+                'last_heartbeat_at' => $attempt->heartbeatAt?->format(DATE_ATOM),
+            ]);
+            $this->failAttempt($run, $attempt, $failure);
+            $this->attemptsTable()->where('id', $attempt->id)->update([
+                'error_class' => 'heartbeat_timeout',
+                'error_message' => $failure->message,
+            ]);
+            $expired[] = $attempt->id;
+        }
+
+        return $expired;
+    }
+
+    public function attempt(string $id): ?IngestionAttempt
+    {
+        $row = $this->attemptsTable()->where('id', $id)->first();
+
+        return $row === null ? null : $this->hydrateAttempt($row);
     }
 
     /**
@@ -300,6 +481,7 @@ final readonly class IngestionRuns
             'status' => RunStatus::Completed->value,
             'stats' => json_encode($stats, JSON_THROW_ON_ERROR),
             'failure' => null,
+            'heartbeat_at' => $finishedAt,
             'finished_at' => $finishedAt,
         ]);
         $this->table()->where('id', $run->id)->update([
@@ -337,6 +519,9 @@ final readonly class IngestionRuns
             'status' => $status->value,
             'stats' => json_encode($stats, JSON_THROW_ON_ERROR),
             'failure' => $encodedFailure,
+            'error_class' => $failure->kind,
+            'error_message' => $failure->message,
+            'heartbeat_at' => $finishedAt,
             'finished_at' => $finishedAt,
         ]);
         $this->table()->where('id', $run->id)->update([
@@ -466,6 +651,8 @@ final readonly class IngestionRuns
         $checkpoint = $row->checkpoint === null ? [] : json_decode((string) $row->checkpoint, true, 512, JSON_THROW_ON_ERROR);
         $stats = $row->stats === null ? [] : json_decode((string) $row->stats, true, 512, JSON_THROW_ON_ERROR);
         $failure = $row->failure === null ? null : json_decode((string) $row->failure, true, 512, JSON_THROW_ON_ERROR);
+        $tags = $row->tags === null ? [] : json_decode((string) $row->tags, true, 512, JSON_THROW_ON_ERROR);
+        $dispatchPolicy = $row->dispatch_policy === null ? null : json_decode((string) $row->dispatch_policy, true, 512, JSON_THROW_ON_ERROR);
 
         return new IngestionAttempt(
             id: (string) $row->id,
@@ -475,8 +662,16 @@ final readonly class IngestionRuns
             checkpoint: is_array($checkpoint) ? $checkpoint : [],
             stats: is_array($stats) ? $stats : [],
             failure: is_array($failure) ? RunFailure::fromArray($failure) : null,
-            startedAt: new DateTimeImmutable((string) $row->started_at),
+            startedAt: $row->started_at === null ? null : new DateTimeImmutable((string) $row->started_at),
             finishedAt: $row->finished_at === null ? null : new DateTimeImmutable((string) $row->finished_at),
+            queue: $row->queue === null ? null : QueueClass::from((string) $row->queue),
+            priority: $row->priority === null ? null : (int) $row->priority,
+            tags: is_array($tags) ? array_values(array_map(strval(...), $tags)) : [],
+            dispatchPolicy: is_array($dispatchPolicy) ? QueueDispatchPolicy::fromArray($dispatchPolicy) : null,
+            queueJobId: $row->queue_job_id === null ? null : (string) $row->queue_job_id,
+            workerId: $row->worker_id === null ? null : (string) $row->worker_id,
+            queuedAt: $row->queued_at === null ? null : new DateTimeImmutable((string) $row->queued_at),
+            heartbeatAt: $row->heartbeat_at === null ? null : new DateTimeImmutable((string) $row->heartbeat_at),
         );
     }
 

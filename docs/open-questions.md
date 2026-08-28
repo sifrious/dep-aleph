@@ -101,3 +101,10 @@ IDs from provider payloads; each connector ticket must prove the identifiers it 
 Manual launch currently retains stable actor and decision references. No demonstrated consumer
 requires an expiry instant or policy version in the package contract. Add either only when a host
 must prove that a previously granted decision was valid for a bounded interval.
+
+## Q-015 — Which connectors need queue-policy overrides?
+
+The default dispatch policy allows one concurrent unit and sixty starts per minute per source
+installation, with priority 50. Callers can supply a stricter typed policy now. Add connector-owned
+configuration only when measured provider limits demonstrate stable values that should apply across
+hosts.

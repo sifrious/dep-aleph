@@ -102,3 +102,10 @@ decision allowed a manual run. It is evidence, not an Aleph-owned user or role p
 **Envelope metadata assertion** — a versioned Funes metadata record. `aleph:envelope` carries
 universal envelope attributes; `aleph:extension/<namespace>` carries one connector extension and
 retains the Funes provenance that asserted it.
+
+**Queued ingestion unit** — one durable pending ingestion attempt plus its runtime-neutral queue
+class, priority, tags, and concurrency/rate policy. A host queue job transports the unit but does not
+own its history.
+
+**Attempt heartbeat** — the latest durable proof that a worker is executing an ingestion attempt.
+Crossing the host-selected timeout boundary turns the attempt into a retryable failure.

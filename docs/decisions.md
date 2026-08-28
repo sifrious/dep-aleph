@@ -797,3 +797,21 @@ neutrality and lets an extension evolve without rewriting the universal envelope
 **Consequence.** Accepted observations no longer expose Aleph metadata through the legacy
 `funes_observations.metadata` JSON column. Package readers use `ObservationMetadata`, parity tests
 pin the assertion namespaces and values, and backfill retains both universal and extension data.
+
+## D-060 — Queue runtimes transport durable Aleph attempts
+
+**Decision.** Aleph creates a pending ingestion attempt before calling `IngestionQueue`. The attempt
+owns its queue class, priority, connector/source/run/attempt tags, dispatch policy, runtime job ID,
+worker ID, heartbeat, structured failure, and timing. Runtime queue records are disposable transport
+state and never become the operator's source of truth.
+
+**Rationale.** Landing jobs create or update several provider-specific run rows and rely on Laravel
+queue failure hooks. Those hooks are useful host behavior, but Laravel job IDs and Horizon retention
+cannot explain a connector attempt after pruning or support a non-Laravel worker. Extending the
+existing numbered attempt is the smallest boundary that preserves lineage without a second queue
+framework.
+
+**Consequence.** `ingest`, `normalize`, `media`, and `agentic` are stable queue classes. A host
+adapter receives explicit per-installation concurrency and rate budgets and returns one opaque job
+identity. Starting work records the worker and first heartbeat; an expired heartbeat becomes a
+retryable failed attempt, and retries increment the attempt number on the same logical run.

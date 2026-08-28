@@ -71,3 +71,10 @@ those integers or the run label into portable identity.
 The package receives a granted or denied decision with stable actor and decision references. The
 host remains responsible for authenticating the caller and evaluating ownership or role policy;
 Aleph validates and records the result but does not recreate each host's authorization system.
+
+## A-013 — Queue adapters enforce the supplied dispatch policy
+
+Aleph owns queue classification, priority, tags, and per-installation concurrency/rate budgets. The
+host adapter applies those values to its runtime and returns the runtime job identity. The contract
+tests exercise that behavior with an in-memory runtime so package semantics do not depend on
+Laravel queue tables or Horizon.

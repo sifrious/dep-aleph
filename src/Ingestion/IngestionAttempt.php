@@ -11,6 +11,7 @@ final readonly class IngestionAttempt
     /**
      * @param  array<string, mixed>  $checkpoint
      * @param  array<string, int|float>  $stats
+     * @param  list<string>  $tags
      */
     public function __construct(
         public string $id,
@@ -20,8 +21,16 @@ final readonly class IngestionAttempt
         public array $checkpoint,
         public array $stats,
         public ?RunFailure $failure,
-        public DateTimeImmutable $startedAt,
+        public ?DateTimeImmutable $startedAt,
         public ?DateTimeImmutable $finishedAt,
+        public ?QueueClass $queue = null,
+        public ?int $priority = null,
+        public array $tags = [],
+        public ?QueueDispatchPolicy $dispatchPolicy = null,
+        public ?string $queueJobId = null,
+        public ?string $workerId = null,
+        public ?DateTimeImmutable $queuedAt = null,
+        public ?DateTimeImmutable $heartbeatAt = null,
     ) {}
 
     /**
@@ -32,11 +41,19 @@ final readonly class IngestionAttempt
         return [
             'id' => $this->id,
             'number' => $this->number,
+            'queue' => $this->queue?->value,
+            'priority' => $this->priority,
+            'tags' => $this->tags,
+            'dispatch_policy' => $this->dispatchPolicy?->toArray(),
+            'queue_job_id' => $this->queueJobId,
+            'worker_id' => $this->workerId,
             'status' => $this->status->value,
             'checkpoint' => $this->checkpoint,
             'stats' => $this->stats,
             'failure' => $this->failure?->toArray(),
-            'started_at' => $this->startedAt->format(DATE_ATOM),
+            'queued_at' => $this->queuedAt?->format(DATE_ATOM),
+            'started_at' => $this->startedAt?->format(DATE_ATOM),
+            'heartbeat_at' => $this->heartbeatAt?->format(DATE_ATOM),
             'finished_at' => $this->finishedAt?->format(DATE_ATOM),
         ];
     }
