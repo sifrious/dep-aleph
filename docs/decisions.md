@@ -698,3 +698,19 @@ The remaining historical writers stay in Landing, one ticket each, in this order
 and most shape-stable), Claude history, Linear, GitHub, artifacts, research. `docs/historical-
 writers.md` records what each writes and which are operational rather than historical. Landing's
 ~80 CRUD controllers are display-layer state and are not migration candidates.
+
+## D-054 — Source scopes use typed opaque references and explicit epistemic state
+
+**Decision.** A source installation or stream associates with Funes `EntityReference` values of
+kind project, identity, repository, organization, or domain. The identifier must be namespaced;
+host database IDs and unqualified display names are rejected. Associations are confirmed,
+ambiguous, rejected, or superseded, and absence is projected as unassigned.
+
+**Rationale.** Landing has several useful local associations, but no portable source-scope
+relation. A path match, display-name match, or integer foreign key cannot cross application
+boundaries without turning a host inference into package fact. Multiple rows preserve both
+many-to-many truth and unresolved candidates without selecting a winner.
+
+**Consequence.** Acceptance snapshots the installation, stream, resolution state, and every
+association into the immutable observation metadata. Later changes to current associations do not
+rewrite the explanation attached to earlier history.

@@ -68,3 +68,10 @@ calendar-like page (D-020).
 
 **External embed** — an inventory row whose host is outside the source's allowed hosts and whose
 discovery origin is `iframe` or `embed`. Recorded with its parent, never retrieved.
+
+**Entity reference** *(Funes)* — a typed, namespaced opaque identifier for a project, identity,
+repository, organization, or domain. It is portable across hosts and never a Landing integer ID.
+
+**Source-scope association** — an explicit relation from a connector installation or one of its
+streams to an entity reference, with confirmed, ambiguous, rejected, or superseded state. No active
+association projects as unassigned.

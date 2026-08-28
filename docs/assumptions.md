@@ -39,3 +39,10 @@ patterns are configuration rather than code (D-019).
 Confirmed by capture (F-2, F-3, F-4): calendar pages ship a client-side component and no events, and
 `robots.txt` disallows every service path such a component would call. This is a policy boundary
 Aleph enforces, not a missing feature. Calendar artifacts still reach Aleph as PDF embeds (F-6).
+
+## A-008 — Existing Landing associations are migration inputs, not portable identities
+
+Confirmed by characterization of `Project`, `ProjectPath`, `ProviderAccount`, `Domain`,
+`SlackContact`, and `GithubContributor`: useful links exist, but several terminate in Landing
+foreign keys or inferred path matches. Importers must translate only confirmed stable provider or
+Funes references; ambiguous candidates remain ambiguous.

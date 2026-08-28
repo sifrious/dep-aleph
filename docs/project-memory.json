@@ -25,14 +25,17 @@
         "aleph.pdf:1 extracted 832 characters from a captured 84,401-byte AHSD PDF.",
         "sa.ahsd.org and nr.ahsd.org are allowed by *.ahsd.org but absent from the seeds, so they enter the frontier only by discovery.",
         "aleph_ingestion_runs.source_reference stores the prefixed web:ahsd form, byte-identical to funes_sources.reference; WebSource::reference() is the only place the prefix is written.",
-        "Neither aleph_ nor funes_ tables exist in landing's database yet, so no persisted row changes meaning."
+        "Neither aleph_ nor funes_ tables exist in landing's database yet, so no persisted row changes meaning.",
+        "Landing has provider-specific project, path, domain, Slack-contact, and GitHub-contributor associations but no portable source-scope relation.",
+        "Aleph source-scope associations use typed namespaced Funes references and snapshot their resolution state into accepted observation metadata."
     ],
     "assumptions": [
         "A sequential concurrency ceiling of one is sufficient for the bounded AHSD crawl.",
         "Configured source keys remain stable Funes source references when prefixed with web:.",
         "The configured query-parameter allowlist defines URL identity for each web source.",
         "Every configured calendar signal traces to a captured working request and is revisited when the captures change.",
-        "SchoolMessenger calendar event data is out of reach by policy rather than merely unbuilt."
+        "SchoolMessenger calendar event data is out of reach by policy rather than merely unbuilt.",
+        "Existing Landing associations are migration inputs and become package facts only when they contain confirmed stable references."
     ],
     "decisions": [
         {
@@ -98,6 +101,10 @@
         {
             "decision": "Store the prefixed source reference web:ahsd in aleph_ingestion_runs.source_reference so it matches funes_sources.reference exactly.",
             "rationale": "Joining an Aleph run to its Funes source should be an equality, not an equality plus a prefixing rule living in application code; landing offers no competing convention because its sync-run tables identify a source by foreign key."
+        },
+        {
+            "decision": "Represent source scopes with typed namespaced opaque references and explicit confirmed, ambiguous, rejected, or superseded state.",
+            "rationale": "Host database IDs, display names, and path inference are not portable facts; multiple rows preserve many-to-many truth and ambiguity without guessing."
         }
     ],
     "open_questions": [
@@ -105,7 +112,8 @@
         "Which AHSD query parameters demonstrate stable resource identity strongly enough to enter the allowlist?",
         "When does measured crawl throughput justify concurrency greater than one?",
         "Should district PDFs keep the CDN final URL as their Funes identity, or should the pre-redirect allowed-host URL be recorded instead?",
-        "When does inventory size justify a payload-free existence read on ObservationStore instead of find()?"
+        "When does inventory size justify a payload-free existence read on ObservationStore instead of find()?",
+        "Which authority will issue canonical project references when several stable namespaces describe the same project?"
     ],
     "constraints": [
         "Only public GET and HEAD retrievals are permitted.",
@@ -117,7 +125,9 @@
         "The inventory derives on read and adds no store.",
         "The same crawl state must export byte-identical JSON and CSV.",
         "Package tables may add columns, but may not introduce a name the master schema already spells differently.",
-        "An inventory may only be produced for a run belonging to the named source."
+        "An inventory may only be produced for a run belonging to the named source.",
+        "A source scope may not use an unqualified display name or host database integer as a cross-package identity.",
+        "Ambiguous associations must remain explicit and must not be promoted by name similarity."
     ],
     "glossary": {
         "capability": "An operation Aleph can execute; currently only web.crawl.",
@@ -133,7 +143,9 @@
         "calendar_signal": "Why a resource is calendar-like: path or embedded_in_calendar.",
         "external_embed": "An inventory row outside the allowed hosts whose discovery origin is iframe or embed.",
         "source_reference": "The prefixed identity of a source, web:<key>, spelled identically in aleph_ingestion_runs and funes_sources.",
-        "extraction_status": "The typed outcome of one mechanical extraction: succeeded or failed."
+        "extraction_status": "The typed outcome of one mechanical extraction: succeeded or failed.",
+        "entity_reference": "A typed namespaced opaque Funes reference for a project, identity, repository, organization, or domain.",
+        "source_scope_association": "A state-bearing relation from a source installation or stream to an entity reference."
     },
     "features": {
         "implemented": [
@@ -145,7 +157,8 @@
             "ALEPH-009",
             "ALEPH-010",
             "ALEPH-011",
-            "ALEPH-012"
+            "ALEPH-012",
+            "MME-814 / A15 source-scope associations"
         ],
         "not_implemented": [
             "connector manifests",
@@ -188,6 +201,14 @@
             "probe Funes for prior observations of candidates this run did not retrieve",
             "sort by canonical url",
             "encode deterministic json and csv"
+        ],
+        "source_scope_acceptance": [
+            "resolve connector installation and optional stream",
+            "load installation-wide and matching stream associations",
+            "preserve confirmed, ambiguous, rejected, and superseded rows",
+            "project absence as unassigned",
+            "snapshot account, stream, state, and associations into observation metadata",
+            "submit immutable history through the Funes acceptance boundary"
         ]
     },
     "content_opportunities": [
@@ -220,6 +241,16 @@
             "audience": "data ingestion developers",
             "skill_level": "intermediate",
             "hook": "The capture disproved what I remembered, and the endpoint I could have guessed was disallowed anyway."
+        },
+        {
+            "format": "short video",
+            "user_problem": "A provider account seems to belong to a project, but the match is only a name or local database ID.",
+            "concept": "Portable source scopes without turning inference into fact",
+            "technology": "Laravel package contracts, typed opaque references, immutable provenance snapshots",
+            "project_context": "Aleph MME-814 source-scope associations",
+            "audience": "integration and data-platform developers",
+            "skill_level": "intermediate",
+            "hook": "Keep both candidates. Make the uncertainty queryable."
         }
     ]
 }

@@ -28,6 +28,7 @@ use Sifrious\Aleph\Normalization\CandidateValidator;
 use Sifrious\Aleph\Normalization\NormalizationAttempts;
 use Sifrious\Aleph\Normalization\NormalizationCache;
 use Sifrious\Aleph\Normalization\NormalizationRunner;
+use Sifrious\Aleph\Scope\SourceScopeAssociations;
 use Sifrious\Aleph\Web\Clock;
 use Sifrious\Aleph\Web\Fetcher;
 use Sifrious\Aleph\Web\FetchPolicy;
@@ -99,7 +100,17 @@ class AlephServiceProvider extends ServiceProvider
             ),
         );
 
-        $this->app->singleton(EnvelopeDrafter::class);
+        $this->app->singleton(
+            SourceScopeAssociations::class,
+            fn (Application $app): SourceScopeAssociations => new SourceScopeAssociations($this->connection($app)),
+        );
+
+        $this->app->singleton(
+            EnvelopeDrafter::class,
+            fn (Application $app): EnvelopeDrafter => new EnvelopeDrafter(
+                $app->make(SourceScopeAssociations::class),
+            ),
+        );
 
         $this->app->singleton(
             EnvelopeSubmitter::class,

@@ -66,7 +66,13 @@ it('adds exactly the documented differences and nothing else', function (): void
 
     expect(array_keys($observation->metadata))->toEqualCanonicalizing(['aleph', 'extensions'])
         ->and(array_keys($observation->metadata['aleph']))
-        ->toEqualCanonicalizing(['envelope_version', 'event_type', 'provenance', 'normalization']);
+        ->toEqualCanonicalizing([
+            'envelope_version',
+            'event_type',
+            'provenance',
+            'normalization',
+            'source_scopes',
+        ]);
 });
 
 it('keeps payload, references and timing identical to the legacy write', function (): void {

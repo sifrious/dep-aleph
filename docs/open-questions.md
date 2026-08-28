@@ -70,3 +70,9 @@ A payload-free summary read on `ObservationStore` would fix it, at the cost of w
 package's contract for one consumer. Revisit when an inventory is large enough for the cost to show
 up, not before.
 
+## Q-010 — Which authority issues canonical project references?
+
+The contract accepts namespaced stable references but does not declare whether a future Funes
+entity catalogue, Linear project ID, or another package issues the canonical project identifier.
+No current behavior requires choosing. Importers must retain their namespace and must not collapse
+two references until an authorized reconciliation records that decision.
