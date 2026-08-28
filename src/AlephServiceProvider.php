@@ -15,11 +15,13 @@ use Sifrious\Aleph\Acceptance\AcceptanceClient;
 use Sifrious\Aleph\Acceptance\Backfill;
 use Sifrious\Aleph\Acceptance\Submissions;
 use Sifrious\Aleph\Connector\ConnectorCatalogue;
+use Sifrious\Aleph\Connector\ConnectorCredentials;
 use Sifrious\Aleph\Connector\ConnectorDispatcher;
 use Sifrious\Aleph\Connector\ConnectorInstallations;
 use Sifrious\Aleph\Connector\ConnectorRegistry;
 use Sifrious\Aleph\Connector\Health\ConnectorHealthChecks;
 use Sifrious\Aleph\Connector\Health\ConnectorHealthQueries;
+use Sifrious\Aleph\Connector\RegisterSourceAccount;
 use Sifrious\Aleph\Console\CrawlCommand;
 use Sifrious\Aleph\Console\InventoryCommand;
 use Sifrious\Aleph\Envelope\EnvelopeDrafter;
@@ -170,6 +172,24 @@ class AlephServiceProvider extends ServiceProvider
             fn (Application $app): ConnectorInstallations => new ConnectorInstallations(
                 $this->connection($app),
                 $app->make(Encrypter::class),
+            ),
+        );
+
+        $this->app->singleton(
+            ConnectorCredentials::class,
+            fn (Application $app): ConnectorCredentials => new ConnectorCredentials(
+                $this->connection($app),
+                $app->make(Encrypter::class),
+                $app->make(ConnectorInstallations::class),
+            ),
+        );
+
+        $this->app->singleton(
+            RegisterSourceAccount::class,
+            fn (Application $app): RegisterSourceAccount => new RegisterSourceAccount(
+                $this->connection($app),
+                $app->make(ConnectorInstallations::class),
+                $app->make(ConnectorCredentials::class),
             ),
         );
 

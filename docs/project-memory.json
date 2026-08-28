@@ -187,6 +187,10 @@
         {
             "decision": "Advance incremental checkpoints only through idempotent Funes-accepted material changes.",
             "rationale": "Provider cursors and timestamps alone cannot prove edits or deletions reached durable history, and unchanged polls must not invent accepted work."
+        },
+        {
+            "decision": "Use one source installation as the isolation boundary for each provider account and keep managed credentials in encrypted referenced rows.",
+            "rationale": "Provider-wide configuration collides across accounts, while Funes identity must not carry rotating secrets and provider-specific account tables would duplicate operational scoping."
         }
     ],
     "open_questions": [
@@ -256,6 +260,8 @@
         "ingestion_partition": "One ordered durable slice of a backfill run with checkpoint, counters, and lifecycle.",
         "incremental_strategy": "Cursor, high-water, webhook, hash, or reconcile semantics declared by one source stream.",
         "incremental_change": "One idempotent Funes-accepted added, updated, or deleted provider event.",
+        "source_account": "One independently enabled connector installation with provider and Funes account identities.",
+        "connector_credential": "Encrypted account-specific authentication material addressed by an opaque reference with scopes, expiry, and refresh metadata.",
         "domain_ingestion_run": "A DNS-specific projection that adds stable account/domain scope and provider reconciliation references to the shared ingestion run.",
         "manual_launch": "An authorized idempotent request that persists a pending run before host dispatch.",
         "authorization_decision_reference": "A stable host-issued reference to the evaluated decision that allowed a manual run."
@@ -285,7 +291,8 @@
             "MME-808 connector health evidence, aggregation, and remediation contract",
             "MME-801 recurring ingestion schedules and scheduler adapter",
             "MME-811 bounded partitioned historical backfill command",
-            "MME-812 strategy-aware incremental synchronization and change ledger"
+            "MME-812 strategy-aware incremental synchronization and change ledger",
+            "MME-813 independently authenticated multiple source accounts"
         ],
         "not_implemented": [
             "connector manifests",
@@ -457,6 +464,15 @@
             "commit the next strategy-specific checkpoint after material acceptance",
             "complete unchanged polls with zero accepted changes and no checkpoint movement",
             "periodically reconcile webhook, hash, and reconcile strategies"
+        ],
+        "source_account_registration": [
+            "receive provider authorization results through an application integration",
+            "validate stable external and Funes source-account identities",
+            "persist encrypted account settings and independent enabled state",
+            "store managed credential material encrypted or retain an external opaque reference",
+            "track credential kind, scopes, expiry, and refresh metadata",
+            "scope streams, checkpoints, health, schedules, and queue policy by installation ID",
+            "refresh one account credential without changing another account"
         ]
     },
     "content_opportunities": [
@@ -639,6 +655,16 @@
             "audience": "data ingestion developers",
             "skill_level": "intermediate",
             "hook": "Zero changes means zero movement."
+        },
+        {
+            "format": "post",
+            "user_problem": "Adding a second account for one provider overwrites the first account's token or operational state.",
+            "concept": "Source installations as the account isolation boundary",
+            "technology": "Encrypted Laravel storage, opaque credential references, OAuth scope and refresh metadata",
+            "project_context": "Aleph MME-813 multiple source accounts",
+            "audience": "backend and integration developers",
+            "skill_level": "intermediate",
+            "hook": "A provider is a connector. An account is an installation."
         }
     ]
 }

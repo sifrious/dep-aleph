@@ -28,12 +28,16 @@ final readonly class ConnectorInstallations
         array $configuration = [],
         ?string $credentialsReference = null,
         ?string $owner = null,
+        ?string $externalAccountId = null,
+        ?string $funesSourceAccountId = null,
     ): ConnectorInstallation {
         $installation = new ConnectorInstallation(
             id: (string) Str::ulid(),
             connectorId: $connector->id(),
             connectorVersion: $connector->version(),
             label: $label,
+            externalAccountId: $externalAccountId,
+            funesSourceAccountId: $funesSourceAccountId,
             enabled: true,
             configuration: $configuration,
             credentialsReference: $credentialsReference,
@@ -48,6 +52,8 @@ final readonly class ConnectorInstallations
             'connector_id' => $installation->connectorId,
             'connector_version' => $installation->connectorVersion,
             'label' => $installation->label,
+            'external_account_id' => $externalAccountId,
+            'funes_source_account_id' => $funesSourceAccountId,
             'enabled' => true,
             'configuration' => $this->encrypter->encrypt($configuration),
             'credentials_reference' => $credentialsReference,
@@ -110,6 +116,18 @@ final readonly class ConnectorInstallations
         $this->table()->where('id', $id)->delete();
     }
 
+    public function bindCredentialsReference(string $id, string $reference): void
+    {
+        if (trim($reference) === '') {
+            throw new \InvalidArgumentException('A credentials reference cannot be empty.');
+        }
+
+        $this->table()->where('id', $id)->update([
+            'credentials_reference' => $reference,
+            'updated_at' => Carbon::now(),
+        ]);
+    }
+
     private function setEnabled(string $id, bool $enabled): void
     {
         $this->table()->where('id', $id)->update([
@@ -138,6 +156,8 @@ final readonly class ConnectorInstallations
             connectorId: $row->connector_id,
             connectorVersion: $row->connector_version,
             label: $row->label,
+            externalAccountId: $row->external_account_id,
+            funesSourceAccountId: $row->funes_source_account_id,
             enabled: (bool) $row->enabled,
             configuration: is_array($configuration) ? $configuration : [],
             credentialsReference: $row->credentials_reference,

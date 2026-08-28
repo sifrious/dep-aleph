@@ -161,3 +161,11 @@ or full reconciliation. Webhook, hash, and reconcile strategies require periodic
 
 **Incremental change** — one Funes-accepted added, updated, or deleted source event with a stable
 provider change ID and fingerprint. Unchanged polls create no change row.
+
+**Source account** — one independently enabled installation of a connector, identified by its
+provider account ID and stable Funes source-account reference. Its streams and operations are scoped
+by the installation ID.
+
+**Connector credential** — encrypted account-specific authentication material addressed through an
+opaque reference. Its non-secret operational metadata includes credential kind, scopes, expiry, and
+refresh time; secret material never appears in its metadata projection.

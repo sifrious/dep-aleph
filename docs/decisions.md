@@ -968,3 +968,22 @@ An unchanged source records zero accepted changes and does not advance its check
 empty source can complete without inventing one. Webhook, hash, and reconcile strategies declare
 that periodic full reconciliation is required to discover missed edits or deletions. Provider UI and
 scheduler wiring remain outside the seam.
+
+## D-070 — Account identity, credentials, and operations share one installation boundary
+
+**Decision.** A provider account is one source installation with provider-neutral external and Funes
+account identities, encrypted settings, an opaque credential reference, and independent enabled
+state. Aleph-managed credentials live in a separate encrypted row with kind, scopes, expiry, refresh
+metadata, and a stable reference. Registration creates the installation and managed credential in one
+transaction; externally managed vault references remain valid alternatives.
+
+**Rationale.** Connector-wide configuration makes a second Slack, GitHub, or Linear account collide
+with the first, while putting tokens in durable Funes identity would mix secret rotation with
+historical truth. Separate provider-specific account tables would repeat the DNS model and force
+generic scheduling, health, checkpoints, and rate policy to rediscover account identity.
+
+**Consequence.** Two installations of one connector may authenticate and refresh independently while
+their streams, checkpoints, health checks, schedules, and queue policy remain naturally isolated by
+installation ID. Credential metadata can be inspected without serializing secret material. OAuth
+callbacks and credential-entry screens stay in the consuming application, which supplies either
+managed material or an external opaque reference.

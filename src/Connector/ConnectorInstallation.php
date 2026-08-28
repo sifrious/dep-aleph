@@ -21,6 +21,8 @@ final readonly class ConnectorInstallation
         public ?string $credentialsReference,
         public ?string $owner,
         public DateTimeImmutable $createdAt,
+        public ?string $externalAccountId = null,
+        public ?string $funesSourceAccountId = null,
     ) {}
 
     /**
@@ -33,6 +35,8 @@ final readonly class ConnectorInstallation
             'connector' => $this->connectorId,
             'connector_version' => $this->connectorVersion,
             'label' => $this->label,
+            'external_account_id' => $this->externalAccountId,
+            'funes_source_account_id' => $this->funesSourceAccountId,
             'enabled' => $this->enabled,
             'configuration' => $this->configuration,
             'credentials_reference' => $this->credentialsReference,
