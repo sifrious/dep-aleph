@@ -6,6 +6,7 @@ namespace Sifrious\Aleph\Scope;
 
 enum AssociationState: string
 {
+    case Unassigned = 'unassigned';
     case Confirmed = 'confirmed';
     case Ambiguous = 'ambiguous';
     case Rejected = 'rejected';

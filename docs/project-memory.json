@@ -28,6 +28,7 @@
         "Neither aleph_ nor funes_ tables exist in landing's database yet, so no persisted row changes meaning.",
         "Landing has provider-specific project, path, domain, Slack-contact, and GitHub-contributor associations but no portable source-scope relation.",
         "Aleph source-scope associations use typed namespaced Funes references and snapshot their resolution state into accepted observation metadata.",
+        "Domain reconciliation reuses source-scope associations for explicit project, site, and repository decisions without domain-name inference.",
         "Landing SyncRun combines repository pipeline state with subway-map presentation and stores its current step and ordered steps as JSON.",
         "Aleph ingestion runs now preserve connector/source identity, stable legacy references, replay keys, checkpoints, completeness, failures, counters, and accepted Funes references.",
         "A logical connector ingestion run owns numbered durable attempts and exposes a presentation-neutral inspection read model.",
@@ -309,6 +310,7 @@
         "extraction_status": "The typed outcome of one mechanical extraction: succeeded or failed.",
         "entity_reference": "A typed namespaced opaque Funes reference for a project, identity, repository, organization, or domain.",
         "source_scope_association": "A state-bearing relation from a source installation or stream to an entity reference.",
+        "domain_reconciliation": "An actor-and-time decision relating an observed domain stream to stable project, site, or repository references.",
         "run_completeness": "Whether a run observed all, some, or not-yet-all of its requested source range.",
         "legacy_run_reference": "A namespaced stable identity retained from an application-owned run before package migration.",
         "ingestion_attempt": "One numbered execution inside a logical ingestion run, carrying its checkpoint, counters, failure, and timing.",
@@ -400,7 +402,8 @@
             "MME-824 multi-workspace Slack polling, Events API, checkpoint, Funes, and attachment handoff",
             "MME-1236 Telegram F28 communication ingestion and accepted-through checkpoints",
             "MME-1237 SMS and MMS F28 ingestion with source-address identity",
-            "MME-1238 Discord F28 ingestion with gateway replay convergence"
+            "MME-1238 Discord F28 ingestion with gateway replay convergence",
+            "MME-1562 durable domain reconciliation over source-scope associations"
         ],
         "not_implemented": [
             "connector manifests",
@@ -450,6 +453,14 @@
             "project absence as unassigned",
             "snapshot account, stream, state, and associations into observation metadata",
             "submit immutable history through the Funes acceptance boundary"
+        ],
+        "domain_reconciliation": [
+            "receive one observed namespaced domain reference from the host",
+            "receive zero or more host-selected project, site, and repository references",
+            "validate explicit unassigned, ambiguous, confirmed, rejected, or superseded state",
+            "record deciding actor and time through source-scope association metadata",
+            "supersede removed candidates without deleting their prior decision evidence",
+            "return domains grouped by current state without inferring from names"
         ],
         "sync_run_migration": [
             "read one characterized Landing SyncRun shape",
@@ -1090,6 +1101,16 @@
             "audience": "backend and integration developers",
             "skill_level": "intermediate",
             "hook": "A deleted channel is still a historical event."
+        },
+        {
+            "format": "short video",
+            "user_problem": "A domain name resembles a project, so reconciliation quietly turns a string match into ownership fact.",
+            "concept": "Explicit operator decisions over portable source-scope references",
+            "technology": "Typed entity references, Laravel package persistence, idempotent state transitions",
+            "project_context": "Aleph MME-1562 domain reconciliation",
+            "audience": "backend and platform developers",
+            "skill_level": "intermediate",
+            "hook": "The names match. That still is not evidence."
         }
     ]
 }

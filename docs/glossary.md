@@ -71,12 +71,14 @@ calendar-like page (D-020).
 **External embed** — an inventory row whose host is outside the source's allowed hosts and whose
 discovery origin is `iframe` or `embed`. Recorded with its parent, never retrieved.
 
-**Entity reference** *(Funes)* — a typed, namespaced opaque identifier for a project, identity,
+**Entity reference** *(Funes)* — a typed, namespaced opaque identifier for a project, site, identity,
 repository, organization, or domain. It is portable across hosts and never a Landing integer ID.
 
 **Source-scope association** — an explicit relation from a connector installation or one of its
-streams to an entity reference, with confirmed, ambiguous, rejected, or superseded state. No active
-association projects as unassigned.
+streams to an entity reference, with unassigned, confirmed, ambiguous, rejected, or superseded state.
+
+**Domain reconciliation** — an operator or authorized-process decision relating one observed domain
+stream to zero or more stable project, site, and repository references without name-based inference.
 
 **Run completeness** — `incomplete`, `partial`, or `complete`, separate from operational status so
 a stopped run never masquerades as a full observation of its source.

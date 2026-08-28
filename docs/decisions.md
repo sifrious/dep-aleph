@@ -708,9 +708,9 @@ writers.md` records what each writes and which are operational rather than histo
 ## D-054 — Source scopes use typed opaque references and explicit epistemic state
 
 **Decision.** A source installation or stream associates with Funes `EntityReference` values of
-kind project, identity, repository, organization, or domain. The identifier must be namespaced;
-host database IDs and unqualified display names are rejected. Associations are confirmed,
-ambiguous, rejected, or superseded, and absence is projected as unassigned.
+kind project, site, identity, repository, organization, or domain. The identifier must be namespaced;
+host database IDs and unqualified display names are rejected. Associations are unassigned,
+confirmed, ambiguous, rejected, or superseded; a source with no rows also projects as unassigned.
 
 **Rationale.** Landing has several useful local associations, but no portable source-scope
 relation. A path match, display-name match, or integer foreign key cannot cross application
@@ -1294,3 +1294,19 @@ provider event and revision identity rather than transport execution.
 or webhook authors stay distinguishable from people without identity resolution. Attachment metadata
 points to Digory without copying media. Bot setup, permission management, credentials, provider
 clients, and UI remain consuming-host responsibilities.
+
+## D-088 — Domain reconciliation is an operator decision over source scopes
+
+**Decision.** Each observed domain is a typed, namespaced domain reference and a source stream.
+Reconciliation reuses source-scope associations for namespaced project, site, and repository
+references. An explicit marker records unassigned, ambiguous, confirmed, rejected, or superseded
+state with the deciding actor and time. Changed candidates become superseded rather than disappearing.
+
+**Rationale.** A domain string may resemble a project or site name but does not establish ownership.
+Making a second domain-specific association table would duplicate MME-814's portable contract, while
+deleting earlier decisions would prevent operators from explaining a changed reconciliation.
+
+**Consequence.** Many-to-many and ambiguous mappings remain queryable, identical decisions replay
+without changing identity or time, and hosts receive a presentation-neutral state grouping. The host
+selects candidates and a human or authorized process decides; Aleph performs no DNS, registrar, or
+project-management mutation.

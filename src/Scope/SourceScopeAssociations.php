@@ -41,6 +41,12 @@ final readonly class SourceScopeAssociations
         $now = Carbon::now();
 
         if ($existing instanceof stdClass) {
+            $existingMetadata = json_decode((string) $existing->metadata, true, 512, JSON_THROW_ON_ERROR);
+
+            if ((string) $existing->state === $state->value && $existingMetadata === $metadata) {
+                return $this->hydrate($existing);
+            }
+
             $this->table()->where('association_key', $key)->update([
                 'state' => $state->value,
                 'metadata' => json_encode($metadata, JSON_THROW_ON_ERROR),
@@ -85,6 +91,24 @@ final readonly class SourceScopeAssociations
         return array_values(array_map(
             fn (stdClass $row): SourceScopeAssociation => $this->hydrate($row),
             $query->orderBy('scope_type')->orderBy('scope_id')->orderBy('role')->get()->all(),
+        ));
+    }
+
+    /**
+     * @return list<SourceScopeAssociation>
+     */
+    public function allForInstallation(string $sourceInstallationId): array
+    {
+        return array_values(array_map(
+            fn (stdClass $row): SourceScopeAssociation => $this->hydrate($row),
+            $this->table()
+                ->where('source_installation_id', $sourceInstallationId)
+                ->orderBy('stream')
+                ->orderBy('scope_type')
+                ->orderBy('scope_id')
+                ->orderBy('role')
+                ->get()
+                ->all(),
         ));
     }
 
