@@ -51,6 +51,7 @@ use Sifrious\Aleph\Connector\Shell\IngestShellHistory;
 use Sifrious\Aleph\Connector\Shell\ShellCommandTokenizer;
 use Sifrious\Aleph\Connector\Shell\ShellHistorySources;
 use Sifrious\Aleph\Connector\Shell\ShellRedactionPolicy;
+use Sifrious\Aleph\Connector\Slack\SlackCredentials;
 use Sifrious\Aleph\Connector\Watch\RepositoryWatches;
 use Sifrious\Aleph\Console\CrawlCommand;
 use Sifrious\Aleph\Console\InventoryCommand;
@@ -219,6 +220,14 @@ class AlephServiceProvider extends ServiceProvider
         $this->app->singleton(ShellHistorySources::class);
         $this->app->singleton(ShellCommandTokenizer::class);
         $this->app->singleton(ShellRedactionPolicy::class);
+
+        $this->app->singleton(
+            SlackCredentials::class,
+            fn (Application $app): SlackCredentials => new SlackCredentials(
+                $this->connection($app),
+                $app->make(ConnectorInstallations::class),
+            ),
+        );
 
         $this->app->singleton(
             IngestShellHistory::class,

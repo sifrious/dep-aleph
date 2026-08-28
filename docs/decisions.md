@@ -1190,3 +1190,20 @@ state before acceptance could permanently skip mail after interruption.
 changes, and deletion remain distinct provider revisions. Attachment bytes stay outside Aleph and
 are represented by Digory handoff references. Authentication, provider clients, credential refresh,
 mailbox authorization, and attachment retrieval remain host responsibilities.
+
+## D-082 — Slack tokens remain behind an opaque host secret-store reference
+
+**Decision.** Aleph persists Slack workspace/account identity, source-backed scopes, lifecycle
+timestamps, explicit active/expired/revoked/missing state, and an opaque secret reference. A
+host-provided secret-store port alone resolves, rotates, or revokes token material. Landing migration
+receives a securely established reference, never plaintext, and does not delete the legacy row.
+
+**Rationale.** Landing's encrypted row protects database-at-rest access but still makes application
+persistence and its model the token authority. Portable connector state needs to select and diagnose
+a credential, not serialize it. Removing the legacy copy during migration would make rollback unsafe
+before live connector parity is demonstrated.
+
+**Consequence.** Metadata, exports, errors, logs, and Funes can describe credential availability
+without token values. Connector code receives a deliberately non-serializable secret value from the
+host boundary. Refresh and revocation update the external secret before portable status. Legacy
+ciphertext removal remains an explicit consuming-host cutover step after live verification.

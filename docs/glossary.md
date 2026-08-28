@@ -236,3 +236,9 @@ UIDVALIDITY/UID value committed only after the preceding page is accepted by Fun
 
 **Digory attachment handoff** — a stable historical reference to provider-owned attachment content;
 Aleph retains identity and metadata while artifact retrieval and storage remain Digory concerns.
+
+**Slack credential handle** — workspace-scoped non-secret metadata plus an opaque reference resolved
+only by the host secret store; token values never enter Aleph portable persistence or Funes.
+
+**Slack credential state** — the explicit active, expired, revoked, or missing availability of one
+workspace credential at a given time.

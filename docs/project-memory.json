@@ -51,7 +51,8 @@
         "Claude, Codex, and alternate-provider adapters preserve raw message blocks and references beside neutral chronology, authorship, parent, thread, branch, sidechain, agent, and part values.",
         "Landing LinearSyncRun rows import under deterministic identity into the shared lifecycle, with Linear workspace/project scope, provider reconciliation, targets, and cursors isolated in a typed extension.",
         "Linear workspaces ingest independently through package-owned pagination; each resource stream has its own accepted-through cursor, while verified webhooks and polling share canonical activity identity.",
-        "Gmail, Microsoft Graph, and IMAP records normalize to provider-neutral F28 messages; bounded mailbox pages advance opaque provider checkpoints only after Funes acceptance, and attachments remain Digory references."
+        "Gmail, Microsoft Graph, and IMAP records normalize to provider-neutral F28 messages; bounded mailbox pages advance opaque provider checkpoints only after Funes acceptance, and attachments remain Digory references.",
+        "Slack credential migration retains workspace/account/scopes/status/timestamps and an opaque host secret-store reference; token material and legacy-row deletion remain outside Aleph."
     ],
     "assumptions": [
         "A sequential concurrency ceiling of one is sufficient for the bounded AHSD crawl.",
@@ -243,6 +244,10 @@
         {
             "decision": "Normalize Gmail, Microsoft Graph, and IMAP to F28 before history and checkpoint each bounded page after acceptance.",
             "rationale": "Original transport evidence must survive without SDK or credential leakage, participant resolution requires an external authority, and advancing provider state before Funes acceptance can skip mail permanently."
+        },
+        {
+            "decision": "Represent Slack tokens as portable status metadata plus an opaque host secret-store reference.",
+            "rationale": "Connector orchestration needs workspace, scopes, availability, and lifecycle state but not token material; legacy ciphertext must remain until a host proves secure live cutover."
         }
     ],
     "open_questions": [
@@ -333,6 +338,8 @@
         "f28_email_message": "A provider-neutral email revision retaining provider and RFC identity, threading, original source values, normalized fields, mailbox state, attachment references, and provenance.",
         "email_provider_checkpoint": "An opaque Gmail history ID, Graph delta link, or IMAP UID state committed after Funes acceptance.",
         "digory_attachment_handoff": "A stable reference to provider-owned attachment content that Aleph does not retrieve or store.",
+        "slack_credential_handle": "Workspace-scoped metadata and an opaque reference resolved only by a host secret store.",
+        "slack_credential_state": "The active, expired, revoked, or missing availability of one Slack workspace credential.",
         "domain_ingestion_run": "A DNS-specific projection that adds stable account/domain scope and provider reconciliation references to the shared ingestion run.",
         "manual_launch": "An authorized idempotent request that persists a pending run before host dispatch.",
         "authorization_decision_reference": "A stable host-issued reference to the evaluated decision that allowed a manual run."
@@ -374,7 +381,8 @@
             "MME-818 provider-neutral Claude, Codex, and alternate AI conversation ingestion",
             "MME-990 LinearSyncRun migration adapter and Linear run projection",
             "MME-822 multi-workspace Linear polling, checkpoint, webhook, and Funes ingestion",
-            "MME-823 Gmail, Microsoft Graph, and IMAP F28 email ingestion"
+            "MME-823 Gmail, Microsoft Graph, and IMAP F28 email ingestion",
+            "MME-1106 opaque Slack credential migration and lifecycle broker"
         ],
         "not_implemented": [
             "connector manifests",
@@ -671,6 +679,16 @@
             "commit the source-specific checkpoint only after page acceptance",
             "pause at a bounded page budget and resume from the committed checkpoint",
             "exclude credentials and unsourced person resolution from persistence"
+        ],
+        "slack_credential_migration": [
+            "characterize the Landing encrypted-row and environment bootstrap stories",
+            "establish an opaque secret-store reference outside the migration payload",
+            "migrate workspace/account identity, source-backed scopes, status, expiry, refresh, and legacy identity",
+            "resolve token material only through the host Slack secret store",
+            "report missing, expired, and revoked states without token or reference values in errors",
+            "refresh and revoke through the secret store before updating portable metadata",
+            "replay migration without duplication",
+            "retain the legacy token row until consuming-host parity and secure cutover pass"
         ]
     },
     "content_opportunities": [
@@ -973,6 +991,16 @@
             "audience": "backend and integration developers",
             "skill_level": "intermediate",
             "hook": "Do not move the mailbox cursor past history."
+        },
+        {
+            "format": "short video",
+            "user_problem": "An encrypted application row quietly becomes the portable authority for an OAuth token.",
+            "concept": "Separate credential metadata from secret material",
+            "technology": "Opaque secret references, adapter ports, explicit token lifecycle state",
+            "project_context": "Aleph MME-1106 SlackToken migration",
+            "audience": "backend and security engineers",
+            "skill_level": "intermediate",
+            "hook": "Encrypted is not the same as portable."
         }
     ]
 }

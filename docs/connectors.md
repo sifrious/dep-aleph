@@ -158,6 +158,15 @@ Original address and header values remain beside normalized addresses. Attachmen
 bytes nor inferred people. Hosts own authentication, provider clients, mailbox authorization, and
 credential refresh, and must not include credentials in adapter records.
 
+## Slack credential adapters
+
+`SlackCredentialBroker` gives connector code a resolved access token only through a host-provided
+`SlackSecretStore`. Portable Aleph persistence contains the workspace, optional account, opaque
+secret reference, source-backed scopes, active/expired/revoked/missing state, and lifecycle
+timestamps. Refresh and revocation call the secret store before updating portable metadata. The
+Landing migration adapter never accepts token values and leaves the legacy row in place until a host
+has verified secure cutover and independently removes it.
+
 ## Fakes
 
 Composable doubles live in `Sifrious\Aleph\Testing\Fakes` so orchestration tests need no real
