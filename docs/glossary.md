@@ -89,3 +89,6 @@ without changing the run identity or duplicating accepted-history references.
 
 **Run read model** — a presentation-neutral projection of one run, its attempts, diagnostics, and
 next safe action. Hosts consume it instead of querying Aleph tables.
+
+**Domain ingestion run** — a DNS-specific projection over the shared ingestion run. It adds stable
+account/domain scope and provider reconciliation references without defining another lifecycle.

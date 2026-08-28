@@ -30,7 +30,8 @@
         "Aleph source-scope associations use typed namespaced Funes references and snapshot their resolution state into accepted observation metadata.",
         "Landing SyncRun combines repository pipeline state with subway-map presentation and stores its current step and ordered steps as JSON.",
         "Aleph ingestion runs now preserve connector/source identity, stable legacy references, replay keys, checkpoints, completeness, failures, counters, and accepted Funes references.",
-        "A logical connector ingestion run owns numbered durable attempts and exposes a presentation-neutral inspection read model."
+        "A logical connector ingestion run owns numbered durable attempts and exposes a presentation-neutral inspection read model.",
+        "Landing DomainSyncRun repeats the common run lifecycle and adds account/domain scope, targets, DNS counters, and provider-account/domain foreign keys."
     ],
     "assumptions": [
         "A sequential concurrency ceiling of one is sufficient for the bounded AHSD crawl.",
@@ -40,7 +41,8 @@
         "SchoolMessenger calendar event data is out of reach by policy rather than merely unbuilt.",
         "Existing Landing associations are migration inputs and become package facts only when they contain confirmed stable references.",
         "Landing SyncRun step trees are source-backed opaque checkpoints rather than universal connector lifecycle semantics.",
-        "Hosts schedule eligible retries, while Aleph owns transition and retry-eligibility semantics."
+        "Hosts schedule eligible retries, while Aleph owns transition and retry-eligibility semantics.",
+        "A domain-run migration reconciler supplies stable provider-account and domain references instead of promoting Landing foreign keys or labels."
     ],
     "decisions": [
         {
@@ -118,6 +120,10 @@
         {
             "decision": "Represent queue retries as numbered durable attempts inside one idempotent ingestion run and expose them through a stable query read model.",
             "rationale": "One run identity preserves source-window lineage and accepted-history deduplication, while durable attempts retain the operational evidence a queue worker cannot."
+        },
+        {
+            "decision": "Represent DomainSyncRun as a typed DNS projection over the shared ingestion run, with source-backed DNS fields isolated under one extension.",
+            "rationale": "Landing adds DNS scope to the same lifecycle, so a second lifecycle would duplicate rules and provider SDK objects would leak implementation detail."
         }
     ],
     "open_questions": [
@@ -128,7 +134,8 @@
         "When does inventory size justify a payload-free existence read on ObservationStore instead of find()?",
         "Which authority will issue canonical project references when several stable namespaces describe the same project?",
         "Which stable connector installation should each provider-specific Landing run family reference during migration?",
-        "Should provider retry timing remain entirely host-scheduled, or will two consumers demonstrate timing semantics that belong in Aleph?"
+        "Should provider retry timing remain entirely host-scheduled, or will two consumers demonstrate timing semantics that belong in Aleph?",
+        "Which source-backed DNS provider reconciliation identifiers should each connector retain long term?"
     ],
     "constraints": [
         "Only public GET and HEAD retrievals are permitted.",
@@ -167,7 +174,8 @@
         "run_completeness": "Whether a run observed all, some, or not-yet-all of its requested source range.",
         "legacy_run_reference": "A namespaced stable identity retained from an application-owned run before package migration.",
         "ingestion_attempt": "One numbered execution inside a logical ingestion run, carrying its checkpoint, counters, failure, and timing.",
-        "run_read_model": "A presentation-neutral projection of a run, its attempts, diagnostics, and next safe action."
+        "run_read_model": "A presentation-neutral projection of a run, its attempts, diagnostics, and next safe action.",
+        "domain_ingestion_run": "A DNS-specific projection that adds stable account/domain scope and provider reconciliation references to the shared ingestion run."
     },
     "features": {
         "implemented": [
@@ -182,7 +190,8 @@
             "ALEPH-012",
             "MME-814 / A15 source-scope associations",
             "MME-1114 provider-neutral SyncRun model and Landing migration adapter",
-            "MME-1215 connector-run attempts, lifecycle, retries, provider adapters, and inspection query"
+            "MME-1215 connector-run attempts, lifecycle, retries, provider adapters, and inspection query",
+            "MME-917 DomainSyncRun migration adapter and DNS run projection"
         ],
         "not_implemented": [
             "connector manifests",
@@ -250,6 +259,15 @@
             "resume an eligible run from its committed checkpoint as a new attempt",
             "deduplicate accepted-history references across attempts",
             "inspect the run and every attempt through the package query read model"
+        ],
+        "domain_sync_run_migration": [
+            "read one characterized Landing DomainSyncRun row",
+            "supply reconciled provider-account and domain references",
+            "map its legacy reference deterministically to the shared ingestion run",
+            "retain DNS scope and reconciliation IDs in the DNS extension",
+            "preserve checkpoints, counters, failure, timing, completeness, and Funes references on the shared run",
+            "return a typed DNS projection through DomainRunQueries",
+            "retain Landing persistence until count and identity reconciliation passes"
         ]
     },
     "content_opportunities": [
@@ -312,6 +330,16 @@
             "audience": "backend and integration developers",
             "skill_level": "intermediate",
             "hook": "Retry the attempt, not the history."
+        },
+        {
+            "format": "post",
+            "user_problem": "Every provider-specific sync table reimplements the same lifecycle with a few extra columns.",
+            "concept": "Typed projections over one operational run model",
+            "technology": "Laravel package adapters, provider-neutral read models, namespaced extensions",
+            "project_context": "Aleph MME-917 DomainSyncRun migration",
+            "audience": "backend and integration developers",
+            "skill_level": "intermediate",
+            "hook": "DNS needed a projection, not another state machine."
         }
     ]
 }

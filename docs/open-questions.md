@@ -89,3 +89,9 @@ model-catalogue tickets own that reconciliation.
 Aleph preserves retry classification and provider details such as `retry_after`, while the host
 scheduler decides when to dispatch the next attempt. Revisit only if two hosts demonstrate
 incompatible timing behavior that belongs in the package contract.
+
+## Q-013 — Which DNS reconciliation identifiers deserve long-term retention?
+
+The domain projection retains only provider reconciliation IDs explicitly supplied by a connector
+or migration. Zone, record, and registrar object IDs are known examples. No generic parser infers
+IDs from provider payloads; each connector ticket must prove the identifiers it emits are stable.

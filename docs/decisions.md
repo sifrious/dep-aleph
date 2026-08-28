@@ -744,3 +744,18 @@ the run, attempt, transition rules, and query are the smallest coherent boundary
 **Consequence.** Retry resumes from the committed checkpoint, fatal failures cannot be retried,
 partial and retryable failures remain diagnosable, and two hosts can inspect the same stable read
 model without querying package tables or importing Landing types.
+
+## D-057 — Domain run state is a projection, not a second lifecycle
+
+**Decision.** Domain and DNS operational state composes the provider-neutral ingestion read model.
+Its DNS extension carries account/domain scope, stable provider-account and domain references, and
+provider reconciliation IDs. Checkpoints, counters, attempts, failures, timing, and completeness
+remain on the shared run.
+
+**Rationale.** Landing's `DomainSyncRun` repeats the same pending/running/succeeded/failed lifecycle
+used by every provider and adds only DNS scope. A second lifecycle would immediately drift. Putting
+SDK response objects in the projection would make the package contract provider-specific.
+
+**Consequence.** Landing rows migrate deterministically, DNS consumers receive a typed projection,
+and the extension may grow only from source-backed DNS fields. Historical domain and record facts
+remain Funes observations referenced by stable IDs.

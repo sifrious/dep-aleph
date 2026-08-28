@@ -59,3 +59,9 @@ connector lifecycle.
 Laravel workers and schedulers determine when an eligible attempt runs. Aleph determines whether a
 run may start, resume, retry, fail, or complete and exposes the next safe action. No current package
 requirement justifies owning queue transport or retry delays.
+
+## A-011 — Domain migration requires externally supplied stable references
+
+Landing `provider_account_id` and `domain_id` are local foreign keys. The domain-run adapter accepts
+stable provider-account and domain references from the migration reconciler and never translates
+those integers or the run label into portable identity.

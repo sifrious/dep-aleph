@@ -22,6 +22,7 @@ use Sifrious\Aleph\Console\CrawlCommand;
 use Sifrious\Aleph\Console\InventoryCommand;
 use Sifrious\Aleph\Envelope\EnvelopeDrafter;
 use Sifrious\Aleph\Envelope\EnvelopeSubmitter;
+use Sifrious\Aleph\Ingestion\DomainRunQueries;
 use Sifrious\Aleph\Ingestion\IngestionRunQueries;
 use Sifrious\Aleph\Ingestion\IngestionRuns;
 use Sifrious\Aleph\Inventory\InventoryReader;
@@ -61,6 +62,11 @@ class AlephServiceProvider extends ServiceProvider
         $this->app->singleton(
             IngestionRunQueries::class,
             fn (Application $app): IngestionRunQueries => new IngestionRunQueries($app->make(IngestionRuns::class)),
+        );
+
+        $this->app->singleton(
+            DomainRunQueries::class,
+            fn (Application $app): DomainRunQueries => new DomainRunQueries($app->make(IngestionRunQueries::class)),
         );
 
         $this->app->singleton(
