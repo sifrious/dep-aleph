@@ -130,3 +130,9 @@ and partition, reconstructed with an explicit record, runtime, and partition bud
 
 **Continuation lease** — an expiring exclusive claim on one stream capability partition. It keeps
 two workers from resuming the same range while allowing safe takeover after expiry.
+
+**Source-stream freshness** — the provider-neutral projection of last attempt, last successful run,
+accepted-through time, next due time, and current healthy, due, stale, or never-synchronized state.
+
+**Freshness expectation** — a per-stream expected interval and stale boundary. The package query
+applies it to the caller's clock so freshness cannot freeze at the value last written.

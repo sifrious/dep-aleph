@@ -28,6 +28,7 @@ use Sifrious\Aleph\Ingestion\IngestionCheckpoints;
 use Sifrious\Aleph\Ingestion\IngestionRunQueries;
 use Sifrious\Aleph\Ingestion\IngestionRuns;
 use Sifrious\Aleph\Ingestion\SourceStreams;
+use Sifrious\Aleph\Ingestion\SourceStreamStatuses;
 use Sifrious\Aleph\Inventory\InventoryReader;
 use Sifrious\Aleph\Normalization\CandidateValidator;
 use Sifrious\Aleph\Normalization\NormalizationAttempts;
@@ -75,6 +76,16 @@ class AlephServiceProvider extends ServiceProvider
         $this->app->singleton(
             SourceStreams::class,
             fn (Application $app): SourceStreams => new SourceStreams($this->connection($app)),
+        );
+
+        $this->app->singleton(
+            SourceStreamStatuses::class,
+            fn (Application $app): SourceStreamStatuses => new SourceStreamStatuses(
+                $this->connection($app),
+                $app->make(SourceStreams::class),
+                $app->make(IngestionRuns::class),
+                $app->make(IngestionCheckpoints::class),
+            ),
         );
 
         $this->app->singleton(

@@ -118,6 +118,16 @@ final readonly class IngestionCheckpoints
         return $row instanceof stdClass ? $this->hydrate($row) : null;
     }
 
+    public function acceptedThroughAt(SourceStream $stream, IngestionRun $run): ?DateTimeImmutable
+    {
+        $value = $this->table()
+            ->where('source_stream_id', $stream->id)
+            ->where('run_id', $run->id)
+            ->max('committed_at');
+
+        return $value === null ? null : new DateTimeImmutable((string) $value);
+    }
+
     private function validateProgression(?IngestionCheckpoint $current, CheckpointValue $next): void
     {
         if ($next->rule !== CheckpointRule::Monotonic || $current === null) {

@@ -882,3 +882,19 @@ references, terminates the interrupted attempt, reuses a repeated owner request 
 dispatch, and refuses competing leases or an active continuation owned by another worker. An expired
 lease becomes claimable after the prior attempt is terminal. Worker supervision and transport-specific
 reconnect controls remain host concerns.
+
+## D-065 — Freshness is a durable projection with a clock-dependent state
+
+**Decision.** Each source stream may project its last attempt, last successful run and time,
+accepted-through checkpoint time, next due time, and expected/stale intervals into one status row.
+The package query returns `healthy`, `due`, `stale`, or `never_synchronized` by applying those durable
+facts to an explicit caller-supplied time.
+
+**Rationale.** Provider-specific `last_synced_at` fields do not distinguish a recent failed attempt
+from the last successful ingestion, and a stored healthy label becomes false as time passes even when
+no write occurs. Deriving freshness in every UI would repeat and eventually split the semantics.
+
+**Consequence.** Every active installed stream appears in the query even before its first run, with
+null success values and an explicit never-synchronized state. Failed attempts advance only last
+attempt, successful attempts preserve the checkpoint acceptance time, and CLI, API, mobile, and
+desktop hosts consume identical freshness semantics.

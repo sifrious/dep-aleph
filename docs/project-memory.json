@@ -38,7 +38,8 @@
         "Checkpoint history is isolated by source stream, capability, and partition and records connector serialization, optimistic version, progression rule, committing run/attempt, and accepted-through Funes references.",
         "Every incomplete ingestion run exposes remaining work, warning and error counts, an immutable failure timeline, and one machine-readable safe recovery action.",
         "A retry is a numbered child attempt reconstructed from the original run's durable parameters, checkpoint, counters, and idempotent identity.",
-        "Resume reconstructs each partition from its latest accepted-through checkpoint under an expiring lease and explicit partition, record, and runtime budgets."
+        "Resume reconstructs each partition from its latest accepted-through checkpoint under an expiring lease and explicit partition, record, and runtime budgets.",
+        "Every active source stream has a package freshness projection or an explicit never-synchronized read model, and freshness is recalculated against an explicit clock."
     ],
     "assumptions": [
         "A sequential concurrency ceiling of one is sufficient for the bounded AHSD crawl.",
@@ -162,6 +163,10 @@
         {
             "decision": "Resume leased partitions from accepted-through checkpoints under explicit work budgets.",
             "rationale": "An interrupted worker payload may be ahead of durable acceptance; bounded replay is safer than missing accepted records."
+        },
+        {
+            "decision": "Project source-stream timestamps durably while deriving current freshness from an explicit clock.",
+            "rationale": "A stored healthy label ages without writes, while host-side derivation would split semantics across CLI, API, mobile, and desktop clients."
         }
     ],
     "open_questions": [
@@ -221,6 +226,8 @@
         "retry_lineage": "The durable parent-child link between a failed or partial attempt and its idempotent retry.",
         "ingestion_continuation": "The latest accepted-through checkpoint used to reconstruct one partition after interruption.",
         "continuation_lease": "An expiring exclusive claim on one stream capability partition during resume.",
+        "source_stream_freshness": "The last-attempt, last-success, accepted-through, next-due, and current freshness projection for one stream.",
+        "freshness_expectation": "The expected interval and stale boundary applied by the package freshness query.",
         "domain_ingestion_run": "A DNS-specific projection that adds stable account/domain scope and provider reconciliation references to the shared ingestion run.",
         "manual_launch": "An authorized idempotent request that persists a pending run before host dispatch.",
         "authorization_decision_reference": "A stable host-issued reference to the evaluated decision that allowed a manual run."
@@ -245,7 +252,8 @@
             "MME-806 accepted-through checkpoint tracking",
             "MME-810 incomplete synchronization outcomes and recovery actions",
             "MME-804 deterministic retry command and attempt lineage",
-            "MME-805 bounded leased resume from accepted-through checkpoints"
+            "MME-805 bounded leased resume from accepted-through checkpoints",
+            "MME-809 provider-neutral source-stream freshness projection"
         ],
         "not_implemented": [
             "connector manifests",
@@ -375,6 +383,13 @@
             "atomically lease the partition identities",
             "persist the typed continuations on a new pending attempt",
             "dispatch once through the runtime-neutral queue port"
+        ],
+        "source_stream_freshness": [
+            "list every active stream for an installation",
+            "project the latest attempt without erasing prior success",
+            "project completed run and accepted-through checkpoint times",
+            "retain the next due time and per-stream freshness expectation",
+            "derive healthy, due, stale, or never synchronized against the caller's clock"
         ]
     },
     "content_opportunities": [
@@ -507,6 +522,16 @@
             "audience": "data ingestion developers",
             "skill_level": "intermediate",
             "hook": "Replay a little. Miss nothing."
+        },
+        {
+            "format": "short video",
+            "user_problem": "A dashboard says a source is healthy because that was true when the row was last written.",
+            "concept": "Durable freshness facts with clock-dependent status",
+            "technology": "Laravel package projections, explicit clocks, provider-neutral stream queries",
+            "project_context": "Aleph MME-809 source freshness",
+            "audience": "backend and platform developers",
+            "skill_level": "intermediate",
+            "hook": "Health ages even when the database is quiet."
         }
     ]
 }
