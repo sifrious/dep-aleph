@@ -21,6 +21,7 @@ final readonly class IngestionFailure
         public string $message,
         public array $details,
         public DateTimeImmutable $occurredAt,
+        public ?DateTimeImmutable $resolvedAt = null,
     ) {}
 
     /**
@@ -37,6 +38,7 @@ final readonly class IngestionFailure
             'message' => $this->message,
             'details' => $this->details,
             'occurred_at' => $this->occurredAt->format(DATE_ATOM),
+            'resolved_at' => $this->resolvedAt?->format(DATE_ATOM),
         ];
     }
 }

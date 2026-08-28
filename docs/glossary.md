@@ -96,6 +96,9 @@ restart, provide credentials, require user action, or none.
 **Ingestion failure** — an immutable timeline event attached to a run and optional attempt. It
 retains domain or queue origin, category, partition, details, and occurrence time.
 
+**Retry lineage** — the link from a new numbered attempt to the failed or partial attempt it
+reconstructs. The child retains the reason, optional partition, durable checkpoint, and queue policy.
+
 **Domain ingestion run** — a DNS-specific projection over the shared ingestion run. It adds stable
 account/domain scope and provider reconciliation references without defining another lifecycle.
 

@@ -36,7 +36,8 @@
         "Funes stores Aleph envelope metadata as append-only typed assertions: aleph:envelope for universal attributes and aleph:extension/<namespace> for connector extensions.",
         "Every queued connector unit is a durable Aleph ingestion attempt with queue class, priority, tags, dispatch policy, runtime job and worker identity, heartbeat, and retry lineage.",
         "Checkpoint history is isolated by source stream, capability, and partition and records connector serialization, optimistic version, progression rule, committing run/attempt, and accepted-through Funes references.",
-        "Every incomplete ingestion run exposes remaining work, warning and error counts, an immutable failure timeline, and one machine-readable safe recovery action."
+        "Every incomplete ingestion run exposes remaining work, warning and error counts, an immutable failure timeline, and one machine-readable safe recovery action.",
+        "A retry is a numbered child attempt reconstructed from the original run's durable parameters, checkpoint, counters, and idempotent identity."
     ],
     "assumptions": [
         "A sequential concurrency ceiling of one is sufficient for the bounded AHSD crawl.",
@@ -152,6 +153,10 @@
         {
             "decision": "Record incomplete outcomes and their safe recovery action in the package read model.",
             "rationale": "Domain failures, queue failures, cancellations, rate limits, and blocked credentials require distinct recovery even after host queue records are pruned."
+        },
+        {
+            "decision": "Retry by creating one idempotent child attempt from durable run state.",
+            "rationale": "Queue payloads are mutable transport records; retry lineage and accepted-through checkpoints must remain authoritative after those records are pruned."
         }
     ],
     "open_questions": [
@@ -207,6 +212,8 @@
         "legacy_run_reference": "A namespaced stable identity retained from an application-owned run before package migration.",
         "ingestion_attempt": "One numbered execution inside a logical ingestion run, carrying its checkpoint, counters, failure, and timing.",
         "run_read_model": "A presentation-neutral projection of a run, its attempts, diagnostics, and next safe action.",
+        "recovery_action": "The machine-readable safe next step for an ingestion run.",
+        "retry_lineage": "The durable parent-child link between a failed or partial attempt and its idempotent retry.",
         "domain_ingestion_run": "A DNS-specific projection that adds stable account/domain scope and provider reconciliation references to the shared ingestion run.",
         "manual_launch": "An authorized idempotent request that persists a pending run before host dispatch.",
         "authorization_decision_reference": "A stable host-issued reference to the evaluated decision that allowed a manual run."
@@ -229,7 +236,8 @@
             "MME-802 authorized idempotent manual launch contract",
             "MME-803 durable queued ingestion attempts",
             "MME-806 accepted-through checkpoint tracking",
-            "MME-810 incomplete synchronization outcomes and recovery actions"
+            "MME-810 incomplete synchronization outcomes and recovery actions",
+            "MME-804 deterministic retry command and attempt lineage"
         ],
         "not_implemented": [
             "connector manifests",
@@ -343,6 +351,14 @@
             "append failure evidence with domain or queue origin",
             "derive one safe recovery action from package state",
             "expose the outcome through the presentation-neutral run timeline"
+        ],
+        "retry_ingestion": [
+            "resolve the original run and failed or partial attempt",
+            "refuse fatal failures, active backoff, or a partition outside remaining work",
+            "create one numbered child attempt from durable parameters and checkpoint state",
+            "mark prior failure evidence resolved without deleting it",
+            "dispatch the child through the runtime-neutral queue port",
+            "return the same child without duplicate dispatch when the request is repeated"
         ]
     },
     "content_opportunities": [
@@ -455,6 +471,16 @@
             "audience": "backend and integration developers",
             "skill_level": "intermediate",
             "hook": "Failure is a state. Recovery is a contract."
+        },
+        {
+            "format": "short video",
+            "user_problem": "A retry button replays a stale queue payload and loses the history of what failed.",
+            "concept": "Deterministic retry lineage from durable checkpoints",
+            "technology": "Laravel package commands, numbered attempts, idempotent queue dispatch",
+            "project_context": "Aleph MME-804 retry ingestion",
+            "audience": "backend and integration developers",
+            "skill_level": "intermediate",
+            "hook": "Retry the checkpoint, not the payload."
         }
     ]
 }

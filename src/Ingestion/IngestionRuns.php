@@ -329,6 +329,110 @@ final readonly class IngestionRuns
         return $attempt;
     }
 
+    public function retryAttempt(
+        IngestionRun $run,
+        IngestionAttempt $failedAttempt,
+        string $reason,
+        ?string $partitionKey = null,
+        ?DateTimeImmutable $now = null,
+        ?QueueDispatchPolicy $policy = null,
+    ): IngestionAttempt {
+        $currentRun = $this->find($run->id);
+        $currentAttempt = $this->attempt($failedAttempt->id);
+        $now ??= new DateTimeImmutable;
+
+        if ($currentRun === null || $currentAttempt === null || $currentAttempt->runId !== $currentRun->id) {
+            throw new RetryRejected('attempt_not_found', 'The failed attempt does not belong to this run.');
+        }
+
+        if (! in_array($currentAttempt->status, [RunStatus::Failed, RunStatus::Partial], true)) {
+            throw new RetryRejected('attempt_not_failed', 'Only a failed or partial attempt can be retried.');
+        }
+
+        if ($currentAttempt->failure?->retryable !== true) {
+            throw new RetryRejected('failure_not_retryable', 'The attempt failure is not retryable.');
+        }
+
+        if ($currentAttempt->backoffUntil !== null && $currentAttempt->backoffUntil > $now) {
+            throw new RetryRejected('backoff_active', 'The attempt backoff period has not elapsed.');
+        }
+
+        if (trim($reason) === '') {
+            throw new RetryRejected('reason_required', 'A retry reason is required.');
+        }
+
+        if ($partitionKey !== null && ! $this->hasRemainingPartition($currentRun, $partitionKey)) {
+            throw new RetryRejected('partition_not_remaining', 'The requested partition is not listed as remaining work.');
+        }
+
+        $existing = $this->attemptsTable()->where('retry_of_id', $currentAttempt->id)->first();
+
+        if ($existing !== null) {
+            return $this->hydrateAttempt($existing);
+        }
+
+        $number = ((int) $this->attemptsTable()->where('run_id', $currentRun->id)->max('number')) + 1;
+        $policy ??= QueueDispatchPolicy::forRun($currentRun);
+        $id = (string) Str::ulid();
+        $tags = array_values(array_filter([
+            $currentRun->connectorId === null ? null : 'connector:'.$currentRun->connectorId,
+            $currentRun->sourceInstallationId === null ? null : 'source-installation:'.$currentRun->sourceInstallationId,
+            'run:'.$currentRun->id,
+            'attempt:'.$id,
+        ]));
+        $attempt = new IngestionAttempt(
+            id: $id,
+            runId: $currentRun->id,
+            number: $number,
+            status: RunStatus::Pending,
+            checkpoint: $currentRun->checkpoint,
+            stats: $currentRun->stats,
+            failure: null,
+            startedAt: null,
+            finishedAt: null,
+            retryOfId: $currentAttempt->id,
+            retryReason: $reason,
+            partitionKey: $partitionKey,
+            queue: $policy->queue,
+            priority: $policy->priority,
+            tags: $tags,
+            dispatchPolicy: $policy,
+            queuedAt: $now,
+        );
+
+        $this->attemptsTable()->insert([
+            'id' => $attempt->id,
+            'run_id' => $attempt->runId,
+            'retry_of_id' => $attempt->retryOfId,
+            'retry_reason' => $attempt->retryReason,
+            'partition_key' => $attempt->partitionKey,
+            'number' => $attempt->number,
+            'queue' => $attempt->queue?->value,
+            'priority' => $attempt->priority,
+            'tags' => json_encode($attempt->tags, JSON_THROW_ON_ERROR),
+            'dispatch_policy' => json_encode($policy->toArray(), JSON_THROW_ON_ERROR),
+            'status' => $attempt->status->value,
+            'checkpoint' => $attempt->checkpoint === [] ? null : json_encode($attempt->checkpoint, JSON_THROW_ON_ERROR),
+            'stats' => $attempt->stats === [] ? null : json_encode($attempt->stats, JSON_THROW_ON_ERROR),
+            'failure' => null,
+            'queued_at' => $attempt->queuedAt,
+            'started_at' => null,
+            'finished_at' => null,
+        ]);
+        $this->failuresTable()->where('attempt_id', $currentAttempt->id)->whereNull('resolved_at')->update([
+            'resolved_at' => $now,
+        ]);
+
+        return $attempt;
+    }
+
+    public function retryFor(IngestionAttempt $attempt): ?IngestionAttempt
+    {
+        $row = $this->attemptsTable()->where('retry_of_id', $attempt->id)->first();
+
+        return $row === null ? null : $this->hydrateAttempt($row);
+    }
+
     public function recordQueueReceipt(IngestionAttempt $attempt, QueueReceipt $receipt): IngestionAttempt
     {
         $this->attemptsTable()->where('id', $attempt->id)->where('status', RunStatus::Pending->value)->update([
@@ -351,6 +455,7 @@ final readonly class IngestionRuns
         $this->attemptsTable()->where('id', $attempt->id)->where('status', RunStatus::Pending->value)->update([
             'status' => RunStatus::Failed->value,
             'failure' => json_encode($runFailure->toArray(), JSON_THROW_ON_ERROR),
+            'retryable' => true,
             'error_class' => $failure::class,
             'error_message' => $failure->getMessage(),
             'finished_at' => Carbon::now(),
@@ -529,6 +634,8 @@ final readonly class IngestionRuns
         array $remainingWork = [],
         int $warningCount = 0,
         int $errorCount = 1,
+        ?DateTimeImmutable $backoffUntil = null,
+        ?string $partitionKey = null,
     ): void {
         $this->assertActiveAttempt($run, $attempt);
         $status = $partial ? RunStatus::Partial : RunStatus::Failed;
@@ -542,12 +649,14 @@ final readonly class IngestionRuns
             'status' => $status->value,
             'stats' => json_encode($stats, JSON_THROW_ON_ERROR),
             'failure' => $encodedFailure,
+            'retryable' => $failure->retryable,
+            'backoff_until' => $backoffUntil,
             'error_class' => $failure->kind,
             'error_message' => $failure->message,
             'heartbeat_at' => $finishedAt,
             'finished_at' => $finishedAt,
         ]);
-        $this->recordFailure($run, $attempt, $failure);
+        $this->recordFailure($run, $attempt, $failure, $partitionKey);
         $this->table()->where('id', $run->id)->update([
             'status' => $status->value,
             'completeness' => $completeness->value,
@@ -744,6 +853,7 @@ final readonly class IngestionRuns
             message: (string) $row->message,
             details: is_array($details) ? $details : [],
             occurredAt: new DateTimeImmutable((string) $row->occurred_at),
+            resolvedAt: $row->resolved_at === null ? null : new DateTimeImmutable((string) $row->resolved_at),
         );
     }
 
@@ -792,7 +902,23 @@ final readonly class IngestionRuns
             workerId: $row->worker_id === null ? null : (string) $row->worker_id,
             queuedAt: $row->queued_at === null ? null : new DateTimeImmutable((string) $row->queued_at),
             heartbeatAt: $row->heartbeat_at === null ? null : new DateTimeImmutable((string) $row->heartbeat_at),
+            retryOfId: $row->retry_of_id === null ? null : (string) $row->retry_of_id,
+            retryReason: $row->retry_reason === null ? null : (string) $row->retry_reason,
+            partitionKey: $row->partition_key === null ? null : (string) $row->partition_key,
+            retryable: $row->retryable === null ? null : (bool) $row->retryable,
+            backoffUntil: $row->backoff_until === null ? null : new DateTimeImmutable((string) $row->backoff_until),
         );
+    }
+
+    private function hasRemainingPartition(IngestionRun $run, string $partitionKey): bool
+    {
+        foreach ($run->remainingWork as $work) {
+            if (($work['partition_key'] ?? null) === $partitionKey) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function assertActiveAttempt(IngestionRun $run, IngestionAttempt $attempt): void

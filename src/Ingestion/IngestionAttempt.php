@@ -31,6 +31,11 @@ final readonly class IngestionAttempt
         public ?string $workerId = null,
         public ?DateTimeImmutable $queuedAt = null,
         public ?DateTimeImmutable $heartbeatAt = null,
+        public ?string $retryOfId = null,
+        public ?string $retryReason = null,
+        public ?string $partitionKey = null,
+        public ?bool $retryable = null,
+        public ?DateTimeImmutable $backoffUntil = null,
     ) {}
 
     /**
@@ -41,6 +46,11 @@ final readonly class IngestionAttempt
         return [
             'id' => $this->id,
             'number' => $this->number,
+            'retry_of_id' => $this->retryOfId,
+            'retry_reason' => $this->retryReason,
+            'partition_key' => $this->partitionKey,
+            'retryable' => $this->retryable,
+            'backoff_until' => $this->backoffUntil?->format(DATE_ATOM),
             'queue' => $this->queue?->value,
             'priority' => $this->priority,
             'tags' => $this->tags,

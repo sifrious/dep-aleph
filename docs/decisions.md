@@ -850,3 +850,18 @@ evidence.
 canceled runs restart, authentication failures request credentials, and fatal provider failures
 request user action. Presentation remains host-owned, while the recovery contract and timeline are
 portable package facts.
+
+## D-063 — Retry reconstructs an attempt from durable run state
+
+**Decision.** `RetryIngestion` creates one pending numbered child attempt under the original run.
+The child names its failed or partial parent, operator reason, optional remaining partition, queue
+policy, and the checkpoint and counters persisted on the run. Repeating the same retry request
+returns that child and does not dispatch again.
+
+**Rationale.** A runtime job payload is mutable and may already be pruned. Replaying it would make
+transport state authoritative, lose logical lineage, and risk processing a partition from a cursor
+that differs from the accepted-through checkpoint.
+
+**Consequence.** Fatal and authentication failures cannot retry, active rate-limit backoff is
+enforced, a named partition must still be listed as remaining work, prior failure events are marked
+resolved rather than deleted, and all attempts stay visible on one run timeline.
