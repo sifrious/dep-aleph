@@ -95,3 +95,9 @@ incompatible timing behavior that belongs in the package contract.
 The domain projection retains only provider reconciliation IDs explicitly supplied by a connector
 or migration. Zone, record, and registrar object IDs are known examples. No generic parser infers
 IDs from provider payloads; each connector ticket must prove the identifiers it emits are stable.
+
+## Q-014 — Does authorization need expiry or policy-version fields?
+
+Manual launch currently retains stable actor and decision references. No demonstrated consumer
+requires an expiry instant or policy version in the package contract. Add either only when a host
+must prove that a previously granted decision was valid for a bounded interval.

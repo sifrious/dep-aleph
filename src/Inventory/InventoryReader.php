@@ -7,6 +7,7 @@ namespace Sifrious\Aleph\Inventory;
 use DateTimeImmutable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Builder;
+use LogicException;
 use Sifrious\Aleph\Extraction\ExtractionStatus;
 use Sifrious\Aleph\Ingestion\IngestionRun;
 use Sifrious\Aleph\Ingestion\RunStatus;
@@ -161,6 +162,10 @@ final readonly class InventoryReader
 
     private function bounds(WebSource $source, IngestionRun $run): InventoryBounds
     {
+        if ($run->startedAt === null) {
+            throw new LogicException('An inventory cannot be read before its ingestion run starts.');
+        }
+
         $row = $this->connection->table('aleph_ingestion_runs')->where('id', $run->id)->first();
         $stats = $row?->stats === null ? [] : json_decode((string) $row->stats, true, 512, JSON_THROW_ON_ERROR);
         $status = $row?->status === null ? $run->status : RunStatus::from((string) $row->status);

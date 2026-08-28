@@ -14,6 +14,9 @@ use Sifrious\Aleph\Normalization\NormalizationInput;
 use Sifrious\Aleph\Normalization\NormalizationRunner;
 use Sifrious\Funes\Persistence\ObservationStore;
 use Sifrious\Funes\Value\ExtractionDraft;
+use Sifrious\Funes\Value\IngestionRun as FunesIngestionRun;
+use Sifrious\Funes\Value\Producer;
+use Sifrious\Funes\Value\ProducerContext;
 
 final readonly class FunesObservationWriter
 {
@@ -79,6 +82,13 @@ final readonly class FunesObservationWriter
                 observationId: $observation->id,
                 extractor: $extraction->extractor,
                 version: $extraction->version,
+                producerContext: new ProducerContext(
+                    new Producer(
+                        "aleph:extractor/{$extraction->extractor}",
+                        "Aleph {$extraction->extractor} extractor",
+                    ),
+                    new FunesIngestionRun($run->id),
+                ),
                 result: $extraction->result,
                 failure: $extraction->failure,
             )),

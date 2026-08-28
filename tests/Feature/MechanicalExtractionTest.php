@@ -65,6 +65,8 @@ it('preserves PDF bytes and records versioned embedded text extraction', functio
 
     $observation = app(ObservationStore::class)->find('web:waverly', $url);
     $extraction = DB::table('funes_extractions')->where('observation_id', $observation?->id)->first();
+    $extractionProvenance = DB::table('funes_extraction_provenance')->where('extraction_id', $extraction->id)->first();
+    $runId = DB::table('aleph_ingestion_runs')->value('id');
     $result = json_decode((string) $extraction->result, true, 512, JSON_THROW_ON_ERROR);
 
     expect($observation)->not->toBeNull()
@@ -73,6 +75,8 @@ it('preserves PDF bytes and records versioned embedded text extraction', functio
         ->and($observation?->contentType)->toBe('application/pdf')
         ->and($extraction->extractor)->toBe('aleph.pdf')
         ->and($extraction->version)->toBe('1')
+        ->and($extractionProvenance->producer_reference)->toBe('aleph:extractor/aleph.pdf')
+        ->and($extractionProvenance->ingestion_run_reference)->toBe($runId)
         ->and($result['classification'])->toBe('pdf')
         ->and($result['text'])->toContain('Waverly School Calendar 2026-2027');
 });

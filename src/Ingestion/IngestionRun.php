@@ -20,7 +20,7 @@ final readonly class IngestionRun
         public Capability $capability,
         public RunStatus $status,
         public array $parameters,
-        public DateTimeImmutable $startedAt,
+        public ?DateTimeImmutable $startedAt,
         public ?string $connectorId = null,
         public ?string $sourceInstallationId = null,
         public ?string $legacyReference = null,
@@ -31,6 +31,10 @@ final readonly class IngestionRun
         public ?RunFailure $failure = null,
         public array $acceptedReferences = [],
         public ?DateTimeImmutable $finishedAt = null,
+        public IngestionTrigger $trigger = IngestionTrigger::System,
+        public ?string $requestedBy = null,
+        public ?string $authorizationDecision = null,
+        public ?DateTimeImmutable $requestedAt = null,
     ) {}
 
     /**
@@ -44,6 +48,9 @@ final readonly class IngestionRun
             'source_installation' => $this->sourceInstallationId,
             'source' => $this->sourceReference,
             'capability' => $this->capability->value,
+            'trigger' => $this->trigger->value,
+            'requested_by' => $this->requestedBy,
+            'authorization_decision' => $this->authorizationDecision,
             'status' => $this->status->value,
             'completeness' => $this->completeness->value,
             'parameters' => $this->parameters,
@@ -52,7 +59,8 @@ final readonly class IngestionRun
             'failure' => $this->failure?->toArray(),
             'accepted_references' => $this->acceptedReferences,
             'legacy_reference' => $this->legacyReference,
-            'started_at' => $this->startedAt->format(DATE_ATOM),
+            'requested_at' => $this->requestedAt?->format(DATE_ATOM),
+            'started_at' => $this->startedAt?->format(DATE_ATOM),
             'finished_at' => $this->finishedAt?->format(DATE_ATOM),
         ];
     }

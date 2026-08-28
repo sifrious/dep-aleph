@@ -65,3 +65,9 @@ requirement justifies owning queue transport or retry delays.
 Landing `provider_account_id` and `domain_id` are local foreign keys. The domain-run adapter accepts
 stable provider-account and domain references from the migration reconciler and never translates
 those integers or the run label into portable identity.
+
+## A-012 — Hosts evaluate manual-launch policy
+
+The package receives a granted or denied decision with stable actor and decision references. The
+host remains responsible for authenticating the caller and evaluating ownership or role policy;
+Aleph validates and records the result but does not recreate each host's authorization system.

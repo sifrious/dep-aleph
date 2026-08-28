@@ -759,3 +759,19 @@ SDK response objects in the projection would make the package contract provider-
 **Consequence.** Landing rows migrate deterministically, DNS consumers receive a typed projection,
 and the extension may grow only from source-backed DNS fields. Historical domain and record facts
 remain Funes observations referenced by stable IDs.
+
+## D-058 — Manual launch records authorization before dispatch
+
+**Decision.** `LaunchIngestion` accepts one presentation-neutral request containing installation,
+source, advertised capability, JSON-safe parameters, an idempotency key, and a previously evaluated
+authorization decision. It persists or resolves the pending logical run before calling the host's
+`ManualIngestionDispatcher` port. A replay returns the original run and is not dispatched twice.
+
+**Rationale.** Landing's commands and controllers validate, create provider-specific rows, and
+dispatch in different orders. Aleph should own identical launch semantics without owning HTTP,
+console formatting, mobile authentication, or queue transport. Authorization policy belongs to the
+host, while the decision evidence belongs on the run.
+
+**Consequence.** CLI, desktop, and phone adapters produce the same run shape. Disabled or unknown
+installations, denied decisions, unsupported capabilities, and nonportable parameters fail before a
+run exists. Dispatch adapters can prove the run was durable before receiving it.

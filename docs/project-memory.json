@@ -31,7 +31,8 @@
         "Landing SyncRun combines repository pipeline state with subway-map presentation and stores its current step and ordered steps as JSON.",
         "Aleph ingestion runs now preserve connector/source identity, stable legacy references, replay keys, checkpoints, completeness, failures, counters, and accepted Funes references.",
         "A logical connector ingestion run owns numbered durable attempts and exposes a presentation-neutral inspection read model.",
-        "Landing DomainSyncRun repeats the common run lifecycle and adds account/domain scope, targets, DNS counters, and provider-account/domain foreign keys."
+        "Landing DomainSyncRun repeats the common run lifecycle and adds account/domain scope, targets, DNS counters, and provider-account/domain foreign keys.",
+        "Landing manual ingestion entry points create provider-specific run rows and dispatch through commands, jobs, or detached processes without one universal request contract."
     ],
     "assumptions": [
         "A sequential concurrency ceiling of one is sufficient for the bounded AHSD crawl.",
@@ -42,7 +43,8 @@
         "Existing Landing associations are migration inputs and become package facts only when they contain confirmed stable references.",
         "Landing SyncRun step trees are source-backed opaque checkpoints rather than universal connector lifecycle semantics.",
         "Hosts schedule eligible retries, while Aleph owns transition and retry-eligibility semantics.",
-        "A domain-run migration reconciler supplies stable provider-account and domain references instead of promoting Landing foreign keys or labels."
+        "A domain-run migration reconciler supplies stable provider-account and domain references instead of promoting Landing foreign keys or labels.",
+        "Hosts authenticate callers and evaluate manual-launch policy before supplying Aleph with stable actor and authorization-decision references."
     ],
     "decisions": [
         {
@@ -124,6 +126,10 @@
         {
             "decision": "Represent DomainSyncRun as a typed DNS projection over the shared ingestion run, with source-backed DNS fields isolated under one extension.",
             "rationale": "Landing adds DNS scope to the same lifecycle, so a second lifecycle would duplicate rules and provider SDK objects would leak implementation detail."
+        },
+        {
+            "decision": "Persist or resolve an authorized idempotent manual run before handing it to a host-owned dispatch port.",
+            "rationale": "Every entry adapter needs identical lifecycle semantics, while authentication, UI, and queue transport are genuine host integration boundaries."
         }
     ],
     "open_questions": [
@@ -135,7 +141,8 @@
         "Which authority will issue canonical project references when several stable namespaces describe the same project?",
         "Which stable connector installation should each provider-specific Landing run family reference during migration?",
         "Should provider retry timing remain entirely host-scheduled, or will two consumers demonstrate timing semantics that belong in Aleph?",
-        "Which source-backed DNS provider reconciliation identifiers should each connector retain long term?"
+        "Which source-backed DNS provider reconciliation identifiers should each connector retain long term?",
+        "Will a demonstrated host require authorization expiry or policy-version evidence beyond actor and decision references?"
     ],
     "constraints": [
         "Only public GET and HEAD retrievals are permitted.",
@@ -152,7 +159,8 @@
         "Ambiguous associations must remain explicit and must not be promoted by name similarity.",
         "Historical records stay in Funes; ingestion runs may retain only stable accepted-history references.",
         "Landing sync-run persistence remains until cutover reconciliation passes.",
-        "Funes owns accepted historical observations; Aleph attempts retain only their stable references."
+        "Funes owns accepted historical observations; Aleph attempts retain only their stable references.",
+        "Manual launch must persist or resolve its run before dispatch and must never dispatch an identical request twice."
     ],
     "glossary": {
         "capability": "A declared provider-neutral connector operation; web.crawl is the first with a complete executable package pipeline.",
@@ -175,7 +183,9 @@
         "legacy_run_reference": "A namespaced stable identity retained from an application-owned run before package migration.",
         "ingestion_attempt": "One numbered execution inside a logical ingestion run, carrying its checkpoint, counters, failure, and timing.",
         "run_read_model": "A presentation-neutral projection of a run, its attempts, diagnostics, and next safe action.",
-        "domain_ingestion_run": "A DNS-specific projection that adds stable account/domain scope and provider reconciliation references to the shared ingestion run."
+        "domain_ingestion_run": "A DNS-specific projection that adds stable account/domain scope and provider reconciliation references to the shared ingestion run.",
+        "manual_launch": "An authorized idempotent request that persists a pending run before host dispatch.",
+        "authorization_decision_reference": "A stable host-issued reference to the evaluated decision that allowed a manual run."
     },
     "features": {
         "implemented": [
@@ -191,7 +201,8 @@
             "MME-814 / A15 source-scope associations",
             "MME-1114 provider-neutral SyncRun model and Landing migration adapter",
             "MME-1215 connector-run attempts, lifecycle, retries, provider adapters, and inspection query",
-            "MME-917 DomainSyncRun migration adapter and DNS run projection"
+            "MME-917 DomainSyncRun migration adapter and DNS run projection",
+            "MME-802 authorized idempotent manual launch contract"
         ],
         "not_implemented": [
             "connector manifests",
@@ -268,6 +279,16 @@
             "preserve checkpoints, counters, failure, timing, completeness, and Funes references on the shared run",
             "return a typed DNS projection through DomainRunQueries",
             "retain Landing persistence until count and identity reconciliation passes"
+        ],
+        "manual_launch": [
+            "receive one adapter-neutral request and host authorization decision",
+            "validate stable authorization context",
+            "resolve an enabled source installation and its registered connector",
+            "verify the connector advertises a dispatchable capability",
+            "reject parameters that cannot cross a JSON adapter boundary",
+            "create or resolve one pending logical run from the scoped idempotency key",
+            "dispatch only a newly created run through the host port",
+            "return the same stable result shape to every adapter"
         ]
     },
     "content_opportunities": [
@@ -340,6 +361,16 @@
             "audience": "backend and integration developers",
             "skill_level": "intermediate",
             "hook": "DNS needed a projection, not another state machine."
+        },
+        {
+            "format": "short video",
+            "user_problem": "CLI and mobile launch the same connector but create different run records or double-dispatch a retry.",
+            "concept": "Persist-before-dispatch manual ingestion",
+            "technology": "Laravel package command objects, authorization evidence, scoped idempotency keys",
+            "project_context": "Aleph MME-802 manual launch contract",
+            "audience": "backend and platform developers",
+            "skill_level": "intermediate",
+            "hook": "Three buttons, one run."
         }
     ]
 }

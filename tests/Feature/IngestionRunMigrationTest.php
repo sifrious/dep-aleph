@@ -136,6 +136,9 @@ it('serializes a provider neutral run without Landing model types', function ():
         'source_installation',
         'source',
         'capability',
+        'trigger',
+        'requested_by',
+        'authorization_decision',
         'status',
         'completeness',
         'parameters',
@@ -144,6 +147,7 @@ it('serializes a provider neutral run without Landing model types', function ():
         'failure',
         'accepted_references',
         'legacy_reference',
+        'requested_at',
         'started_at',
         'finished_at',
     ])

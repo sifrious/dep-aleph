@@ -26,6 +26,14 @@ final readonly class EnvelopeDrafter
             resourceReference: $envelope->resourceReference,
             producerReference: 'aleph:connector/'.$envelope->provenance->connectorId,
             producerName: $envelope->provenance->connectorId,
+            ingestionRunReference: $envelope->provenance->runId
+                ?? 'aleph:run/direct-'.hash('sha256', implode('|', [
+                    $envelope->provenance->connectorId,
+                    $envelope->provenance->installationId,
+                    $envelope->sourceReference,
+                    $envelope->resourceReference,
+                    $envelope->observedAt->format(DATE_ATOM),
+                ])),
             observedAt: $envelope->observedAt,
             payload: $envelope->payload,
             occurredAt: $envelope->occurredAt,

@@ -74,6 +74,7 @@ function accepted(string $resource): AcceptedRetrieval
             '01K3N7KSS00000000000000000',
             'aleph.html',
             '1',
+            [],
             ['classification' => 'html'],
             null,
             $observed,

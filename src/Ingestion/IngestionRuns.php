@@ -54,6 +54,47 @@ final readonly class IngestionRuns
         return $run;
     }
 
+    /**
+     * @param  array<string, mixed>  $parameters
+     */
+    public function request(
+        string $sourceReference,
+        Capability $capability,
+        array $parameters,
+        string $connectorId,
+        string $sourceInstallationId,
+        string $idempotencyKey,
+        IngestionTrigger $trigger,
+        string $requestedBy,
+        string $authorizationDecision,
+    ): IngestionRun {
+        $existing = $this->findByIdempotencyKey($idempotencyKey);
+
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        $run = new IngestionRun(
+            id: (string) Str::ulid(),
+            sourceReference: $sourceReference,
+            capability: $capability,
+            status: RunStatus::Pending,
+            parameters: $parameters,
+            startedAt: null,
+            connectorId: $connectorId,
+            sourceInstallationId: $sourceInstallationId,
+            idempotencyKey: $idempotencyKey,
+            trigger: $trigger,
+            requestedBy: $requestedBy,
+            authorizationDecision: $authorizationDecision,
+            requestedAt: new DateTimeImmutable,
+        );
+
+        $this->insert($run);
+
+        return $run;
+    }
+
     public function import(LegacySyncRun $legacy): IngestionRun
     {
         $existing = $this->findByLegacyReference($legacy->legacyReference);
@@ -142,10 +183,13 @@ final readonly class IngestionRuns
             throw InvalidRunTransition::from($run->status, RunStatus::Running);
         }
 
+        $startedAt = $run->startedAt ?? new DateTimeImmutable;
+
         $this->table()->where('id', $run->id)->update([
             'status' => RunStatus::Running->value,
             'error' => null,
             'failure' => null,
+            'started_at' => $startedAt,
             'finished_at' => null,
         ]);
 
@@ -155,7 +199,7 @@ final readonly class IngestionRuns
             capability: $run->capability,
             status: RunStatus::Running,
             parameters: $run->parameters,
-            startedAt: $run->startedAt,
+            startedAt: $startedAt,
             connectorId: $run->connectorId,
             sourceInstallationId: $run->sourceInstallationId,
             legacyReference: $run->legacyReference,
@@ -164,6 +208,10 @@ final readonly class IngestionRuns
             checkpoint: $run->checkpoint,
             stats: $run->stats,
             acceptedReferences: $run->acceptedReferences,
+            trigger: $run->trigger,
+            requestedBy: $run->requestedBy,
+            authorizationDecision: $run->authorizationDecision,
+            requestedAt: $run->requestedAt,
         );
     }
 
@@ -364,9 +412,13 @@ final readonly class IngestionRuns
             'idempotency_key' => $run->idempotencyKey,
             'source_reference' => $run->sourceReference,
             'capability' => $run->capability->value,
+            'trigger' => $run->trigger->value,
+            'requested_by' => $run->requestedBy,
+            'authorization_decision' => $run->authorizationDecision,
             'status' => $run->status->value,
             'completeness' => $run->completeness->value,
             'parameters' => json_encode($run->parameters, JSON_THROW_ON_ERROR),
+            'requested_at' => $run->requestedAt,
             'checkpoint' => $run->checkpoint === [] ? null : json_encode($run->checkpoint, JSON_THROW_ON_ERROR),
             'stats' => $run->stats === [] ? null : json_encode($run->stats, JSON_THROW_ON_ERROR),
             'error' => $run->failure?->message,
@@ -391,7 +443,7 @@ final readonly class IngestionRuns
             capability: Capability::from((string) $row->capability),
             status: RunStatus::from((string) $row->status),
             parameters: is_array($parameters) ? $parameters : [],
-            startedAt: new DateTimeImmutable((string) $row->started_at),
+            startedAt: $row->started_at === null ? null : new DateTimeImmutable((string) $row->started_at),
             connectorId: $row->connector_id === null ? null : (string) $row->connector_id,
             sourceInstallationId: $row->source_installation_id === null ? null : (string) $row->source_installation_id,
             legacyReference: $row->legacy_reference === null ? null : (string) $row->legacy_reference,
@@ -402,6 +454,10 @@ final readonly class IngestionRuns
             failure: is_array($failure) ? RunFailure::fromArray($failure) : null,
             acceptedReferences: is_array($acceptedReferences) ? array_values(array_map(strval(...), $acceptedReferences)) : [],
             finishedAt: $row->finished_at === null ? null : new DateTimeImmutable((string) $row->finished_at),
+            trigger: IngestionTrigger::from((string) $row->trigger),
+            requestedBy: $row->requested_by === null ? null : (string) $row->requested_by,
+            authorizationDecision: $row->authorization_decision === null ? null : (string) $row->authorization_decision,
+            requestedAt: $row->requested_at === null ? null : new DateTimeImmutable((string) $row->requested_at),
         );
     }
 

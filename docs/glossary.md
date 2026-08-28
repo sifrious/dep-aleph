@@ -92,3 +92,9 @@ next safe action. Hosts consume it instead of querying Aleph tables.
 
 **Domain ingestion run** — a DNS-specific projection over the shared ingestion run. It adds stable
 account/domain scope and provider reconciliation references without defining another lifecycle.
+
+**Manual launch** — an authorized, idempotent request to create or resolve a pending ingestion run
+before a host dispatch adapter receives it.
+
+**Authorization decision reference** — a stable host-issued reference proving which evaluated
+decision allowed a manual run. It is evidence, not an Aleph-owned user or role policy.
