@@ -220,3 +220,9 @@ that retains its raw provider structure beside neutral text and tool-call linkag
 
 **Linear ingestion run** — the Linear projection of a shared ingestion run, adding workspace/project
 scope, provider run and reconciliation IDs, targets, and per-stream cursors without owning history.
+
+**Linear activity** — a canonical project, issue, milestone, update, report, task, or link revision
+identified by workspace, resource kind, Linear ID, source update time, and provider payload.
+
+**Linear stream checkpoint** — an accepted-through cursor isolated to one independently paginated
+Linear workspace stream.

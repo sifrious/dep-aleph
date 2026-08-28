@@ -34,6 +34,15 @@ use Sifrious\Aleph\Connector\GitHub\GitHubWebhookVerifier;
 use Sifrious\Aleph\Connector\GitHub\ImportGitHubActivities;
 use Sifrious\Aleph\Connector\Health\ConnectorHealthChecks;
 use Sifrious\Aleph\Connector\Health\ConnectorHealthQueries;
+use Sifrious\Aleph\Connector\Linear\ConsumeLinearWebhook;
+use Sifrious\Aleph\Connector\Linear\ImportLinearActivities;
+use Sifrious\Aleph\Connector\Linear\LinearActivityNormalizer;
+use Sifrious\Aleph\Connector\Linear\LinearActivitySources;
+use Sifrious\Aleph\Connector\Linear\LinearActivitySubmitter;
+use Sifrious\Aleph\Connector\Linear\LinearWebhookDeliveries;
+use Sifrious\Aleph\Connector\Linear\LinearWebhookNormalizer;
+use Sifrious\Aleph\Connector\Linear\LinearWebhookSecrets;
+use Sifrious\Aleph\Connector\Linear\LinearWebhookVerifier;
 use Sifrious\Aleph\Connector\RegisterSourceAccount;
 use Sifrious\Aleph\Connector\Shell\IngestShellHistory;
 use Sifrious\Aleph\Connector\Shell\ShellCommandTokenizer;
@@ -221,6 +230,45 @@ class AlephServiceProvider extends ServiceProvider
         $this->app->singleton(GitHubWebhookVerifier::class);
         $this->app->singleton(GitHubWebhookNormalizer::class);
         $this->app->singleton(GitHubActivitySubmitter::class);
+
+        $this->app->singleton(LinearActivitySources::class);
+        $this->app->singleton(LinearActivityNormalizer::class);
+        $this->app->singleton(LinearActivitySubmitter::class);
+        $this->app->singleton(LinearWebhookSecrets::class);
+        $this->app->singleton(LinearWebhookVerifier::class);
+        $this->app->singleton(LinearWebhookNormalizer::class);
+
+        $this->app->singleton(
+            LinearWebhookDeliveries::class,
+            fn (Application $app): LinearWebhookDeliveries => new LinearWebhookDeliveries(
+                $this->connection($app),
+                $app->make(Encrypter::class),
+            ),
+        );
+
+        $this->app->singleton(
+            ImportLinearActivities::class,
+            fn (Application $app): ImportLinearActivities => new ImportLinearActivities(
+                $app->make(LinearActivitySources::class),
+                $app->make(ConnectorInstallations::class),
+                $app->make(SourceStreams::class),
+                $app->make(IngestionRuns::class),
+                $app->make(IngestionCheckpoints::class),
+                $app->make(LinearActivitySubmitter::class),
+            ),
+        );
+
+        $this->app->singleton(
+            ConsumeLinearWebhook::class,
+            fn (Application $app): ConsumeLinearWebhook => new ConsumeLinearWebhook(
+                $app->make(LinearWebhookSecrets::class),
+                $app->make(LinearWebhookVerifier::class),
+                $app->make(LinearWebhookDeliveries::class),
+                $app->make(LinearWebhookNormalizer::class),
+                $app->make(ConnectorInstallations::class),
+                $app->make(LinearActivitySubmitter::class),
+            ),
+        );
 
         $this->app->singleton(
             GitHubWebhookDeliveries::class,

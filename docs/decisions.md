@@ -1151,3 +1151,24 @@ or leaking GraphQL client values into package contracts.
 scope can be represented without changing shared run semantics. Retries and resume restore the same
 per-stream checkpoint through numbered attempts. Linear issue, project, and update history remains
 Funes-owned. Landing persistence stays in place until a consuming-host reconciliation passes.
+
+## D-080 — Linear streams checkpoint independently and converge before history
+
+**Decision.** One Linear source installation identifies one workspace. Projects, issues, milestones,
+updates, reports, tasks, and links page independently through package-owned GraphQL source behavior
+and retain separate accepted-through cursors. A canonical activity combines workspace, resource kind,
+stable Linear ID, source update time, complete provider fields, relationships, and attachment
+references. Verified encrypted webhook deliveries enter the same normalizer and submitter used by
+polling; activity identity is independent of transport.
+
+**Rationale.** Landing's client paginates projects, issues, and updates separately, but its sync
+service collapses the operation into one application workflow. A single cursor loses progress or
+skips one stream when another succeeds. Transport-specific identity duplicates an issue when a poll
+and webhook overlap. Copying linked attachment bytes into Aleph would make orchestration state a
+second artifact store.
+
+**Consequence.** Two workspaces isolate equal Linear IDs. Page retry resumes from the affected
+stream's accepted cursor, and poll/webhook overlap resolves to one Funes observation. Attachment URLs
+and provider IDs retain provenance without artifact persistence. HTTP, CLI, queue, and scheduler
+adapters receive the same operation result without owning pagination, mapping, checkpoint, or envelope
+logic. Credentials, authorization, runtime dispatch, and presentation remain host responsibilities.

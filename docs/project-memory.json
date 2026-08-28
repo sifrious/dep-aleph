@@ -49,7 +49,8 @@
         "Repository poll, webhook, and reconciliation signals converge on watch/ref/head identity and launch the existing checkpointed incremental workflow; watch head state does not advance during launch.",
         "Zsh, Atuin, and Claude Bash adapters normalize shell commands with host/user execution context; shell.secrets:1 redacts credentials before Funes acceptance and exact source-record revisions replay idempotently.",
         "Claude, Codex, and alternate-provider adapters preserve raw message blocks and references beside neutral chronology, authorship, parent, thread, branch, sidechain, agent, and part values.",
-        "Landing LinearSyncRun rows import under deterministic identity into the shared lifecycle, with Linear workspace/project scope, provider reconciliation, targets, and cursors isolated in a typed extension."
+        "Landing LinearSyncRun rows import under deterministic identity into the shared lifecycle, with Linear workspace/project scope, provider reconciliation, targets, and cursors isolated in a typed extension.",
+        "Linear workspaces ingest independently through package-owned pagination; each resource stream has its own accepted-through cursor, while verified webhooks and polling share canonical activity identity."
     ],
     "assumptions": [
         "A sequential concurrency ceiling of one is sufficient for the bounded AHSD crawl.",
@@ -233,6 +234,10 @@
         {
             "decision": "Model LinearSyncRun as a typed Linear projection over the shared ingestion-run lifecycle.",
             "rationale": "Status, timing, retry, failure, counters, checkpoints, and accepted history are already shared semantics; only workspace/project scope and provider reconciliation belong in the Linear extension."
+        },
+        {
+            "decision": "Checkpoint Linear resource streams independently and converge polling and webhooks before Funes acceptance.",
+            "rationale": "Projects, issues, and updates paginate independently, transport overlap must not duplicate provider history, and attachment provenance does not justify an Aleph artifact store."
         }
     ],
     "open_questions": [
@@ -318,6 +323,8 @@
         "ai_conversation": "One provider session with a stable provider ID, source revision, raw reference, metadata, and ordered neutral message graph.",
         "ai_message_part": "One ordered neutral content part that retains its raw provider block and optional tool-call linkage.",
         "linear_ingestion_run": "A shared ingestion run projected with Linear workspace/project scope, provider run and reconciliation IDs, targets, and per-stream cursors.",
+        "linear_activity": "A canonical Linear resource revision identified by workspace, kind, provider ID, source timestamp, and provider payload.",
+        "linear_stream_checkpoint": "An accepted-through cursor isolated to one independently paginated Linear workspace stream.",
         "domain_ingestion_run": "A DNS-specific projection that adds stable account/domain scope and provider reconciliation references to the shared ingestion run.",
         "manual_launch": "An authorized idempotent request that persists a pending run before host dispatch.",
         "authorization_decision_reference": "A stable host-issued reference to the evaluated decision that allowed a manual run."
@@ -357,7 +364,8 @@
             "MME-831 idempotent repository-watch triggering across polling, webhooks, and reconciliation",
             "MME-817 zsh, Atuin, and Claude Bash history ingestion with pre-acceptance secret redaction",
             "MME-818 provider-neutral Claude, Codex, and alternate AI conversation ingestion",
-            "MME-990 LinearSyncRun migration adapter and Linear run projection"
+            "MME-990 LinearSyncRun migration adapter and Linear run projection",
+            "MME-822 multi-workspace Linear polling, checkpoint, webhook, and Funes ingestion"
         ],
         "not_implemented": [
             "connector manifests",
@@ -631,6 +639,18 @@
             "resume and retry from the same per-stream checkpoint through shared attempts",
             "replay import without duplication",
             "retain Landing persistence until consuming-host reconciliation passes"
+        ],
+        "linear_activity_ingestion": [
+            "resolve one Linear workspace source installation",
+            "page each requested resource stream through package-owned GraphQL behavior",
+            "normalize stable Linear identity, timestamps, relationships, and provider fields",
+            "submit each revision through Funes with workspace and transport provenance",
+            "record attachment IDs and URLs as references without artifact persistence",
+            "commit each stream cursor only after its observations are accepted",
+            "resume page retry from the affected accepted-through cursor",
+            "verify and encrypt webhook deliveries before normalization",
+            "replay delivery from accepted references and converge polling overlap",
+            "return the same operation result to HTTP, CLI, queue, and scheduler adapters"
         ]
     },
     "content_opportunities": [
@@ -913,6 +933,16 @@
             "audience": "backend and platform developers",
             "skill_level": "intermediate",
             "hook": "One lifecycle. Linear-shaped scope."
+        },
+        {
+            "format": "post",
+            "user_problem": "One Linear cursor advances after projects finish even though issue pagination failed.",
+            "concept": "Independent accepted-through checkpoints for provider streams",
+            "technology": "GraphQL pagination, encrypted webhooks, Funes idempotent identity",
+            "project_context": "Aleph MME-822 Linear activity ingestion",
+            "audience": "backend and integration developers",
+            "skill_level": "intermediate",
+            "hook": "One workspace. Seven streams. No shared cursor."
         }
     ]
 }

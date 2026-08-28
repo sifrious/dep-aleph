@@ -136,6 +136,16 @@ parts while retaining each provider record, block, and raw reference in the acce
 `AiConversationQueries` provides provider-neutral chronology, author, and ancestor-thread queries.
 Hosts own transcript discovery and access; Kilgore or another consumer owns semantic interpretation.
 
+## Linear activity adapters
+
+`LinearActivityConnector` owns backfill, incremental, and verified webhook ingestion. A workspace
+installation registers either `LinearGraphqlSource` with a credential-resolving transport or another
+`LinearActivitySource`. Projects, issues, milestones, updates, reports, tasks, and links have separate
+accepted-through cursors. Poll and webhook observations share canonical Linear identity. Verified
+deliveries are encrypted and replayable; attachment IDs and URLs remain references rather than Aleph
+artifact records. Host HTTP, CLI, queue, and scheduler code only creates or dispatches operation
+requests and formats the returned result.
+
 ## Fakes
 
 Composable doubles live in `Sifrious\Aleph\Testing\Fakes` so orchestration tests need no real
