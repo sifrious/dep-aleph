@@ -932,3 +932,21 @@ same account.
 changes. Unsupported operations, invalid cron, and invalid timezones fail before persistence;
 disable and reschedule are data changes; competing scheduler hosts cannot claim a live lock; and the
 runtime adapter receives a provider-neutral scheduled-ingestion value.
+
+## D-068 — Backfills are bounded runs with deterministic partitions
+
+**Decision.** `StartBackfill` requires an authorized enabled installation whose connector already
+advertises `Backfills`, a two-ended formatted range, stable scope, deterministically sorted
+partitions, normalizer version, request-rate limit, record/runtime/partition budget, and idempotency
+key. Each partition retains cumulative counters, checkpoint, failure, timing, and pending, running,
+paused, failed, or completed state.
+
+**Rationale.** Landing's historical commands encode ranges and progress differently and often rely
+on provider tables for idempotency. A generic connector operation alone cannot let an operator audit
+or resume a large import after its queue payload disappears.
+
+**Consequence.** Replaying a start request returns the original run, partitions, and queued attempt.
+Partition order is stable, progress cannot move backward or overcount accepted/failed records,
+paused and failed partitions resume from their stored checkpoint, and the run completes only when
+all partitions complete, with aggregate audit counters. Existing connector `Backfills` signatures
+remain compatible.

@@ -27,6 +27,7 @@ use Sifrious\Aleph\Envelope\EnvelopeSubmitter;
 use Sifrious\Aleph\Ingestion\ContinuationLeases;
 use Sifrious\Aleph\Ingestion\DomainRunQueries;
 use Sifrious\Aleph\Ingestion\IngestionCheckpoints;
+use Sifrious\Aleph\Ingestion\IngestionPartitions;
 use Sifrious\Aleph\Ingestion\IngestionRunQueries;
 use Sifrious\Aleph\Ingestion\IngestionRuns;
 use Sifrious\Aleph\Ingestion\IngestionSchedules;
@@ -107,6 +108,11 @@ class AlephServiceProvider extends ServiceProvider
                 $app->make(IngestionRuns::class),
                 $app->make(Submissions::class),
             ),
+        );
+
+        $this->app->singleton(
+            IngestionPartitions::class,
+            fn (Application $app): IngestionPartitions => new IngestionPartitions($this->connection($app)),
         );
 
         $this->app->singleton(

@@ -149,3 +149,9 @@ capability its connector advertises, with cron cadence, timezone, constraints, a
 
 **Schedule dispatch** — the immutable link from one schedule occurrence to the ingestion run it
 created. Its schedule/due-time identity prevents duplicate dispatch across scheduler hosts.
+
+**Backfill range** — two connector-owned boundary values with an explicit format. A backfill cannot
+start without both bounds.
+
+**Ingestion partition** — one deterministic ordered slice of a backfill run, retaining cumulative
+processed, accepted, and failed counts plus its resumable checkpoint and lifecycle.

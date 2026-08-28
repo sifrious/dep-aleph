@@ -41,7 +41,8 @@
         "Resume reconstructs each partition from its latest accepted-through checkpoint under an expiring lease and explicit partition, record, and runtime budgets.",
         "Every active source stream has a package freshness projection or an explicit never-synchronized read model, and freshness is recalculated against an explicit clock.",
         "Connector health is an immutable expiring result per installation dimension, aggregated with explicit unknown evidence and coded remediation.",
-        "Recurring ingestion schedules validate connector capabilities, calculate timezone-aware next runs, use expiring distributed claims, and record every schedule occurrence against its ingestion run."
+        "Recurring ingestion schedules validate connector capabilities, calculate timezone-aware next runs, use expiring distributed claims, and record every schedule occurrence against its ingestion run.",
+        "Historical backfills require formatted range bounds, deterministic partitions, explicit rate/work budgets, cumulative progress, checkpoints, and all-partitions-complete termination."
     ],
     "assumptions": [
         "A sequential concurrency ceiling of one is sufficient for the bounded AHSD crawl.",
@@ -177,6 +178,10 @@
         {
             "decision": "Persist recurring cadence and dispatch identity in Aleph while leaving scheduler wakeups to the host.",
             "rationale": "Provider-specific host commands duplicate cadence rules, and two scheduler processes need one durable lock and occurrence identity."
+        },
+        {
+            "decision": "Represent historical imports as idempotent bounded runs with deterministic durable partitions.",
+            "rationale": "Provider-specific commands and queue payloads cannot provide one auditable pause, resume, progress, and completion contract."
         }
     ],
     "open_questions": [
@@ -242,6 +247,8 @@
         "health_remediation": "A coded plain-language next step attached to a health result.",
         "ingestion_schedule": "A recurring supported capability for one source installation with cron cadence, timezone, constraints, and next due time.",
         "schedule_dispatch": "The immutable association between one schedule occurrence and its ingestion run.",
+        "backfill_range": "Two connector-owned boundary values and their explicit format for a bounded historical import.",
+        "ingestion_partition": "One ordered durable slice of a backfill run with checkpoint, counters, and lifecycle.",
         "domain_ingestion_run": "A DNS-specific projection that adds stable account/domain scope and provider reconciliation references to the shared ingestion run.",
         "manual_launch": "An authorized idempotent request that persists a pending run before host dispatch.",
         "authorization_decision_reference": "A stable host-issued reference to the evaluated decision that allowed a manual run."
@@ -269,7 +276,8 @@
             "MME-805 bounded leased resume from accepted-through checkpoints",
             "MME-809 provider-neutral source-stream freshness projection",
             "MME-808 connector health evidence, aggregation, and remediation contract",
-            "MME-801 recurring ingestion schedules and scheduler adapter"
+            "MME-801 recurring ingestion schedules and scheduler adapter",
+            "MME-811 bounded partitioned historical backfill command"
         ],
         "not_implemented": [
             "connector manifests",
@@ -423,6 +431,15 @@
             "record the schedule occurrence and created ingestion run",
             "calculate the next UTC due instant",
             "release the lock for another host wakeup"
+        ],
+        "historical_backfill": [
+            "validate authorization, installation, and advertised Backfills capability",
+            "require formatted from/to bounds, scope, normalizer, rate, and work budgets",
+            "sort and deduplicate stable partition keys",
+            "persist one idempotent run and queued attempt",
+            "record cumulative partition checkpoints and counters",
+            "pause or resume a partition without losing progress",
+            "complete the run only after every partition completes"
         ]
     },
     "content_opportunities": [
@@ -585,6 +602,16 @@
             "audience": "backend and platform developers",
             "skill_level": "intermediate",
             "hook": "Two accounts. Two cadences. Zero scheduler branches."
+        },
+        {
+            "format": "post",
+            "user_problem": "Every historical import gets a custom command and loses its progress when a job is interrupted.",
+            "concept": "Bounded backfills with deterministic durable partitions",
+            "technology": "Laravel package commands, cumulative counters, resumable checkpoints",
+            "project_context": "Aleph MME-811 historical backfill",
+            "audience": "data ingestion developers",
+            "skill_level": "intermediate",
+            "hook": "A backfill is not a command. It is an auditable partition plan."
         }
     ]
 }
