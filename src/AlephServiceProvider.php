@@ -14,6 +14,9 @@ use Illuminate\Support\ServiceProvider;
 use Sifrious\Aleph\Acceptance\AcceptanceClient;
 use Sifrious\Aleph\Acceptance\Backfill;
 use Sifrious\Aleph\Acceptance\Submissions;
+use Sifrious\Aleph\Connector\Communication\CommunicationRecordSubmitter;
+use Sifrious\Aleph\Connector\Communication\CommunicationSources;
+use Sifrious\Aleph\Connector\Communication\ImportCommunicationRecords;
 use Sifrious\Aleph\Connector\ConnectorCatalogue;
 use Sifrious\Aleph\Connector\ConnectorCredentials;
 use Sifrious\Aleph\Connector\ConnectorDispatcher;
@@ -204,6 +207,9 @@ class AlephServiceProvider extends ServiceProvider
         ));
 
         $this->app->singleton(ConnectorRegistry::class);
+        $this->app->singleton(CommunicationSources::class);
+        $this->app->singleton(CommunicationRecordSubmitter::class);
+        $this->app->singleton(ImportCommunicationRecords::class);
         $this->app->singleton(AiConversationSources::class);
         $this->app->singleton(EmailSources::class);
         $this->app->singleton(EmailMessageSubmitter::class);

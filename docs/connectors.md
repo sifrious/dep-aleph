@@ -184,6 +184,20 @@ close as retryable partial work. Polling and events share canonical provider ide
 `AcquireSlackAttachment` resumes chunk acquisition from an opaque checkpoint and hands bytes to a
 stable Digory historical reference without creating Aleph-owned content history.
 
+## Provider-neutral communication adapters
+
+`ProviderCommunicationConnector` owns bounded backfill and incremental lifecycle behavior shared by
+communication providers. Each registered source supplies provider-specific F28 records and an opaque
+checkpoint. Aleph commits that checkpoint only after Funes accepts the page; bounded work closes as a
+retryable partial run and resumes from the accepted value. The shared contract retains provider,
+source, conversation, message, revision, participant, reply, forward, thread, reaction, attachment,
+change, timestamp, reconciliation, and raw-record provenance without resolving people.
+
+`TelegramMessageAdapter` maps direct chats, groups, channels, messages, edits, deletes, forwards,
+replies, reactions, media, and unsupported updates. Media uses stable
+`digory:telegram-attachment` references. Telegram clients and bot or user tokens remain behind the
+registered source boundary and must not be supplied to the adapter.
+
 ## Fakes
 
 Composable doubles live in `Sifrious\Aleph\Testing\Fakes` so orchestration tests need no real

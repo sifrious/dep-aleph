@@ -252,3 +252,13 @@ by polling and Events API transports.
 
 **Slack cursor/high-water checkpoint** — one accepted-through partition value carrying an in-page
 continuation cursor and the newest completely observed provider timestamp.
+
+**F28 communication record** — a provider-neutral communication revision retaining its source,
+conversation, provider identity and revision, participants, body, relationships, reactions,
+attachments, lifecycle change, timestamps, reconciliation metadata, and raw-source provenance.
+
+**Communication provider checkpoint** — an opaque provider cursor committed only after the page it
+follows has been accepted by Funes.
+
+**Unsupported communication update** — an explicit F28 record preserving the provider update and
+provenance when Aleph cannot yet interpret its message-specific content.

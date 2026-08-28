@@ -1243,3 +1243,20 @@ artifact ownership.
 rate limits cannot advance unaccepted checkpoints. Thread and file relations remain explicit in
 Funes metadata, and attachment retries converge at the downstream reference. Host adapters can
 become thin invokers once the package is installed in Landing.
+
+## D-085 — Communication providers share acceptance-gated history, not transport models
+
+**Decision.** Telegram updates normalize to the provider-neutral F28 communication record before
+Funes submission. Account, chat, message, update, reply, forward, edit, delete, reaction, participant,
+and media identities remain source evidence. Provider sources expose opaque checkpoints that advance
+only after every record in the page is accepted. Unsupported updates become explicit F28 records.
+
+**Rationale.** Telegram SDK values, polling offsets, and tokens are transport concerns. Dropping an
+unknown update hides gaps in the historical record, while advancing an update ID before acceptance
+can permanently skip history. Resolving Telegram users to people would create identity claims that
+the provider event does not establish.
+
+**Consequence.** Backfills and incremental imports share bounded pause/resume behavior and duplicate
+updates converge by message and update identity. Media remains a stable Digory handoff reference.
+Authentication, provider clients, token storage, and UI stay in consuming hosts. The shared
+communication lifecycle can support other providers without sharing their mapping rules.

@@ -397,7 +397,8 @@
             "MME-823 Gmail, Microsoft Graph, and IMAP F28 email ingestion",
             "MME-1106 opaque Slack credential migration and lifecycle broker",
             "MME-1105 SlackSyncRun migration adapter and Slack run projection",
-            "MME-824 multi-workspace Slack polling, Events API, checkpoint, Funes, and attachment handoff"
+            "MME-824 multi-workspace Slack polling, Events API, checkpoint, Funes, and attachment handoff",
+            "MME-1236 Telegram F28 communication ingestion and accepted-through checkpoints"
         ],
         "not_implemented": [
             "connector manifests",
@@ -1057,6 +1058,16 @@
             "audience": "backend and integration developers",
             "skill_level": "advanced",
             "hook": "One connector, five state owners—until the boundary becomes executable."
+        },
+        {
+            "format": "post",
+            "user_problem": "A Telegram importer silently skips an unfamiliar update or advances its offset before history accepts the page.",
+            "concept": "Explicit partial records with acceptance-gated provider checkpoints",
+            "technology": "Telegram updates, provider-neutral F28 records, Funes idempotent acceptance, Digory references",
+            "project_context": "Aleph MME-1236 Telegram ingestion",
+            "audience": "backend and integration developers",
+            "skill_level": "intermediate",
+            "hook": "Unknown is evidence. Preserve it before advancing the offset."
         }
     ]
 }
