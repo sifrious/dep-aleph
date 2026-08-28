@@ -35,7 +35,8 @@
         "Landing manual ingestion entry points create provider-specific run rows and dispatch through commands, jobs, or detached processes without one universal request contract.",
         "Funes stores Aleph envelope metadata as append-only typed assertions: aleph:envelope for universal attributes and aleph:extension/<namespace> for connector extensions.",
         "Every queued connector unit is a durable Aleph ingestion attempt with queue class, priority, tags, dispatch policy, runtime job and worker identity, heartbeat, and retry lineage.",
-        "Checkpoint history is isolated by source stream, capability, and partition and records connector serialization, optimistic version, progression rule, committing run/attempt, and accepted-through Funes references."
+        "Checkpoint history is isolated by source stream, capability, and partition and records connector serialization, optimistic version, progression rule, committing run/attempt, and accepted-through Funes references.",
+        "Every incomplete ingestion run exposes remaining work, warning and error counts, an immutable failure timeline, and one machine-readable safe recovery action."
     ],
     "assumptions": [
         "A sequential concurrency ceiling of one is sufficient for the bounded AHSD crawl.",
@@ -147,6 +148,10 @@
         {
             "decision": "Store checkpoints as append-only accepted-through commits keyed by stream, capability, and partition.",
             "rationale": "Opaque run JSON cannot detect competing writers, isolate partitions, preserve serializer evolution, or prove which Funes observations were safe before a cursor advanced."
+        },
+        {
+            "decision": "Record incomplete outcomes and their safe recovery action in the package read model.",
+            "rationale": "Domain failures, queue failures, cancellations, rate limits, and blocked credentials require distinct recovery even after host queue records are pruned."
         }
     ],
     "open_questions": [
@@ -221,7 +226,10 @@
             "MME-1114 provider-neutral SyncRun model and Landing migration adapter",
             "MME-1215 connector-run attempts, lifecycle, retries, provider adapters, and inspection query",
             "MME-917 DomainSyncRun migration adapter and DNS run projection",
-            "MME-802 authorized idempotent manual launch contract"
+            "MME-802 authorized idempotent manual launch contract",
+            "MME-803 durable queued ingestion attempts",
+            "MME-806 accepted-through checkpoint tracking",
+            "MME-810 incomplete synchronization outcomes and recovery actions"
         ],
         "not_implemented": [
             "connector manifests",
@@ -328,6 +336,13 @@
             "append one immutable checkpoint history row",
             "return the original row when the identical commit is replayed",
             "query latest state without discarding historical commits"
+        ],
+        "incomplete_outcome": [
+            "record failed, partial, interrupted, canceled, rate-limited, or authentication-blocked state",
+            "retain remaining partitions and checkpoint detail",
+            "append failure evidence with domain or queue origin",
+            "derive one safe recovery action from package state",
+            "expose the outcome through the presentation-neutral run timeline"
         ]
     },
     "content_opportunities": [
@@ -430,6 +445,16 @@
             "audience": "data ingestion developers",
             "skill_level": "intermediate",
             "hook": "The cursor moves only after history does."
+        },
+        {
+            "format": "post",
+            "user_problem": "A red sync badge does not say whether to retry, resume, replace credentials, or start over.",
+            "concept": "Machine-readable recovery actions backed by an immutable failure timeline",
+            "technology": "Laravel package read models, durable attempts, provider-neutral failure categories",
+            "project_context": "Aleph MME-810 incomplete synchronization outcomes",
+            "audience": "backend and integration developers",
+            "skill_level": "intermediate",
+            "hook": "Failure is a state. Recovery is a contract."
         }
     ]
 }

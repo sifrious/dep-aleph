@@ -120,6 +120,7 @@ final readonly class IngestionRuns
             failure: $legacy->failure,
             acceptedReferences: $legacy->acceptedReferences,
             finishedAt: $legacy->finishedAt,
+            errorCount: $legacy->failure === null ? 0 : 1,
         );
 
         $this->insert($run);
@@ -213,6 +214,9 @@ final readonly class IngestionRuns
             requestedBy: $run->requestedBy,
             authorizationDecision: $run->authorizationDecision,
             requestedAt: $run->requestedAt,
+            remainingWork: $run->remainingWork,
+            warningCount: $run->warningCount,
+            errorCount: $run->errorCount,
         );
     }
 
@@ -336,9 +340,13 @@ final readonly class IngestionRuns
 
     public function failQueuedAttempt(IngestionAttempt $attempt, Throwable $failure): void
     {
-        $runFailure = new RunFailure('queue_dispatch', $failure->getMessage(), true, [
-            'exception' => $failure::class,
-        ]);
+        $runFailure = new RunFailure(
+            'queue_dispatch',
+            $failure->getMessage(),
+            true,
+            ['exception' => $failure::class],
+            FailureOrigin::Queue,
+        );
 
         $this->attemptsTable()->where('id', $attempt->id)->where('status', RunStatus::Pending->value)->update([
             'status' => RunStatus::Failed->value,
@@ -347,6 +355,12 @@ final readonly class IngestionRuns
             'error_message' => $failure->getMessage(),
             'finished_at' => Carbon::now(),
         ]);
+
+        $run = $this->find($attempt->runId);
+
+        if ($run !== null) {
+            $this->recordFailure($run, $attempt, $runFailure);
+        }
     }
 
     public function startQueuedAttempt(IngestionAttempt $attempt, string $workerId): IngestionAttempt
@@ -415,9 +429,13 @@ final readonly class IngestionRuns
                 continue;
             }
 
-            $failure = new RunFailure('heartbeat_timeout', 'The ingestion worker heartbeat expired.', true, [
-                'last_heartbeat_at' => $attempt->heartbeatAt?->format(DATE_ATOM),
-            ]);
+            $failure = new RunFailure(
+                'heartbeat_timeout',
+                'The ingestion worker heartbeat expired.',
+                true,
+                ['last_heartbeat_at' => $attempt->heartbeatAt?->format(DATE_ATOM)],
+                FailureOrigin::Queue,
+            );
             $this->failAttempt($run, $attempt, $failure);
             $this->attemptsTable()->where('id', $attempt->id)->update([
                 'error_class' => 'heartbeat_timeout',
@@ -487,6 +505,7 @@ final readonly class IngestionRuns
         $this->table()->where('id', $run->id)->update([
             'status' => RunStatus::Completed->value,
             'completeness' => RunCompleteness::Complete->value,
+            'remaining_work' => null,
             'stats' => json_encode($stats, JSON_THROW_ON_ERROR),
             'error' => null,
             'failure' => null,
@@ -498,6 +517,7 @@ final readonly class IngestionRuns
     /**
      * @param  array<string, int|float>  $stats
      * @param  list<string>  $acceptedReferences
+     * @param  list<array<string, mixed>>  $remainingWork
      */
     public function failAttempt(
         IngestionRun $run,
@@ -506,6 +526,9 @@ final readonly class IngestionRuns
         array $stats = [],
         array $acceptedReferences = [],
         bool $partial = false,
+        array $remainingWork = [],
+        int $warningCount = 0,
+        int $errorCount = 1,
     ): void {
         $this->assertActiveAttempt($run, $attempt);
         $status = $partial ? RunStatus::Partial : RunStatus::Failed;
@@ -524,10 +547,14 @@ final readonly class IngestionRuns
             'heartbeat_at' => $finishedAt,
             'finished_at' => $finishedAt,
         ]);
+        $this->recordFailure($run, $attempt, $failure);
         $this->table()->where('id', $run->id)->update([
             'status' => $status->value,
             'completeness' => $completeness->value,
+            'remaining_work' => $remainingWork === [] ? null : json_encode($remainingWork, JSON_THROW_ON_ERROR),
             'stats' => json_encode($stats, JSON_THROW_ON_ERROR),
+            'warning_count' => $warningCount,
+            'error_count' => $errorCount,
             'error' => $failure->message,
             'failure' => $encodedFailure,
             'accepted_references' => json_encode($references, JSON_THROW_ON_ERROR),
@@ -546,6 +573,52 @@ final readonly class IngestionRuns
             ->get()
             ->map(fn (stdClass $row): IngestionAttempt => $this->hydrateAttempt($row))
             ->all());
+    }
+
+    /**
+     * @return list<IngestionFailure>
+     */
+    public function failures(IngestionRun $run): array
+    {
+        return array_values($this->failuresTable()
+            ->where('run_id', $run->id)
+            ->orderBy('occurred_at')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (stdClass $row): IngestionFailure => $this->hydrateFailure($row))
+            ->all());
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $remainingWork
+     */
+    public function cancel(IngestionRun $run, string $message, array $remainingWork = []): void
+    {
+        $this->assertTransition($run, RunStatus::Canceled);
+        $failure = new RunFailure('canceled', $message, false);
+        $finishedAt = Carbon::now();
+
+        $this->attemptsTable()
+            ->where('run_id', $run->id)
+            ->whereIn('status', [RunStatus::Pending->value, RunStatus::Running->value])
+            ->update([
+                'status' => RunStatus::Canceled->value,
+                'failure' => json_encode($failure->toArray(), JSON_THROW_ON_ERROR),
+                'error_class' => $failure->kind,
+                'error_message' => $failure->message,
+                'finished_at' => $finishedAt,
+            ]);
+
+        $this->table()->where('id', $run->id)->update([
+            'status' => RunStatus::Canceled->value,
+            'completeness' => RunCompleteness::Incomplete->value,
+            'remaining_work' => $remainingWork === [] ? null : json_encode($remainingWork, JSON_THROW_ON_ERROR),
+            'failure' => json_encode($failure->toArray(), JSON_THROW_ON_ERROR),
+            'error' => $message,
+            'error_count' => 1,
+            'finished_at' => $finishedAt,
+        ]);
+        $this->recordFailure($run, null, $failure);
     }
 
     /**
@@ -568,13 +641,17 @@ final readonly class IngestionRuns
     {
         $this->assertTransition($run, RunStatus::Interrupted);
 
+        $failure = new RunFailure('interrupted', $error, true);
+
         $this->table()->where('id', $run->id)->update([
             'status' => RunStatus::Interrupted->value,
             'completeness' => RunCompleteness::Incomplete->value,
             'error' => $error,
-            'failure' => json_encode((new RunFailure('interrupted', $error, true))->toArray(), JSON_THROW_ON_ERROR),
+            'failure' => json_encode($failure->toArray(), JSON_THROW_ON_ERROR),
+            'error_count' => 1,
             'finished_at' => Carbon::now(),
         ]);
+        $this->recordFailure($run, null, $failure);
     }
 
     /**
@@ -605,7 +682,10 @@ final readonly class IngestionRuns
             'parameters' => json_encode($run->parameters, JSON_THROW_ON_ERROR),
             'requested_at' => $run->requestedAt,
             'checkpoint' => $run->checkpoint === [] ? null : json_encode($run->checkpoint, JSON_THROW_ON_ERROR),
+            'remaining_work' => $run->remainingWork === [] ? null : json_encode($run->remainingWork, JSON_THROW_ON_ERROR),
             'stats' => $run->stats === [] ? null : json_encode($run->stats, JSON_THROW_ON_ERROR),
+            'warning_count' => $run->warningCount,
+            'error_count' => $run->errorCount,
             'error' => $run->failure?->message,
             'failure' => $run->failure === null ? null : json_encode($run->failure->toArray(), JSON_THROW_ON_ERROR),
             'accepted_references' => $run->acceptedReferences === [] ? null : json_encode($run->acceptedReferences, JSON_THROW_ON_ERROR),
@@ -619,6 +699,7 @@ final readonly class IngestionRuns
         $parameters = json_decode((string) $row->parameters, true, 512, JSON_THROW_ON_ERROR);
         $checkpoint = $row->checkpoint === null ? [] : json_decode((string) $row->checkpoint, true, 512, JSON_THROW_ON_ERROR);
         $stats = $row->stats === null ? [] : json_decode((string) $row->stats, true, 512, JSON_THROW_ON_ERROR);
+        $remainingWork = $row->remaining_work === null ? [] : json_decode((string) $row->remaining_work, true, 512, JSON_THROW_ON_ERROR);
         $failure = $row->failure === null ? null : json_decode((string) $row->failure, true, 512, JSON_THROW_ON_ERROR);
         $acceptedReferences = $row->accepted_references === null ? [] : json_decode((string) $row->accepted_references, true, 512, JSON_THROW_ON_ERROR);
 
@@ -643,7 +724,46 @@ final readonly class IngestionRuns
             requestedBy: $row->requested_by === null ? null : (string) $row->requested_by,
             authorizationDecision: $row->authorization_decision === null ? null : (string) $row->authorization_decision,
             requestedAt: $row->requested_at === null ? null : new DateTimeImmutable((string) $row->requested_at),
+            remainingWork: is_array($remainingWork) ? array_values($remainingWork) : [],
+            warningCount: (int) $row->warning_count,
+            errorCount: (int) $row->error_count,
         );
+    }
+
+    private function hydrateFailure(stdClass $row): IngestionFailure
+    {
+        $details = $row->details === null ? [] : json_decode((string) $row->details, true, 512, JSON_THROW_ON_ERROR);
+
+        return new IngestionFailure(
+            id: (string) $row->id,
+            runId: (string) $row->run_id,
+            attemptId: $row->attempt_id === null ? null : (string) $row->attempt_id,
+            partitionKey: $row->partition_key === null ? null : (string) $row->partition_key,
+            origin: FailureOrigin::from((string) $row->origin),
+            category: (string) $row->category,
+            message: (string) $row->message,
+            details: is_array($details) ? $details : [],
+            occurredAt: new DateTimeImmutable((string) $row->occurred_at),
+        );
+    }
+
+    private function recordFailure(
+        IngestionRun $run,
+        ?IngestionAttempt $attempt,
+        RunFailure $failure,
+        ?string $partitionKey = null,
+    ): void {
+        $this->failuresTable()->insert([
+            'id' => (string) Str::ulid(),
+            'run_id' => $run->id,
+            'attempt_id' => $attempt?->id,
+            'partition_key' => $partitionKey,
+            'origin' => $failure->origin->value,
+            'category' => $failure->kind,
+            'message' => $failure->message,
+            'details' => $failure->details === [] ? null : json_encode($failure->details, JSON_THROW_ON_ERROR),
+            'occurred_at' => Carbon::now(),
+        ]);
     }
 
     private function hydrateAttempt(stdClass $row): IngestionAttempt
@@ -728,5 +848,10 @@ final readonly class IngestionRuns
     private function attemptsTable(): Builder
     {
         return $this->connection->table('aleph_ingestion_attempts');
+    }
+
+    private function failuresTable(): Builder
+    {
+        return $this->connection->table('aleph_ingestion_failures');
     }
 }

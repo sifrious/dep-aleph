@@ -152,7 +152,7 @@ it('retains a fatal provider failure and refuses another attempt', function (): 
     $failed = app(IngestionRunQueries::class)->find($run->id);
 
     expect($failed?->run->failure?->kind)->toBe('authentication')
-        ->and($failed?->toArray()['next_action'])->toBe('none')
+        ->and($failed?->toArray()['next_action'])->toBe('provide_credentials')
         ->and(fn () => $runs->beginAttempt($failed->run))->toThrow(InvalidRunTransition::class);
 });
 

@@ -90,6 +90,12 @@ without changing the run identity or duplicating accepted-history references.
 **Run read model** — a presentation-neutral projection of one run, its attempts, diagnostics, and
 next safe action. Hosts consume it instead of querying Aleph tables.
 
+**Recovery action** — the machine-readable next safe action for a run: start, resume, retry,
+restart, provide credentials, require user action, or none.
+
+**Ingestion failure** — an immutable timeline event attached to a run and optional attempt. It
+retains domain or queue origin, category, partition, details, and occurrence time.
+
 **Domain ingestion run** — a DNS-specific projection over the shared ingestion run. It adds stable
 account/domain scope and provider reconciliation references without defining another lifecycle.
 

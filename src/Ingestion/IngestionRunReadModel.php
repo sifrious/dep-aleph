@@ -8,10 +8,12 @@ final readonly class IngestionRunReadModel
 {
     /**
      * @param  list<IngestionAttempt>  $attempts
+     * @param  list<IngestionFailure>  $failures
      */
     public function __construct(
         public IngestionRun $run,
         public array $attempts,
+        public array $failures = [],
     ) {}
 
     /**
@@ -25,24 +27,32 @@ final readonly class IngestionRunReadModel
                 static fn (IngestionAttempt $attempt): array => $attempt->toArray(),
                 $this->attempts,
             ),
-            'next_action' => $this->nextAction(),
+            'failures' => array_map(
+                static fn (IngestionFailure $failure): array => $failure->toArray(),
+                $this->failures,
+            ),
+            'next_action' => $this->nextAction()->value,
         ];
     }
 
-    private function nextAction(): string
+    private function nextAction(): RecoveryAction
     {
         if ($this->run->status === RunStatus::Pending) {
-            return 'start';
+            return RecoveryAction::Start;
         }
 
         if (in_array($this->run->status, [RunStatus::Interrupted, RunStatus::Partial], true)) {
-            return 'resume';
+            return RecoveryAction::Resume;
         }
 
-        if ($this->run->status === RunStatus::Failed && $this->run->failure?->retryable === true) {
-            return 'retry';
+        if ($this->run->status === RunStatus::Failed && $this->run->failure !== null) {
+            return $this->run->failure->recoveryAction();
         }
 
-        return 'none';
+        if ($this->run->status === RunStatus::Canceled) {
+            return RecoveryAction::Restart;
+        }
+
+        return RecoveryAction::None;
     }
 }

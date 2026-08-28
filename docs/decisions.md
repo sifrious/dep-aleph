@@ -833,3 +833,20 @@ not advance, their stream is disabled, their capability/attempt belongs to anoth
 accepted-through reference is absent from both the run and Funes. Identical commits replay the
 original history row. Replace-mode checkpoints may intentionally move to any connector-defined
 value.
+
+## D-062 — Incomplete outcomes declare recovery without deriving it in a host
+
+**Decision.** The ingestion run stores completeness, remaining partition work, warning and error
+counts, and an immutable failure timeline. Each failure records whether it originated in domain or
+queue execution. The package read model returns start, resume, retry, restart, provide credentials,
+user action, or none as the next safe action.
+
+**Rationale.** A failed job, a partial provider response, and an expired worker heartbeat may all
+look like technical failure while requiring different recovery. If a host derives that distinction
+from messages or queue tables, another host will disagree and pruned transport records erase the
+evidence.
+
+**Consequence.** Partial and interrupted runs resume from durable state, retryable failures retry,
+canceled runs restart, authentication failures request credentials, and fatal provider failures
+request user action. Presentation remains host-owned, while the recovery contract and timeline are
+portable package facts.

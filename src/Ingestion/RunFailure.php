@@ -14,6 +14,7 @@ final readonly class RunFailure
         public string $message,
         public bool $retryable,
         public array $details = [],
+        public FailureOrigin $origin = FailureOrigin::Domain,
     ) {}
 
     /**
@@ -26,6 +27,7 @@ final readonly class RunFailure
             'message' => $this->message,
             'retryable' => $this->retryable,
             'details' => $this->details,
+            'origin' => $this->origin->value,
         ];
     }
 
@@ -39,6 +41,20 @@ final readonly class RunFailure
             message: (string) ($data['message'] ?? ''),
             retryable: (bool) ($data['retryable'] ?? false),
             details: is_array($data['details'] ?? null) ? $data['details'] : [],
+            origin: FailureOrigin::tryFrom((string) ($data['origin'] ?? 'domain')) ?? FailureOrigin::Domain,
         );
+    }
+
+    public function recoveryAction(): RecoveryAction
+    {
+        if (in_array($this->kind, ['authentication', 'authentication_blocked'], true)) {
+            return RecoveryAction::ProvideCredentials;
+        }
+
+        if ($this->kind === 'rate_limited' || $this->retryable) {
+            return RecoveryAction::Retry;
+        }
+
+        return RecoveryAction::UserAction;
     }
 }

@@ -8,6 +8,7 @@ use RuntimeException;
 use Sifrious\Funes\Association\EntityAssociation;
 use Sifrious\Funes\Persistence\ObservationStore;
 use Sifrious\Funes\Reference\CrossPackageReference;
+use Sifrious\Funes\Relationship\HistoricalRelationship;
 use Sifrious\Funes\Value\AcceptedObservation;
 use Sifrious\Funes\Value\DiscoveryProvenance;
 use Sifrious\Funes\Value\ExtractionDraft;
@@ -49,6 +50,14 @@ final class FailingObservationStore implements ObservationStore
     public function associationsTo(CrossPackageReference $entity): array
     {
         return $this->store->associationsTo($entity);
+    }
+
+    /**
+     * @return list<HistoricalRelationship>
+     */
+    public function relationshipsTo(CrossPackageReference $event): array
+    {
+        return $this->store->relationshipsTo($event);
     }
 
     /**

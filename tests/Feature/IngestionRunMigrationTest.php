@@ -86,6 +86,7 @@ it('keeps a partial run explicit with its failure and accepted history reference
             'message' => 'retry later',
             'retryable' => true,
             'details' => ['partition' => 'C1'],
+            'origin' => 'domain',
         ])
         ->and($run->acceptedReferences)->toBe(['funes:observation/01K4ACCEPTED']);
 });
@@ -143,7 +144,10 @@ it('serializes a provider neutral run without Landing model types', function ():
         'completeness',
         'parameters',
         'checkpoint',
+        'remaining_work',
         'stats',
+        'warning_count',
+        'error_count',
         'failure',
         'accepted_references',
         'legacy_reference',

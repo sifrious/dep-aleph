@@ -12,13 +12,13 @@ final readonly class IngestionRunQueries
     {
         $run = $this->runs->find($id);
 
-        return $run === null ? null : new IngestionRunReadModel($run, $this->runs->attempts($run));
+        return $run === null ? null : new IngestionRunReadModel($run, $this->runs->attempts($run), $this->runs->failures($run));
     }
 
     public function latest(string $sourceReference, Capability $capability): ?IngestionRunReadModel
     {
         $run = $this->runs->latest($sourceReference, $capability);
 
-        return $run === null ? null : new IngestionRunReadModel($run, $this->runs->attempts($run));
+        return $run === null ? null : new IngestionRunReadModel($run, $this->runs->attempts($run), $this->runs->failures($run));
     }
 }

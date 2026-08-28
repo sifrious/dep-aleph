@@ -13,6 +13,7 @@ final readonly class IngestionRun
      * @param  array<string, mixed>  $checkpoint
      * @param  array<string, int|float>  $stats
      * @param  list<string>  $acceptedReferences
+     * @param  list<array<string, mixed>>  $remainingWork
      */
     public function __construct(
         public string $id,
@@ -35,6 +36,9 @@ final readonly class IngestionRun
         public ?string $requestedBy = null,
         public ?string $authorizationDecision = null,
         public ?DateTimeImmutable $requestedAt = null,
+        public array $remainingWork = [],
+        public int $warningCount = 0,
+        public int $errorCount = 0,
     ) {}
 
     /**
@@ -55,7 +59,10 @@ final readonly class IngestionRun
             'completeness' => $this->completeness->value,
             'parameters' => $this->parameters,
             'checkpoint' => $this->checkpoint,
+            'remaining_work' => $this->remainingWork,
             'stats' => $this->stats,
+            'warning_count' => $this->warningCount,
+            'error_count' => $this->errorCount,
             'failure' => $this->failure?->toArray(),
             'accepted_references' => $this->acceptedReferences,
             'legacy_reference' => $this->legacyReference,
