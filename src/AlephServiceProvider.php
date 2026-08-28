@@ -11,6 +11,8 @@ use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Support\ServiceProvider;
+use Sifrious\Aleph\Acceptance\AcceptanceClient;
+use Sifrious\Aleph\Acceptance\Submissions;
 use Sifrious\Aleph\Connector\ConnectorCatalogue;
 use Sifrious\Aleph\Connector\ConnectorDispatcher;
 use Sifrious\Aleph\Connector\ConnectorInstallations;
@@ -33,6 +35,7 @@ use Sifrious\Aleph\Web\HttpFetcher;
 use Sifrious\Aleph\Web\RobotsPolicy;
 use Sifrious\Aleph\Web\SystemClock;
 use Sifrious\Aleph\Web\WebSources;
+use Sifrious\Funes\Acceptance\AcceptanceGateway;
 use Sifrious\Funes\Persistence\ObservationStore;
 
 class AlephServiceProvider extends ServiceProvider
@@ -123,6 +126,20 @@ class AlephServiceProvider extends ServiceProvider
                 $app->make(Config::class)->get('aleph.normalization.cache_enabled', true)
                     ? $app->make(NormalizationCache::class)
                     : null,
+            ),
+        );
+
+        $this->app->singleton(
+            Submissions::class,
+            fn (Application $app): Submissions => new Submissions($this->connection($app)),
+        );
+
+        $this->app->singleton(
+            AcceptanceClient::class,
+            fn (Application $app): AcceptanceClient => new AcceptanceClient(
+                $app->make(AcceptanceGateway::class),
+                $app->make(Submissions::class),
+                $app->make(EnvelopeSubmitter::class),
             ),
         );
 

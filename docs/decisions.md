@@ -544,3 +544,71 @@ proceed rather than block.
 **Follow-up.** When A33 defines canonical source identity, it should enrich `Provenance` in place.
 The normalization seam takes whatever `Provenance` holds and needs no change. Recorded, not
 absorbed.
+
+## D-043 — Idempotency is reserved-then-filled inside one Funes transaction
+
+**Decision.** `SqlAcceptanceGateway` opens a transaction, `insertOrIgnore`s the key row, and reads
+the affected count. One means this caller won the key and may accept; zero means someone else
+holds it, and the existing row decides whether the answer is `replayed` (accepted_id present) or
+`in_flight` (still null).
+
+**Rationale.** The ticket forbids check-then-insert, and rightly: two crawlers submitting the same
+page race between the SELECT and the INSERT. The unique primary key arbitrates instead of
+application logic, so the database decides exactly once.
+
+**Consequence.** `in_flight` is a real fourth outcome. It is not an error and not an acceptance —
+it means retry later, and the Aleph submission is marked retryable.
+
+## D-044 — The key derives from submission identity, and includes the normalizer version
+
+**Decision.** `v1:sha256(source | account | stream | resource | provider id | provider revision |
+candidate schema@version | normalizer@version | input hash)`.
+
+**Rationale.** Everything that makes a candidate a *distinct accepted fact* is in the key, and
+nothing else. Including the input hash means changed content is a new fact rather than a silent
+replay. Including `normalizer@version` means a better normalizer re-reading preserved evidence
+produces new lineage instead of colliding with the old interpretation — which is what A32's
+re-normalization requires.
+
+**Rejected.** A random UUID per request, which makes retries duplicate history, and a
+provider-id-only key, which makes edited content invisible.
+
+## D-045 — `ingested_at` is the accepted time; `occurred_at` was added
+
+**Decision.** Three distinct timestamps: `occurred_at` (when it happened, nullable, provider-
+supplied), `observed_at` (when Aleph saw it), `ingested_at` (when Funes accepted it).
+
+**Rationale.** A34 requires all three distinct. Funes already had observed and ingested; only
+`occurred_at` was missing. An uncommitted refactor in the Funes tree had just renamed
+`accepted_at` to `ingested_at`, so rather than revert someone's deliberate rename I added the
+missing column and documented that `ingested_at` *is* the acceptance stamp.
+
+**Validation.** The gateway rejects `occurred_at` later than `observed_at` — you cannot observe
+something before it happened.
+
+## D-046 — The web crawl was the representative migration, not Slack
+
+**Decision.** `FunesObservationWriter` now normalizes through `WebRetrievalNormalizer` and submits
+through `AcceptanceClient`. It no longer builds an `ObservationDraft` inline.
+
+**Rationale.** The ticket suggests Slack, but Slack lives in Landing and cannot be run here. The
+crawl path was the genuine parallel authority *in this codebase*: mature, exercised by real tests,
+and carrying provenance, discoveries, extraction, and dispositions. Migrating it proved more than
+a toy would have — it surfaced two real regressions (below).
+
+**Parity.** Metadata moved from flat keys to `extensions[web.retrieval].data`, with
+`aleph.provenance` and `aleph.normalization` added. Payload, discoveries, relationships,
+dispositions, and extraction records are unchanged. That difference is intentional and the crawl
+persistence tests now assert the new shape.
+
+## D-047 — Two regressions the migration caught
+
+**Discovery relationships.** The envelope's `discoveries` was `list<string>`, so `iframe` and
+`embed` relationships collapsed to the default `discovered`. Fixed by introducing
+`DiscoveryReference`; the envelope now carries the relationship through to Funes.
+
+**Disposition flattening.** The writer mapped any acceptance to `First`, losing Funes'
+`Changed`. Fixed by threading the real `ObservationDisposition` from the acceptance result.
+
+Both were caught by pre-existing crawl tests rather than by new ones, which is the argument for
+migrating a mature path instead of a toy.

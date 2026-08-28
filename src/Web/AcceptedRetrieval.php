@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Sifrious\Aleph\Web;
 
 use DateTimeImmutable;
+use Sifrious\Aleph\Acceptance\SubmissionStatus;
 use Sifrious\Aleph\Extraction\ExtractionStatus;
 use Sifrious\Funes\Value\AcceptedObservation;
 use Sifrious\Funes\Value\ExtractionResult;
+use Sifrious\Funes\Value\Observation;
 use Sifrious\Funes\Value\ObservationDisposition;
 
 final readonly class AcceptedRetrieval
@@ -34,6 +36,28 @@ final readonly class AcceptedRetrieval
             byteSize: strlen($accepted->observation->payload),
             observedAt: $accepted->observation->observedAt,
             ingestedAt: $accepted->observation->ingestedAt,
+            extractor: $extraction->extractor,
+            extractionVersion: $extraction->version,
+            extractionStatus: $extraction->succeeded() ? ExtractionStatus::Succeeded : ExtractionStatus::Failed,
+            extractionError: $extraction->failure,
+        );
+    }
+
+    public static function fromAccepted(
+        Observation $observation,
+        ?ObservationDisposition $disposition,
+        SubmissionStatus $status,
+        ExtractionResult $extraction,
+    ): self {
+        return new self(
+            observationId: $observation->id,
+            disposition: $disposition ?? ($status === SubmissionStatus::Replayed
+                ? ObservationDisposition::Unchanged
+                : ObservationDisposition::First),
+            payloadHash: $observation->payloadHash,
+            byteSize: strlen($observation->payload),
+            observedAt: $observation->observedAt,
+            ingestedAt: $observation->ingestedAt,
             extractor: $extraction->extractor,
             extractionVersion: $extraction->version,
             extractionStatus: $extraction->succeeded() ? ExtractionStatus::Succeeded : ExtractionStatus::Failed,

@@ -39,12 +39,14 @@ it('persists retrieved content and discovery provenance exclusively through Fune
     expect(DB::table('funes_observations')->count())->toBe(2)
         ->and($root->observation_disposition)->toBe('first')
         ->and($observation?->payload)->toBe('<html>first<a href="/inside">inside</a><iframe src="https://external.test/embed"></iframe></html>')
-        ->and($observation?->metadata)->toMatchArray([
+        ->and($observation?->metadata['extensions'][0]['namespace'])->toBe('web.retrieval')
+        ->and($observation?->metadata['extensions'][0]['data'])->toMatchArray([
             'http_status' => 200,
             'requested_url' => 'https://ahsd.test/',
             'final_url' => 'https://ahsd.test/',
             'discovery_origin' => 'seed',
         ])
+        ->and($observation?->metadata['aleph']['normalization']['normalizer'])->toBe('web-retrieval@1')
         ->and($observation?->discoveries)->toHaveCount(2)
         ->and($externalProvenance)->toHaveCount(1)
         ->and($externalProvenance[0]->parentResourceReference)->toBe('https://ahsd.test/')

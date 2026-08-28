@@ -29,7 +29,10 @@ final readonly class EnvelopeSubmitter
             contentType: $envelope->contentType,
             metadata: $envelope->metadata(),
             discoveries: array_map(
-                static fn (string $reference): Discovery => new Discovery($reference),
+                static fn (DiscoveryReference $discovery): Discovery => new Discovery(
+                    $discovery->reference,
+                    $discovery->relationship,
+                ),
                 $envelope->discoveries,
             ),
         );

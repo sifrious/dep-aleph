@@ -12,8 +12,11 @@ final readonly class ObservationEnvelope
 {
     public const SCHEMA_VERSION = 1;
 
+    /** @var list<DiscoveryReference> */
+    public array $discoveries;
+
     /**
-     * @param  list<string>  $discoveries
+     * @param  list<DiscoveryReference|string>  $discoveries
      */
     public function __construct(
         public string $sourceReference,
@@ -30,8 +33,9 @@ final readonly class ObservationEnvelope
         public ?string $providerRevision = null,
         public mixed $artifacts = [],
         public mixed $extensions = [],
-        public array $discoveries = [],
+        array $discoveries = [],
         public ?NormalizationLineage $normalization = null,
+        public ?DateTimeImmutable $occurredAt = null,
     ) {
         if ($sourceReference === '' || $resourceReference === '') {
             throw new InvalidArgumentException('Source and resource references must not be empty.');
@@ -40,6 +44,8 @@ final readonly class ObservationEnvelope
         if (! is_array($artifacts) || ! is_array($extensions)) {
             throw new InvalidArgumentException('Artifacts and extensions must be arrays.');
         }
+
+        $this->discoveries = array_map(DiscoveryReference::from(...), $discoveries);
 
         foreach ($artifacts as $artifact) {
             if (! $artifact instanceof ArtifactReference) {
@@ -83,6 +89,7 @@ final readonly class ObservationEnvelope
             extensions: $this->extensions,
             discoveries: $this->discoveries,
             normalization: $lineage,
+            occurredAt: $this->occurredAt,
         );
     }
 
@@ -110,6 +117,7 @@ final readonly class ObservationEnvelope
                 'event_type' => $this->eventType,
                 'provider_id' => $this->providerId,
                 'provider_revision' => $this->providerRevision,
+                'occurred_at' => $this->occurredAt?->format(DATE_ATOM),
                 'artifacts' => $this->artifacts === []
                     ? null
                     : array_map(
