@@ -19,6 +19,7 @@ final readonly class SourceStreams
         string $key,
         ?string $scopeType = null,
         ?string $scopeId = null,
+        SyncStrategy $syncStrategy = SyncStrategy::Reconcile,
     ): SourceStream {
         if (trim($sourceInstallationId) === '' || trim($key) === '') {
             throw new InvalidArgumentException('A source stream requires an installation and stable key.');
@@ -38,6 +39,7 @@ final readonly class SourceStreams
             'stream_key' => $key,
             'scope_type' => $scopeType,
             'scope_id' => $scopeId,
+            'sync_strategy' => $syncStrategy->value,
             'enabled' => true,
             'created_at' => $now,
             'updated_at' => $now,
@@ -85,6 +87,16 @@ final readonly class SourceStreams
         ]);
     }
 
+    public function setSyncStrategy(SourceStream $stream, SyncStrategy $strategy): SourceStream
+    {
+        $this->connection->table('aleph_source_streams')->where('id', $stream->id)->update([
+            'sync_strategy' => $strategy->value,
+            'updated_at' => new DateTimeImmutable,
+        ]);
+
+        return $this->find($stream->id) ?? $stream;
+    }
+
     private function hydrate(stdClass $row): SourceStream
     {
         return new SourceStream(
@@ -93,6 +105,7 @@ final readonly class SourceStreams
             (string) $row->stream_key,
             $row->scope_type === null ? null : (string) $row->scope_type,
             $row->scope_id === null ? null : (string) $row->scope_id,
+            SyncStrategy::from((string) $row->sync_strategy),
             (bool) $row->enabled,
             new DateTimeImmutable((string) $row->created_at),
             new DateTimeImmutable((string) $row->updated_at),

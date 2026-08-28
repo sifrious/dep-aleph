@@ -155,3 +155,9 @@ start without both bounds.
 
 **Ingestion partition** — one deterministic ordered slice of a backfill run, retaining cumulative
 processed, accepted, and failed counts plus its resumable checkpoint and lifecycle.
+
+**Incremental strategy** — how one source stream detects change: cursor, high water, webhook, hash,
+or full reconciliation. Webhook, hash, and reconcile strategies require periodic reconciliation.
+
+**Incremental change** — one Funes-accepted added, updated, or deleted source event with a stable
+provider change ID and fingerprint. Unchanged polls create no change row.

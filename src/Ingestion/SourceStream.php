@@ -14,6 +14,7 @@ final readonly class SourceStream
         public string $key,
         public ?string $scopeType,
         public ?string $scopeId,
+        public SyncStrategy $syncStrategy,
         public bool $enabled,
         public DateTimeImmutable $createdAt,
         public DateTimeImmutable $updatedAt,

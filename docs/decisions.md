@@ -950,3 +950,21 @@ Partition order is stable, progress cannot move backward or overcount accepted/f
 paused and failed partitions resume from their stored checkpoint, and the run completes only when
 all partitions complete, with aggregate audit counters. Existing connector `Backfills` signatures
 remain compatible.
+
+## D-069 — Incremental advancement follows accepted material changes
+
+**Decision.** Every source stream declares cursor, high-water, webhook, hash, or reconcile strategy.
+`StartIncrementalSync` snapshots the latest strategy-specific checkpoint into an authorized bounded
+run. Added, updated, and deleted source events become immutable change rows only after their
+observation references are accepted by Funes; a hash of stream, partition, provider change ID, kind,
+and fingerprint makes exact event replay idempotent.
+
+**Rationale.** A latest timestamp or Git ref alone cannot explain deletes, distinguish cursor from
+hash semantics, or prove the event crossed the history boundary. Advancing a cursor on an unchanged
+poll would create motion without accepted evidence.
+
+**Consequence.** Material changes advance the accepted-through checkpoint and appear exactly once.
+An unchanged source records zero accepted changes and does not advance its checkpoint; an initially
+empty source can complete without inventing one. Webhook, hash, and reconcile strategies declare
+that periodic full reconciliation is required to discover missed edits or deletions. Provider UI and
+scheduler wiring remain outside the seam.

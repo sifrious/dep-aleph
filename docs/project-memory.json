@@ -42,7 +42,8 @@
         "Every active source stream has a package freshness projection or an explicit never-synchronized read model, and freshness is recalculated against an explicit clock.",
         "Connector health is an immutable expiring result per installation dimension, aggregated with explicit unknown evidence and coded remediation.",
         "Recurring ingestion schedules validate connector capabilities, calculate timezone-aware next runs, use expiring distributed claims, and record every schedule occurrence against its ingestion run.",
-        "Historical backfills require formatted range bounds, deterministic partitions, explicit rate/work budgets, cumulative progress, checkpoints, and all-partitions-complete termination."
+        "Historical backfills require formatted range bounds, deterministic partitions, explicit rate/work budgets, cumulative progress, checkpoints, and all-partitions-complete termination.",
+        "Incremental streams declare cursor, high-water, webhook, hash, or reconcile strategy; only Funes-accepted material changes advance checkpoints, while unchanged polls accept zero changes."
     ],
     "assumptions": [
         "A sequential concurrency ceiling of one is sufficient for the bounded AHSD crawl.",
@@ -182,6 +183,10 @@
         {
             "decision": "Represent historical imports as idempotent bounded runs with deterministic durable partitions.",
             "rationale": "Provider-specific commands and queue payloads cannot provide one auditable pause, resume, progress, and completion contract."
+        },
+        {
+            "decision": "Advance incremental checkpoints only through idempotent Funes-accepted material changes.",
+            "rationale": "Provider cursors and timestamps alone cannot prove edits or deletions reached durable history, and unchanged polls must not invent accepted work."
         }
     ],
     "open_questions": [
@@ -249,6 +254,8 @@
         "schedule_dispatch": "The immutable association between one schedule occurrence and its ingestion run.",
         "backfill_range": "Two connector-owned boundary values and their explicit format for a bounded historical import.",
         "ingestion_partition": "One ordered durable slice of a backfill run with checkpoint, counters, and lifecycle.",
+        "incremental_strategy": "Cursor, high-water, webhook, hash, or reconcile semantics declared by one source stream.",
+        "incremental_change": "One idempotent Funes-accepted added, updated, or deleted provider event.",
         "domain_ingestion_run": "A DNS-specific projection that adds stable account/domain scope and provider reconciliation references to the shared ingestion run.",
         "manual_launch": "An authorized idempotent request that persists a pending run before host dispatch.",
         "authorization_decision_reference": "A stable host-issued reference to the evaluated decision that allowed a manual run."
@@ -277,7 +284,8 @@
             "MME-809 provider-neutral source-stream freshness projection",
             "MME-808 connector health evidence, aggregation, and remediation contract",
             "MME-801 recurring ingestion schedules and scheduler adapter",
-            "MME-811 bounded partitioned historical backfill command"
+            "MME-811 bounded partitioned historical backfill command",
+            "MME-812 strategy-aware incremental synchronization and change ledger"
         ],
         "not_implemented": [
             "connector manifests",
@@ -440,6 +448,15 @@
             "record cumulative partition checkpoints and counters",
             "pause or resume a partition without losing progress",
             "complete the run only after every partition completes"
+        ],
+        "incremental_sync": [
+            "resolve an enabled stream and connector with SyncsIncrementally",
+            "snapshot strategy and latest checkpoint into a bounded run",
+            "accept added, updated, and deleted observations through Funes",
+            "deduplicate exact provider change events",
+            "commit the next strategy-specific checkpoint after material acceptance",
+            "complete unchanged polls with zero accepted changes and no checkpoint movement",
+            "periodically reconcile webhook, hash, and reconcile strategies"
         ]
     },
     "content_opportunities": [
@@ -612,6 +629,16 @@
             "audience": "data ingestion developers",
             "skill_level": "intermediate",
             "hook": "A backfill is not a command. It is an auditable partition plan."
+        },
+        {
+            "format": "short video",
+            "user_problem": "An incremental sync treats additions as the whole truth and silently misses deletes.",
+            "concept": "Strategy-aware change windows gated by durable acceptance",
+            "technology": "High-water marks, webhooks, content hashes, idempotent change ledgers",
+            "project_context": "Aleph MME-812 incremental synchronization",
+            "audience": "data ingestion developers",
+            "skill_level": "intermediate",
+            "hook": "Zero changes means zero movement."
         }
     ]
 }

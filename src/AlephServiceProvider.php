@@ -26,6 +26,7 @@ use Sifrious\Aleph\Envelope\EnvelopeDrafter;
 use Sifrious\Aleph\Envelope\EnvelopeSubmitter;
 use Sifrious\Aleph\Ingestion\ContinuationLeases;
 use Sifrious\Aleph\Ingestion\DomainRunQueries;
+use Sifrious\Aleph\Ingestion\IncrementalChanges;
 use Sifrious\Aleph\Ingestion\IngestionCheckpoints;
 use Sifrious\Aleph\Ingestion\IngestionPartitions;
 use Sifrious\Aleph\Ingestion\IngestionRunQueries;
@@ -113,6 +114,15 @@ class AlephServiceProvider extends ServiceProvider
         $this->app->singleton(
             IngestionPartitions::class,
             fn (Application $app): IngestionPartitions => new IngestionPartitions($this->connection($app)),
+        );
+
+        $this->app->singleton(
+            IncrementalChanges::class,
+            fn (Application $app): IncrementalChanges => new IncrementalChanges(
+                $this->connection($app),
+                $app->make(IngestionRuns::class),
+                $app->make(Submissions::class),
+            ),
         );
 
         $this->app->singleton(
