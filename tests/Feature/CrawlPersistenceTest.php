@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\DB;
+use Sifrious\Aleph\Envelope\ObservationMetadata;
 use Sifrious\Aleph\Tests\Fixtures\FailingObservationStore;
 use Sifrious\Aleph\Tests\Fixtures\FakeSite;
 use Sifrious\Funes\Persistence\ObservationStore;
@@ -34,19 +35,20 @@ it('persists retrieved content and discovery provenance exclusively through Fune
     $external = DB::table('aleph_frontier_candidates')->where('canonical_url', 'https://external.test/embed')->first();
     $store = app(ObservationStore::class);
     $observation = $store->get((string) $root->observation_id);
+    $retrieval = ObservationMetadata::extension($observation, 'web.retrieval');
+    $aleph = ObservationMetadata::aleph($observation);
     $externalProvenance = $store->discoveriesTo('web:ahsd', 'https://external.test/embed');
 
     expect(DB::table('funes_observations')->count())->toBe(2)
         ->and($root->observation_disposition)->toBe('first')
         ->and($observation?->payload)->toBe('<html>first<a href="/inside">inside</a><iframe src="https://external.test/embed"></iframe></html>')
-        ->and($observation?->metadata['extensions'][0]['namespace'])->toBe('web.retrieval')
-        ->and($observation?->metadata['extensions'][0]['data'])->toMatchArray([
+        ->and($retrieval)->toMatchArray([
             'http_status' => 200,
             'requested_url' => 'https://ahsd.test/',
             'final_url' => 'https://ahsd.test/',
             'discovery_origin' => 'seed',
         ])
-        ->and($observation?->metadata['aleph']['normalization']['normalizer'])->toBe('web-retrieval@1')
+        ->and($aleph['normalization']['normalizer'])->toBe('web-retrieval@1')
         ->and($observation?->discoveries)->toHaveCount(2)
         ->and($externalProvenance)->toHaveCount(1)
         ->and($externalProvenance[0]->parentResourceReference)->toBe('https://ahsd.test/')

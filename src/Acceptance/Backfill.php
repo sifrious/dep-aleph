@@ -7,6 +7,7 @@ namespace Sifrious\Aleph\Acceptance;
 use DateTimeImmutable;
 use Sifrious\Aleph\Envelope\DiscoveryReference;
 use Sifrious\Aleph\Envelope\ObservationEnvelope;
+use Sifrious\Aleph\Envelope\ObservationMetadata;
 use Sifrious\Aleph\Envelope\Provenance;
 use Sifrious\Aleph\Normalization\CandidateEnvelope;
 use Sifrious\Funes\Acceptance\AcceptanceBacklog;
@@ -75,8 +76,7 @@ final readonly class Backfill
 
     private function envelopeFor(Observation $observation): ObservationEnvelope
     {
-        $metadata = is_array($observation->metadata) ? $observation->metadata : [];
-        $aleph = is_array($metadata['aleph'] ?? null) ? $metadata['aleph'] : [];
+        $aleph = ObservationMetadata::aleph($observation);
 
         return new ObservationEnvelope(
             sourceReference: $observation->sourceReference,
@@ -91,6 +91,7 @@ final readonly class Backfill
             eventType: $this->string($aleph['event_type'] ?? null),
             providerId: $this->string($aleph['provider_id'] ?? null),
             providerRevision: $this->string($aleph['provider_revision'] ?? null),
+            extensions: ObservationMetadata::extensions($observation),
             discoveries: $this->discoveriesFor($observation),
             occurredAt: $this->time($aleph['occurred_at'] ?? null),
         );

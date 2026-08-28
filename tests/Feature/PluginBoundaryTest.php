@@ -10,11 +10,14 @@ use Sifrious\Aleph\Connector\ConnectorRegistry;
 use Sifrious\Aleph\Envelope\EnvelopeSubmitter;
 use Sifrious\Aleph\Envelope\ExtensionMetadata;
 use Sifrious\Aleph\Envelope\ObservationEnvelope;
+use Sifrious\Aleph\Envelope\ObservationMetadata;
 use Sifrious\Aleph\Envelope\Provenance;
 use Sifrious\Aleph\Testing\Fakes\DiscoveryAndDownloadConnector;
 use Sifrious\Aleph\Testing\Fakes\MinimalConnector;
+use Sifrious\Funes\Persistence\ObservationStore;
+use Sifrious\Funes\Value\Observation;
 
-function submitEnvelope(array $extensions = []): array
+function submitEnvelope(array $extensions = []): Observation
 {
     $envelope = new ObservationEnvelope(
         sourceReference: 'weird:stream/one',
@@ -28,40 +31,40 @@ function submitEnvelope(array $extensions = []): array
 
     app(EnvelopeSubmitter::class)->submit($envelope);
 
-    $row = DB::table('funes_observations')
+    $id = DB::table('funes_observations')
         ->join('funes_resources', 'funes_resources.id', '=', 'funes_observations.resource_id')
         ->where('funes_resources.canonical_reference', $envelope->resourceReference)
-        ->select('funes_observations.metadata')
-        ->first();
+        ->value('funes_observations.id');
 
-    return json_decode((string) $row->metadata, true);
+    return app(ObservationStore::class)->get((string) $id) ?? throw new RuntimeException('Accepted observation was not readable.');
 }
 
 it('submits a generic envelope into Funes universal tables', function (): void {
-    $metadata = submitEnvelope();
+    $observation = submitEnvelope();
 
-    expect($metadata['aleph']['envelope_version'])->toBe(1)
+    expect(ObservationMetadata::aleph($observation)['envelope_version'])->toBe(1)
         ->and(DB::table('funes_observations')->count())->toBe(1);
 });
 
 it('preserves an extension namespace and version through acceptance', function (): void {
-    $metadata = submitEnvelope([new ExtensionMetadata('weirdservice.widget', 7, ['ring' => 'RN-9'])]);
+    $observation = submitEnvelope([new ExtensionMetadata('weirdservice.widget', 7, ['ring' => 'RN-9'])]);
 
-    expect($metadata['extensions'][0])->toBe([
-        'namespace' => 'weirdservice.widget',
-        'version' => 7,
-        'data' => ['ring' => 'RN-9'],
-    ]);
+    $metadata = $observation->metadata('aleph:extension/weirdservice.widget')[0];
+
+    expect(ObservationMetadata::extension($observation, 'weirdservice.widget'))->toBe(['ring' => 'RN-9'])
+        ->and($metadata->schemaVersion)->toBe('7');
 });
 
 it('preserves extension data Funes has never heard of', function (): void {
-    $metadata = submitEnvelope([new ExtensionMetadata('entirely.unknown', 1, [
+    $observation = submitEnvelope([new ExtensionMetadata('entirely.unknown', 1, [
         'nested' => ['deeply' => ['odd' => true]],
         'list' => [1, 2, 3],
     ])]);
 
-    expect($metadata['extensions'][0]['data']['nested']['deeply']['odd'])->toBeTrue()
-        ->and($metadata['extensions'][0]['data']['list'])->toBe([1, 2, 3]);
+    $metadata = ObservationMetadata::extension($observation, 'entirely.unknown');
+
+    expect($metadata['nested']['deeply']['odd'])->toBeTrue()
+        ->and($metadata['list'])->toBe([1, 2, 3]);
 });
 
 it('has no provider column anywhere in the Funes schema', function (): void {

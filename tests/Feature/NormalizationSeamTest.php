@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Sifrious\Aleph\Envelope\EnvelopeSubmitter;
+use Sifrious\Aleph\Envelope\ObservationMetadata;
 use Sifrious\Aleph\Envelope\Provenance;
 use Sifrious\Aleph\Normalization\NormalizationAttempts;
 use Sifrious\Aleph\Normalization\NormalizationInput;
@@ -12,6 +13,7 @@ use Sifrious\Aleph\Normalization\RawReference;
 use Sifrious\Aleph\Normalization\Reference\ArtifactClassificationNormalizer;
 use Sifrious\Aleph\Normalization\Reference\ShellCommandNormalizer;
 use Sifrious\Aleph\Normalization\Reference\TranscriptNormalizer;
+use Sifrious\Funes\Persistence\ObservationStore;
 
 function provenance(): Provenance
 {
@@ -125,8 +127,8 @@ it('names the raw input and exact normalizer version in the accepted record', fu
 
     app(EnvelopeSubmitter::class)->submit($candidate->toObservationEnvelope());
 
-    $metadata = json_decode(DB::table('funes_observations')->value('metadata'), true);
-    $normalization = $metadata['aleph']['normalization'];
+    $observationId = (string) DB::table('funes_observations')->value('id');
+    $normalization = ObservationMetadata::aleph(app(ObservationStore::class)->get($observationId))['normalization'];
 
     expect($normalization['normalizer'])->toBe('shell-command@3')
         ->and($normalization['normalizer_version'])->toBe(3)

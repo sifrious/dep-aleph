@@ -14,12 +14,6 @@ final readonly class EnvelopeDrafter
 
     public function draft(ObservationEnvelope $envelope): ObservationDraft
     {
-        $metadata = $envelope->metadata();
-        $metadata['aleph']['source_scopes'] = $this->scopes->snapshot(
-            $envelope->provenance->installationId,
-            $envelope->stream,
-        );
-
         return new ObservationDraft(
             sourceReference: $envelope->sourceReference,
             sourceName: $envelope->sourceName,
@@ -44,7 +38,13 @@ final readonly class EnvelopeDrafter
                     $envelope->normalization->schema->reference(),
                 ],
             contentType: $envelope->contentType,
-            metadata: $metadata,
+            metadata: ObservationMetadata::drafts(
+                $envelope,
+                $this->scopes->snapshot(
+                    $envelope->provenance->installationId,
+                    $envelope->stream,
+                ),
+            ),
             discoveries: array_map(
                 static fn (DiscoveryReference $discovery): Discovery => new Discovery(
                     $discovery->reference,

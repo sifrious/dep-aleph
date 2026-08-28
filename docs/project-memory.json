@@ -32,7 +32,8 @@
         "Aleph ingestion runs now preserve connector/source identity, stable legacy references, replay keys, checkpoints, completeness, failures, counters, and accepted Funes references.",
         "A logical connector ingestion run owns numbered durable attempts and exposes a presentation-neutral inspection read model.",
         "Landing DomainSyncRun repeats the common run lifecycle and adds account/domain scope, targets, DNS counters, and provider-account/domain foreign keys.",
-        "Landing manual ingestion entry points create provider-specific run rows and dispatch through commands, jobs, or detached processes without one universal request contract."
+        "Landing manual ingestion entry points create provider-specific run rows and dispatch through commands, jobs, or detached processes without one universal request contract.",
+        "Funes stores Aleph envelope metadata as append-only typed assertions: aleph:envelope for universal attributes and aleph:extension/<namespace> for connector extensions."
     ],
     "assumptions": [
         "A sequential concurrency ceiling of one is sufficient for the bounded AHSD crawl.",
@@ -130,6 +131,10 @@
         {
             "decision": "Persist or resolve an authorized idempotent manual run before handing it to a host-owned dispatch port.",
             "rationale": "Every entry adapter needs identical lifecycle semantics, while authentication, UI, and queue transport are genuine host integration boundaries."
+        },
+        {
+            "decision": "Project universal envelope data and each connector extension into separate versioned Funes metadata assertions.",
+            "rationale": "The Funes boundary now preserves namespace, schema version, provenance, and assertion time; rebuilding the legacy nested JSON slot would discard those semantics and duplicate its metadata model."
         }
     ],
     "open_questions": [

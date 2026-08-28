@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\DB;
+use Sifrious\Aleph\Envelope\ObservationMetadata;
 use Sifrious\Aleph\Tests\Fixtures\FakeSite;
 use Sifrious\Funes\Persistence\ObservationStore;
 
@@ -42,16 +43,15 @@ function parityObservation(): array
 it('carries every legacy metadata key into the migrated shape', function (): void {
     [$observation] = parityObservation();
 
-    $retrieval = $observation->metadata['extensions'][0];
+    $retrieval = ObservationMetadata::extension($observation, 'web.retrieval');
 
-    expect($retrieval['namespace'])->toBe('web.retrieval')
-        ->and(array_keys($retrieval['data']))->toEqualCanonicalizing(LEGACY_METADATA_KEYS);
+    expect(array_keys($retrieval))->toEqualCanonicalizing(LEGACY_METADATA_KEYS);
 });
 
 it('preserves every legacy metadata value through the acceptance boundary', function (): void {
     [$observation] = parityObservation();
 
-    expect($observation->metadata['extensions'][0]['data'])->toBe([
+    expect(ObservationMetadata::extension($observation, 'web.retrieval'))->toBe([
         'http_status' => 200,
         'requested_url' => 'https://ahsd.test/',
         'final_url' => 'https://ahsd.test/',
@@ -64,8 +64,7 @@ it('preserves every legacy metadata value through the acceptance boundary', func
 it('adds exactly the documented differences and nothing else', function (): void {
     [$observation] = parityObservation();
 
-    expect(array_keys($observation->metadata))->toEqualCanonicalizing(['aleph', 'extensions'])
-        ->and(array_keys($observation->metadata['aleph']))
+    expect(array_keys(ObservationMetadata::aleph($observation)))
         ->toEqualCanonicalizing([
             'envelope_version',
             'event_type',

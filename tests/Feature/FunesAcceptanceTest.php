@@ -8,6 +8,7 @@ use Sifrious\Aleph\Acceptance\Submissions;
 use Sifrious\Aleph\Acceptance\SubmissionStatus;
 use Sifrious\Aleph\Envelope\EnvelopeSubmitter;
 use Sifrious\Aleph\Envelope\ObservationEnvelope;
+use Sifrious\Aleph\Envelope\ObservationMetadata;
 use Sifrious\Aleph\Envelope\Provenance;
 use Sifrious\Aleph\Normalization\CandidateEnvelope;
 use Sifrious\Aleph\Normalization\CandidateEnvelopes;
@@ -15,6 +16,7 @@ use Sifrious\Aleph\Normalization\NormalizationInput;
 use Sifrious\Aleph\Normalization\NormalizationRunner;
 use Sifrious\Aleph\Normalization\Reference\ShellCommandNormalizer;
 use Sifrious\Funes\Acceptance\AcceptanceGateway;
+use Sifrious\Funes\Persistence\ObservationStore;
 
 function candidateFor(string $payload = 'git push origin main')
 {
@@ -119,15 +121,12 @@ it('keeps the full lineage from raw evidence to accepted id', function (): void 
     $payload = 'terraform plan';
     $record = app(AcceptanceClient::class)->submit(candidateFor($payload), 'attempt-9');
 
-    $metadata = json_decode(
-        DB::table('funes_observations')->where('id', $record->acceptedId())->value('metadata'),
-        true,
-    );
+    $metadata = ObservationMetadata::aleph(app(ObservationStore::class)->get((string) $record->acceptedId()));
 
-    expect($metadata['aleph']['normalization']['raw']['input_hash'])->toBe(hash('sha256', $payload))
-        ->and($metadata['aleph']['normalization']['normalizer'])->toBe('shell-command@3')
-        ->and($metadata['aleph']['normalization']['candidate_schema'])->toBe('activity.command@2')
-        ->and($metadata['aleph']['provenance']['connector'])->toBe('pigeon-post')
+    expect($metadata['normalization']['raw']['input_hash'])->toBe(hash('sha256', $payload))
+        ->and($metadata['normalization']['normalizer'])->toBe('shell-command@3')
+        ->and($metadata['normalization']['candidate_schema'])->toBe('activity.command@2')
+        ->and($metadata['provenance']['connector'])->toBe('pigeon-post')
         ->and($record->submission->attemptId)->toBe('attempt-9');
 });
 
@@ -258,7 +257,8 @@ it('keeps a directly submitted envelope traceable to its own raw evidence', func
         provenance: new Provenance('pigeon-post', '0.3.1', 'inst-1', new DateTimeImmutable('2026-08-27T09:05:00+00:00')),
     ));
 
-    $normalization = json_decode((string) DB::table('funes_observations')->value('metadata'), true)['aleph']['normalization'];
+    $observationId = (string) DB::table('funes_observations')->value('id');
+    $normalization = ObservationMetadata::aleph(app(ObservationStore::class)->get($observationId))['normalization'];
 
     expect($normalization['normalizer'])->toBe('aleph.direct@1')
         ->and($normalization['candidate_schema'])->toBe('aleph.envelope@1')

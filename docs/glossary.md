@@ -98,3 +98,7 @@ before a host dispatch adapter receives it.
 
 **Authorization decision reference** — a stable host-issued reference proving which evaluated
 decision allowed a manual run. It is evidence, not an Aleph-owned user or role policy.
+
+**Envelope metadata assertion** — a versioned Funes metadata record. `aleph:envelope` carries
+universal envelope attributes; `aleph:extension/<namespace>` carries one connector extension and
+retains the Funes provenance that asserted it.

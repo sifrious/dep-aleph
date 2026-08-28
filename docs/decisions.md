@@ -404,6 +404,9 @@ extractors should be expressed through it. Not now.
 
 ## D-032 — Funes was already provider-neutral; A38 froze the Aleph side
 
+**Historical note.** The provider-neutral conclusion remains true, but the JSON-slot persistence
+described here was superseded by Funes' typed metadata assertions and D-059.
+
 **Decision.** No change to Funes. `ObservationEnvelope` (Aleph) plus `EnvelopeSubmitter` is the
 one place Aleph talks to `ObservationStore`.
 
@@ -416,6 +419,9 @@ telling connectors how to fill that slot.
 **Rejected.** Adding envelope classes to Funes. Funes would then own a concept only Aleph uses.
 
 ## D-033 — Reserved `aleph` namespace, everything else is a versioned extension
+
+**Persistence note.** The logical split remains, but its physical representation is superseded by
+D-059: `aleph:envelope` and `aleph:extension/<name>` assertions replace the shared JSON object.
 
 **Decision.** Observation metadata has exactly two top-level keys: `aleph` (envelope version,
 account, stream, event type, provider id/revision, artifacts, provenance) and `extensions` (a
@@ -680,7 +686,7 @@ gateway keeps the same per-submission semantics.
 
 **Decision.** `tests/Feature/CrawlParityTest.php` pins the pre-A34 metadata key list as a literal
 constant and asserts every key and value survives into
-`extensions[web.retrieval].data`, that the additions are exactly
+the `aleph:extension/web.retrieval` assertion, that the envelope additions are exactly
 `envelope_version`, `event_type`, `provenance`, `normalization`, and that payload, references,
 content type, discovery relationships, dispositions, counts and extraction records are unchanged.
 
@@ -775,3 +781,19 @@ host, while the decision evidence belongs on the run.
 **Consequence.** CLI, desktop, and phone adapters produce the same run shape. Disabled or unknown
 installations, denied decisions, unsupported capabilities, and nonportable parameters fail before a
 run exists. Dispatch adapters can prove the run was durable before receiving it.
+
+## D-059 — Aleph projects envelopes into typed Funes metadata assertions
+
+**Decision.** Universal envelope attributes cross the Funes boundary as one versioned
+`aleph:envelope` assertion. Each connector extension crosses independently as
+`aleph:extension/<namespace>`, using its extension version as the assertion schema version. Aleph
+reconstructs envelopes from those typed assertions during backfill.
+
+**Rationale.** Funes now preserves append-only metadata with explicit namespace, schema version,
+provenance, and recording time. Rebuilding the former nested JSON slot would discard those semantics
+and retain a second metadata model. One assertion per genuine namespace preserves provider
+neutrality and lets an extension evolve without rewriting the universal envelope.
+
+**Consequence.** Accepted observations no longer expose Aleph metadata through the legacy
+`funes_observations.metadata` JSON column. Package readers use `ObservationMetadata`, parity tests
+pin the assertion namespaces and values, and backfill retains both universal and extension data.

@@ -6,11 +6,13 @@ use Sifrious\Aleph\Connector\ConnectorInstallations;
 use Sifrious\Aleph\Connector\ConnectorRegistry;
 use Sifrious\Aleph\Envelope\EnvelopeSubmitter;
 use Sifrious\Aleph\Envelope\ObservationEnvelope;
+use Sifrious\Aleph\Envelope\ObservationMetadata;
 use Sifrious\Aleph\Envelope\Provenance;
 use Sifrious\Aleph\Scope\AssociationState;
 use Sifrious\Aleph\Scope\SourceScopeAssociations;
 use Sifrious\Aleph\Scope\UnknownSourceInstallation;
 use Sifrious\Aleph\Testing\Fakes\DiscoveryAndDownloadConnector;
+use Sifrious\Funes\Persistence\ObservationStore;
 use Sifrious\Funes\Value\EntityKind;
 use Sifrious\Funes\Value\EntityReference;
 
@@ -151,11 +153,12 @@ it('snapshots account and scope provenance into accepted history', function (): 
         stream: 'channel:C1',
     ));
 
-    $metadata = json_decode((string) DB::table('funes_observations')->value('metadata'), true);
+    $observationId = (string) DB::table('funes_observations')->value('id');
+    $metadata = ObservationMetadata::aleph(app(ObservationStore::class)->get($observationId));
 
-    expect($metadata['aleph']['account'])->toBe('workspace:T1')
-        ->and($metadata['aleph']['source_scopes']['state'])->toBe('assigned')
-        ->and($metadata['aleph']['source_scopes']['associations'][0]['scope'])->toBe([
+    expect($metadata['account'])->toBe('workspace:T1')
+        ->and($metadata['source_scopes']['state'])->toBe('assigned')
+        ->and($metadata['source_scopes']['associations'][0]['scope'])->toBe([
             'kind' => 'identity',
             'id' => 'slack:user/U123',
         ]);
