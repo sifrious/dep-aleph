@@ -262,7 +262,10 @@ final readonly class IngestionRuns
         return $attempt;
     }
 
-    public function queueAttempt(IngestionRun $run, QueueDispatchPolicy $policy): IngestionAttempt
+    /**
+     * @param  array<string, mixed>|null  $checkpoint
+     */
+    public function queueAttempt(IngestionRun $run, QueueDispatchPolicy $policy, ?array $checkpoint = null): IngestionAttempt
     {
         $currentRun = $this->find($run->id);
 
@@ -296,7 +299,7 @@ final readonly class IngestionRuns
             runId: $run->id,
             number: $number,
             status: RunStatus::Pending,
-            checkpoint: $run->checkpoint,
+            checkpoint: $checkpoint ?? $run->checkpoint,
             stats: $run->stats,
             failure: null,
             startedAt: null,
@@ -559,6 +562,17 @@ final readonly class IngestionRuns
         return $row === null ? null : $this->hydrateAttempt($row);
     }
 
+    public function activeAttempt(IngestionRun $run): ?IngestionAttempt
+    {
+        $row = $this->attemptsTable()
+            ->where('run_id', $run->id)
+            ->whereIn('status', [RunStatus::Pending->value, RunStatus::Running->value])
+            ->orderByDesc('number')
+            ->first();
+
+        return $row === null ? null : $this->hydrateAttempt($row);
+    }
+
     /**
      * @param  array<string, mixed>  $checkpoint
      * @param  array<string, int|float>  $stats
@@ -751,6 +765,19 @@ final readonly class IngestionRuns
         $this->assertTransition($run, RunStatus::Interrupted);
 
         $failure = new RunFailure('interrupted', $error, true);
+        $finishedAt = Carbon::now();
+
+        $this->attemptsTable()
+            ->where('run_id', $run->id)
+            ->whereIn('status', [RunStatus::Pending->value, RunStatus::Running->value])
+            ->update([
+                'status' => RunStatus::Interrupted->value,
+                'failure' => json_encode($failure->toArray(), JSON_THROW_ON_ERROR),
+                'retryable' => true,
+                'error_class' => $failure->kind,
+                'error_message' => $failure->message,
+                'finished_at' => $finishedAt,
+            ]);
 
         $this->table()->where('id', $run->id)->update([
             'status' => RunStatus::Interrupted->value,
@@ -758,7 +785,7 @@ final readonly class IngestionRuns
             'error' => $error,
             'failure' => json_encode($failure->toArray(), JSON_THROW_ON_ERROR),
             'error_count' => 1,
-            'finished_at' => Carbon::now(),
+            'finished_at' => $finishedAt,
         ]);
         $this->recordFailure($run, null, $failure);
     }

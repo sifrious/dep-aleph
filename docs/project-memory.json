@@ -37,7 +37,8 @@
         "Every queued connector unit is a durable Aleph ingestion attempt with queue class, priority, tags, dispatch policy, runtime job and worker identity, heartbeat, and retry lineage.",
         "Checkpoint history is isolated by source stream, capability, and partition and records connector serialization, optimistic version, progression rule, committing run/attempt, and accepted-through Funes references.",
         "Every incomplete ingestion run exposes remaining work, warning and error counts, an immutable failure timeline, and one machine-readable safe recovery action.",
-        "A retry is a numbered child attempt reconstructed from the original run's durable parameters, checkpoint, counters, and idempotent identity."
+        "A retry is a numbered child attempt reconstructed from the original run's durable parameters, checkpoint, counters, and idempotent identity.",
+        "Resume reconstructs each partition from its latest accepted-through checkpoint under an expiring lease and explicit partition, record, and runtime budgets."
     ],
     "assumptions": [
         "A sequential concurrency ceiling of one is sufficient for the bounded AHSD crawl.",
@@ -157,6 +158,10 @@
         {
             "decision": "Retry by creating one idempotent child attempt from durable run state.",
             "rationale": "Queue payloads are mutable transport records; retry lineage and accepted-through checkpoints must remain authoritative after those records are pruned."
+        },
+        {
+            "decision": "Resume leased partitions from accepted-through checkpoints under explicit work budgets.",
+            "rationale": "An interrupted worker payload may be ahead of durable acceptance; bounded replay is safer than missing accepted records."
         }
     ],
     "open_questions": [
@@ -214,6 +219,8 @@
         "run_read_model": "A presentation-neutral projection of a run, its attempts, diagnostics, and next safe action.",
         "recovery_action": "The machine-readable safe next step for an ingestion run.",
         "retry_lineage": "The durable parent-child link between a failed or partial attempt and its idempotent retry.",
+        "ingestion_continuation": "The latest accepted-through checkpoint used to reconstruct one partition after interruption.",
+        "continuation_lease": "An expiring exclusive claim on one stream capability partition during resume.",
         "domain_ingestion_run": "A DNS-specific projection that adds stable account/domain scope and provider reconciliation references to the shared ingestion run.",
         "manual_launch": "An authorized idempotent request that persists a pending run before host dispatch.",
         "authorization_decision_reference": "A stable host-issued reference to the evaluated decision that allowed a manual run."
@@ -237,7 +244,8 @@
             "MME-803 durable queued ingestion attempts",
             "MME-806 accepted-through checkpoint tracking",
             "MME-810 incomplete synchronization outcomes and recovery actions",
-            "MME-804 deterministic retry command and attempt lineage"
+            "MME-804 deterministic retry command and attempt lineage",
+            "MME-805 bounded leased resume from accepted-through checkpoints"
         ],
         "not_implemented": [
             "connector manifests",
@@ -359,6 +367,14 @@
             "mark prior failure evidence resolved without deleting it",
             "dispatch the child through the runtime-neutral queue port",
             "return the same child without duplicate dispatch when the request is repeated"
+        ],
+        "resume_ingestion": [
+            "resolve an interrupted or partial run and enabled source stream",
+            "bound requested partitions, records, and runtime",
+            "load the latest accepted-through checkpoint for every partition",
+            "atomically lease the partition identities",
+            "persist the typed continuations on a new pending attempt",
+            "dispatch once through the runtime-neutral queue port"
         ]
     },
     "content_opportunities": [
@@ -481,6 +497,16 @@
             "audience": "backend and integration developers",
             "skill_level": "intermediate",
             "hook": "Retry the checkpoint, not the payload."
+        },
+        {
+            "format": "post",
+            "user_problem": "A worker dies after reading a page but before durable history accepts it.",
+            "concept": "Bounded replay from accepted-through checkpoints",
+            "technology": "Partition leases, idempotent acceptance, runtime-neutral queue attempts",
+            "project_context": "Aleph MME-805 resumable ingestion",
+            "audience": "data ingestion developers",
+            "skill_level": "intermediate",
+            "hook": "Replay a little. Miss nothing."
         }
     ]
 }

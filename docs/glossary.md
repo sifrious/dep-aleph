@@ -124,3 +124,9 @@ a provider object. Checkpoints are isolated by stream, capability, and partition
 
 **Accepted-through checkpoint** — an append-only checkpoint commit whose Funes references state
 exactly which immutable observations were accepted before the connector-owned cursor advanced.
+
+**Ingestion continuation** — the latest accepted-through checkpoint for one stream, capability,
+and partition, reconstructed with an explicit record, runtime, and partition budget.
+
+**Continuation lease** — an expiring exclusive claim on one stream capability partition. It keeps
+two workers from resuming the same range while allowing safe takeover after expiry.

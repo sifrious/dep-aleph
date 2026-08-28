@@ -865,3 +865,20 @@ that differs from the accepted-through checkpoint.
 **Consequence.** Fatal and authentication failures cannot retry, active rate-limit backoff is
 enforced, a named partition must still be listed as remaining work, prior failure events are marked
 resolved rather than deleted, and all attempts stay visible on one run timeline.
+
+## D-064 — Resume leases the accepted continuation, not the worker payload
+
+**Decision.** `ResumeIngestion` resolves each requested partition from the latest accepted-through
+checkpoint and persists that typed continuation on a new pending attempt. The request declares
+positive partition, record, and runtime budgets. An expiring lease gives one owner temporary
+exclusive use of each stream/capability/partition identity, acquired atomically for the request.
+
+**Rationale.** The interrupted worker may hold a cursor beyond the last page Funes accepted. Using
+that payload risks missing records. Starting from the accepted checkpoint may replay part of a page,
+but acceptance is idempotent and the explicit budgets bound the replay.
+
+**Consequence.** Killing a worker cannot advance continuation state. Resume preserves all accepted
+references, terminates the interrupted attempt, reuses a repeated owner request without duplicate
+dispatch, and refuses competing leases or an active continuation owned by another worker. An expired
+lease becomes claimable after the prior attempt is terminal. Worker supervision and transport-specific
+reconnect controls remain host concerns.
