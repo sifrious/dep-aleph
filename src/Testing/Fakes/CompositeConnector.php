@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Sifrious\Aleph\Testing\Fakes;
 
-use DateTimeImmutable;
 use Sifrious\Aleph\Connector\Contracts\Backfills;
 use Sifrious\Aleph\Connector\Contracts\ChecksHealth;
 use Sifrious\Aleph\Connector\Contracts\DiscoversSources;
@@ -17,10 +16,9 @@ use Sifrious\Aleph\Connector\Values\DiscoveredSource;
 use Sifrious\Aleph\Connector\Values\DiscoveredSources;
 use Sifrious\Aleph\Connector\Values\ExtractedContent;
 use Sifrious\Aleph\Connector\Values\HealthReport;
-use Sifrious\Aleph\Connector\Values\NormalizedRecord;
 use Sifrious\Aleph\Connector\Values\OperationRequest;
 use Sifrious\Aleph\Connector\Values\OperationResult;
-use Sifrious\Aleph\Connector\Values\RawRecord;
+use Sifrious\Aleph\Normalization\Reference\ShellCommandNormalizer;
 
 final class CompositeConnector extends BaseFakeConnector implements Backfills, ChecksHealth, DiscoversSources, DownloadsArtifacts, ExtractsContent, Normalizes
 {
@@ -44,14 +42,9 @@ final class CompositeConnector extends BaseFakeConnector implements Backfills, C
         return new ExtractedContent($artifact->reference, $artifact->contents);
     }
 
-    public function normalize(RawRecord $record): NormalizedRecord
+    public function normalizers(): array
     {
-        return new NormalizedRecord(
-            $record->sourceReference,
-            $record->identifier,
-            new DateTimeImmutable('2026-01-01T00:00:00+00:00'),
-            $record->payload,
-        );
+        return [new ShellCommandNormalizer];
     }
 
     public function checkHealth(): HealthReport

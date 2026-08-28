@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sifrious\Aleph;
 
+use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Contracts\Encryption\Encrypter;
 use Illuminate\Contracts\Foundation\Application;
@@ -19,6 +20,10 @@ use Sifrious\Aleph\Console\InventoryCommand;
 use Sifrious\Aleph\Envelope\EnvelopeSubmitter;
 use Sifrious\Aleph\Ingestion\IngestionRuns;
 use Sifrious\Aleph\Inventory\InventoryReader;
+use Sifrious\Aleph\Normalization\CandidateValidator;
+use Sifrious\Aleph\Normalization\NormalizationAttempts;
+use Sifrious\Aleph\Normalization\NormalizationCache;
+use Sifrious\Aleph\Normalization\NormalizationRunner;
 use Sifrious\Aleph\Web\Clock;
 use Sifrious\Aleph\Web\Fetcher;
 use Sifrious\Aleph\Web\FetchPolicy;
@@ -92,6 +97,32 @@ class AlephServiceProvider extends ServiceProvider
             EnvelopeSubmitter::class,
             fn (Application $app): EnvelopeSubmitter => new EnvelopeSubmitter(
                 $app->make(ObservationStore::class),
+            ),
+        );
+
+        $this->app->singleton(
+            NormalizationAttempts::class,
+            fn (Application $app): NormalizationAttempts => new NormalizationAttempts($this->connection($app)),
+        );
+
+        $this->app->singleton(CandidateValidator::class);
+
+        $this->app->singleton(
+            NormalizationCache::class,
+            fn (Application $app): NormalizationCache => new NormalizationCache(
+                $app->make(CacheRepository::class),
+                (int) $app->make(Config::class)->get('aleph.normalization.cache_ttl', 604800),
+            ),
+        );
+
+        $this->app->singleton(
+            NormalizationRunner::class,
+            fn (Application $app): NormalizationRunner => new NormalizationRunner(
+                $app->make(NormalizationAttempts::class),
+                $app->make(CandidateValidator::class),
+                $app->make(Config::class)->get('aleph.normalization.cache_enabled', true)
+                    ? $app->make(NormalizationCache::class)
+                    : null,
             ),
         );
 

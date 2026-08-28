@@ -9,6 +9,11 @@ return [
         'disabled' => [],
     ],
 
+    'normalization' => [
+        'cache_enabled' => true,
+        'cache_ttl' => 604800,
+    ],
+
     'http' => [
         'user_agent' => 'AlephCrawler/0.1 (+https://github.com/sifrious/aleph)',
         'connect_timeout' => 5,

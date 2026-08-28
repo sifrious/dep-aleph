@@ -465,3 +465,82 @@ why the row holds a reference.
 loft receiving ring-numbered dispatches with wind readings has no analogue anywhere in Aleph or
 Funes, so a passing test cannot be explained by a latent provider assumption. Slack or GitHub
 would have been ambiguous evidence.
+
+## D-037 — A39's `Normalizes` became a normalizer *provider*, not a normalizer
+
+**Decision.** `Normalizes` is now `normalizers(): list<Normalizer>`. The single-method
+`normalize(RawRecord): NormalizedRecord` from A39 is gone, along with `RawRecord` and
+`NormalizedRecord`.
+
+**Rationale.** A39 shipped a placeholder before anything implemented it. It was wrong in three
+ways A32 makes plain: it forced one-to-one normalization (a transcript is one input and many
+messages), it returned a finished record rather than a *candidate*, and it gave a connector
+exactly one normalizer when Slack alone needs several. Nothing implemented it except a fake, so
+replacing it cost nothing.
+
+**Rejected.** Keeping the old method alongside the new contract. Two ways to normalize is the
+duplicate-truth problem A38 spent a whole ticket avoiding.
+
+## D-038 — Normalizer version and candidate schema version are separate fields
+
+**Decision.** `NormalizerIdentity` (`shell-command@3`) and `CandidateSchema`
+(`activity.command@2`) are distinct value objects, both recorded on every attempt and in every
+accepted record.
+
+**Rationale.** They change for different reasons. Fixing a tokenizer bug bumps the normalizer and
+leaves the output shape alone; adding a required field to the candidate bumps the schema while
+several normalizer versions keep emitting it. Collapsing them loses the ability to say which one
+moved, which is exactly the question you ask when reprocessing.
+
+**Rejected.** A single version, and using the application release as a substitute. Deployment
+version tells you when code shipped, not which interpretation produced a record.
+
+## D-039 — Lineage lives in the reserved `aleph` namespace, not an extension
+
+**Decision.** `ObservationEnvelope` gained an optional `normalization` block emitted inside the
+reserved `aleph` metadata namespace, carrying normalizer reference, schema reference, and the raw
+reference with its input hash.
+
+**Rationale.** The A38 rules say `extensions` is for provider-specific data Funes cannot
+understand. Normalization lineage is the opposite — Aleph-owned, provider-neutral, and the thing
+the acceptance criterion demands be readable on any accepted record. Putting it in an extension
+would have made Aleph's own bookkeeping look like a provider's.
+
+**Consequence.** The field is optional, so every A38 envelope built before A32 still validates.
+
+## D-040 — The cache stores serialized candidates, keyed by evidence and version
+
+**Decision.** `NormalizationCache` keys on
+`sha256(input_hash | normalizer id | normalizer version | schema reference | context version)` and
+stores `serialize()`d `CandidateEnvelopes`, treating any unserialize failure as a miss.
+
+**Rationale.** The key must contain the normalizer version or a new version silently returns the
+old interpretation — the ticket names this explicitly. Serialization was chosen over a hand-written
+array codec because the cache is a pure optimisation: a miss is always safe, and a codec for the
+whole envelope graph is a lot of surface to maintain for no correctness gain.
+
+**Tradeoff.** A class-shape change invalidates cached entries. Acceptable, because a miss just
+re-runs the normalizer.
+
+## D-041 — Attempts are append-only; re-normalization never rewrites lineage
+
+**Decision.** Every run inserts a new `aleph_normalization_attempts` row. Nothing updates an
+existing one, including cache hits, which are recorded with `cached = true`.
+
+**Rationale.** "Which normalizer produced this record" is a historical fact about the past, not a
+current-state field. Reprocessing evidence under a better normalizer must add a second lineage,
+not overwrite the first — otherwise you lose the ability to explain a record accepted last year.
+
+## D-042 — A33 provenance is stubbed by A38's `Provenance`
+
+**Decision.** `NormalizationInput` carries `Envelope\Provenance` (connector, connector version,
+installation, capturedAt, run) as the provenance value, and the validator asserts candidates
+preserve it.
+
+**Rationale.** A32's handoff assumes A33 exists. It does not. A38's `Provenance` is real
+connector-execution provenance and satisfies every A32 criterion that mentions it, so A32 could
+proceed rather than block.
+
+**Follow-up.** When A33 defines canonical source identity, it should enrich `Provenance` in place.
+The normalization seam takes whatever `Provenance` holds and needs no change. Recorded, not
+absorbed.

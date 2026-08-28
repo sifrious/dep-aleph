@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Sifrious\Aleph\Connector\Contracts;
 
-use Sifrious\Aleph\Connector\Values\NormalizedRecord;
-use Sifrious\Aleph\Connector\Values\RawRecord;
+use Sifrious\Aleph\Normalization\Normalizer;
 
 interface Normalizes
 {
-    public function normalize(RawRecord $record): NormalizedRecord;
+    /**
+     * @return list<Normalizer>
+     */
+    public function normalizers(): array;
 }

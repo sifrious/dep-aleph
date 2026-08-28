@@ -24,10 +24,8 @@ use Sifrious\Aleph\Connector\Values\ArtifactRequest;
 use Sifrious\Aleph\Connector\Values\DiscoveredSources;
 use Sifrious\Aleph\Connector\Values\ExtractedContent;
 use Sifrious\Aleph\Connector\Values\HealthReport;
-use Sifrious\Aleph\Connector\Values\NormalizedRecord;
 use Sifrious\Aleph\Connector\Values\OperationRequest;
 use Sifrious\Aleph\Connector\Values\OperationResult;
-use Sifrious\Aleph\Connector\Values\RawRecord;
 use Sifrious\Aleph\Connector\Values\WebhookDelivery;
 use Throwable;
 
@@ -144,6 +142,12 @@ final class ConnectorContract
             return ["invoking [{$capability->value}] threw ".$failure::class.': '.$failure->getMessage()];
         }
 
+        if ($capability === Capability::Normalizes) {
+            return is_array($result)
+                ? []
+                : ["[{$capability->value}] returned ".get_debug_type($result).' instead of a list of normalizers'];
+        }
+
         $expected = self::expectedReturn($capability);
 
         return $result instanceof $expected
@@ -198,7 +202,7 @@ final class ConnectorContract
         }
 
         if ($capability === Capability::Normalizes && $connector instanceof Normalizes) {
-            return $connector->normalize(new RawRecord('contract-probe', 'record-1', ['field' => 'value']));
+            return $connector->normalizers();
         }
 
         if ($capability === Capability::ChecksHealth && $connector instanceof ChecksHealth) {
@@ -218,7 +222,6 @@ final class ConnectorContract
             Capability::DiscoversSources => DiscoveredSources::class,
             Capability::DownloadsArtifacts => Artifact::class,
             Capability::ExtractsContent => ExtractedContent::class,
-            Capability::Normalizes => NormalizedRecord::class,
             Capability::ChecksHealth => HealthReport::class,
             default => OperationResult::class,
         };
