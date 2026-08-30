@@ -64,6 +64,9 @@ use Sifrious\Aleph\Connector\Shell\IngestShellHistory;
 use Sifrious\Aleph\Connector\Shell\ShellCommandTokenizer;
 use Sifrious\Aleph\Connector\Shell\ShellHistorySources;
 use Sifrious\Aleph\Connector\Shell\ShellRedactionPolicy;
+use Sifrious\Aleph\Connector\SpokenSound\FunesSpokenSoundObservationWriter;
+use Sifrious\Aleph\Connector\SpokenSound\LaunchSpokenSoundIngestion;
+use Sifrious\Aleph\Connector\SpokenSound\SpokenSoundObservationWriter;
 use Sifrious\Aleph\Connector\Slack\ConsumeSlackEvent;
 use Sifrious\Aleph\Connector\Slack\ImportSlackActivities;
 use Sifrious\Aleph\Connector\Slack\SlackActivitySources;
@@ -231,6 +234,8 @@ class AlephServiceProvider extends ServiceProvider
         $this->app->singleton(LaunchYouTubeIngestion::class);
         $this->app->singleton(VideoFileObservationWriter::class, FunesVideoFileObservationWriter::class);
         $this->app->singleton(LaunchLocalVideoIngestion::class);
+        $this->app->singleton(SpokenSoundObservationWriter::class, FunesSpokenSoundObservationWriter::class);
+        $this->app->singleton(LaunchSpokenSoundIngestion::class);
         $this->app->singleton(NativePhpDesktopObservationWriter::class, FunesNativePhpDesktopObservationWriter::class);
         $this->app->singleton(LaunchNativePhpDesktopFreeformIngestion::class);
         $this->app->singleton(PodcastEpisodeResolver::class, NullPodcastEpisodeResolver::class);
