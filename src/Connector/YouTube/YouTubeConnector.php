@@ -55,6 +55,7 @@ final readonly class YouTubeConnector implements Connector, DownloadsArtifacts
                         'bytes' => strlen($download->transcript->contents),
                         'sha256' => hash('sha256', $download->transcript->contents),
                     ],
-            ], static fn (mixed $value): bool => $value !== null);
+            ], static fn (mixed $value): bool => $value !== null),
+        );
     }
 }
