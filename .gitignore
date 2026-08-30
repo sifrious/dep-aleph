@@ -3,3 +3,5 @@
 .phpunit.result.cache
 .DS_Store
 composer.lock
+__pycache__/
+*.py[cod]
