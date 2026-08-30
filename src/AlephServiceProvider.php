@@ -49,6 +49,9 @@ use Sifrious\Aleph\Connector\Linear\LinearWebhookDeliveries;
 use Sifrious\Aleph\Connector\Linear\LinearWebhookNormalizer;
 use Sifrious\Aleph\Connector\Linear\LinearWebhookSecrets;
 use Sifrious\Aleph\Connector\Linear\LinearWebhookVerifier;
+use Sifrious\Aleph\Connector\NativePhpDesktop\FunesNativePhpDesktopObservationWriter;
+use Sifrious\Aleph\Connector\NativePhpDesktop\LaunchNativePhpDesktopFreeformIngestion;
+use Sifrious\Aleph\Connector\NativePhpDesktop\NativePhpDesktopObservationWriter;
 use Sifrious\Aleph\Connector\RegisterSourceAccount;
 use Sifrious\Aleph\Connector\Shell\IngestShellHistory;
 use Sifrious\Aleph\Connector\Shell\ShellCommandTokenizer;
@@ -216,6 +219,8 @@ class AlephServiceProvider extends ServiceProvider
         $this->app->singleton(YouTubeDownloader::class, YtDlpYouTubeDownloader::class);
         $this->app->singleton(YouTubeObservationWriter::class, FunesYouTubeObservationWriter::class);
         $this->app->singleton(LaunchYouTubeIngestion::class);
+        $this->app->singleton(NativePhpDesktopObservationWriter::class, FunesNativePhpDesktopObservationWriter::class);
+        $this->app->singleton(LaunchNativePhpDesktopFreeformIngestion::class);
         $this->app->singleton(CommunicationSources::class);
         $this->app->singleton(CommunicationRecordSubmitter::class);
         $this->app->singleton(ImportCommunicationRecords::class);
