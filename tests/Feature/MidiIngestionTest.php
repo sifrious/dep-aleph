@@ -253,3 +253,33 @@ it('names the in-house parser as ours on the submission', function (): void {
     expect($writer->submissions[0]->metadata['parser'] ?? null)->toBe(MidiParseResult::PARSER_NAME)
         ->and(MidiParseResult::PARSER_NAME)->toBe('ours');
 });
+
+it('implements a real DownloadsArtifacts downloadArtifact for path and file inputs', function (): void {
+    $connector = new MidiConnector;
+    $bytes = MidiFixture::smf0Simple();
+    $path = tempMidi($bytes, 'midi');
+
+    $fromPath = $connector->downloadArtifact(new \Sifrious\Aleph\Connector\Values\ArtifactRequest(
+        sourceReference: 'desktop:midi-library',
+        artifactReference: 'file://'.$path,
+        parameters: ['input' => 'path', 'path' => $path],
+    ));
+    $fromFile = $connector->downloadArtifact(new \Sifrious\Aleph\Connector\Values\ArtifactRequest(
+        sourceReference: 'desktop:midi-library',
+        artifactReference: 'memory://probe.mid',
+        parameters: [
+            'input' => 'file',
+            'name' => 'probe.mid',
+            'contents_base64' => base64_encode($bytes),
+            'media_type' => 'audio/midi',
+        ],
+    ));
+
+    expect($connector)->toBeInstanceOf(\Sifrious\Aleph\Connector\Contracts\DownloadsArtifacts::class)
+        ->and($fromPath->contents)->toBe($bytes)
+        ->and($fromPath->mediaType)->toBe('audio/midi')
+        ->and($fromFile->contents)->toBe($bytes)
+        ->and($fromFile->mediaType)->toBe('audio/midi');
+
+    @unlink($path);
+});
