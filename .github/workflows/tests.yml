@@ -32,4 +32,4 @@ jobs:
 
       - run: composer update --prefer-dist --no-interaction --no-progress
 
-      - run: vendor/bin/pest tests/Feature/YouTubeIngestionTest.php tests/Feature/LocalVideoIngestionTest.php tests/Feature/PodcastIngestionTest.php tests/Feature/PodcastEnclosureDownloaderTest.php
+      - run: vendor/bin/pest tests/Feature/YouTubeIngestionTest.php tests/Feature/LocalVideoIngestionTest.php tests/Feature/PodcastIngestionTest.php tests/Feature/PodcastEnclosureDownloaderTest.php tests/Feature/ScoreTabIngestionTest.php
