@@ -14,7 +14,15 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Clone sibling Funes package
-        run: git clone --depth 1 https://github.com/sifrious/dep-funes.git ../Funes
+        run: |
+          TOKEN="${{ github.token }}"
+          if git clone --depth 1 "https://x-access-token:${TOKEN}@github.com/sifrious/Funes.git" ../Funes; then
+            exit 0
+          fi
+          if git clone --depth 1 "https://x-access-token:${TOKEN}@github.com/sifrious/funes.git" ../Funes; then
+            exit 0
+          fi
+          git clone --depth 1 "https://x-access-token:${TOKEN}@github.com/sifrious/dep-funes.git" ../Funes
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -39,7 +47,15 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Clone sibling Funes package
-        run: git clone --depth 1 https://github.com/sifrious/dep-funes.git ../Funes
+        run: |
+          TOKEN="${{ github.token }}"
+          if git clone --depth 1 "https://x-access-token:${TOKEN}@github.com/sifrious/Funes.git" ../Funes; then
+            exit 0
+          fi
+          if git clone --depth 1 "https://x-access-token:${TOKEN}@github.com/sifrious/funes.git" ../Funes; then
+            exit 0
+          fi
+          git clone --depth 1 "https://x-access-token:${TOKEN}@github.com/sifrious/dep-funes.git" ../Funes
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -57,7 +73,15 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Clone sibling Funes package
-        run: git clone --depth 1 https://github.com/sifrious/dep-funes.git ../Funes
+        run: |
+          TOKEN="${{ github.token }}"
+          if git clone --depth 1 "https://x-access-token:${TOKEN}@github.com/sifrious/Funes.git" ../Funes; then
+            exit 0
+          fi
+          if git clone --depth 1 "https://x-access-token:${TOKEN}@github.com/sifrious/funes.git" ../Funes; then
+            exit 0
+          fi
+          git clone --depth 1 "https://x-access-token:${TOKEN}@github.com/sifrious/dep-funes.git" ../Funes
 
       - uses: shivammathur/setup-php@v2
         with:
