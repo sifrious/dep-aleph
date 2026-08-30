@@ -5,7 +5,6 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\DB;
 use Sifrious\Aleph\Connector\ConnectorInstallations;
 use Sifrious\Aleph\Connector\ConnectorRegistry;
-use Sifrious\Aleph\Connector\Capability;
 use Sifrious\Aleph\Connector\YouTube\LaunchYouTubeIngestion;
 use Sifrious\Aleph\Connector\YouTube\LaunchYouTubeIngestionRequest;
 use Sifrious\Aleph\Connector\YouTube\RetryableYouTubeDownloadFailure;
@@ -17,6 +16,7 @@ use Sifrious\Aleph\Connector\YouTube\YouTubeDownloader;
 use Sifrious\Aleph\Connector\YouTube\YouTubeObservationWriter;
 use Sifrious\Aleph\Connector\YouTube\YouTubeTranscript;
 use Sifrious\Aleph\Ingestion\IngestionRuns;
+use Sifrious\Aleph\Ingestion\Capability as IngestionCapability;
 use Sifrious\Aleph\Ingestion\LaunchAuthorization;
 use Sifrious\Aleph\Ingestion\LaunchIngestion;
 use Sifrious\Aleph\Ingestion\LaunchIngestionResult;
@@ -167,7 +167,7 @@ it('records retryable failure when youtube download cannot be completed', functi
         authorization: LaunchAuthorization::granted('identity:user/mary', 'authorization:youtube/3'),
     )))->toThrow(RetryableYouTubeDownloadFailure::class, 'transient_youtube_download_failure');
 
-    $run = app(IngestionRuns::class)->latest('youtube:workspace/main', Capability::DownloadsArtifacts);
+    $run = app(IngestionRuns::class)->latest('youtube:workspace/main', IngestionCapability::DownloadArtifact);
 
     expect($run)->not->toBeNull()
         ->and($run?->status)->toBe(RunStatus::Failed)
