@@ -50,8 +50,8 @@ use Sifrious\Aleph\Connector\Linear\LinearWebhookNormalizer;
 use Sifrious\Aleph\Connector\Linear\LinearWebhookSecrets;
 use Sifrious\Aleph\Connector\Linear\LinearWebhookVerifier;
 use Sifrious\Aleph\Connector\Podcast\FunesPodcastObservationWriter;
+use Sifrious\Aleph\Connector\Podcast\HttpPodcastEnclosureDownloader;
 use Sifrious\Aleph\Connector\Podcast\LaunchPodcastIngestion;
-use Sifrious\Aleph\Connector\Podcast\NullPodcastEnclosureDownloader;
 use Sifrious\Aleph\Connector\Podcast\NullPodcastEpisodeResolver;
 use Sifrious\Aleph\Connector\Podcast\PodcastEnclosureDownloader;
 use Sifrious\Aleph\Connector\Podcast\PodcastEpisodeResolver;
@@ -234,7 +234,7 @@ class AlephServiceProvider extends ServiceProvider
         $this->app->singleton(NativePhpDesktopObservationWriter::class, FunesNativePhpDesktopObservationWriter::class);
         $this->app->singleton(LaunchNativePhpDesktopFreeformIngestion::class);
         $this->app->singleton(PodcastEpisodeResolver::class, NullPodcastEpisodeResolver::class);
-        $this->app->singleton(PodcastEnclosureDownloader::class, NullPodcastEnclosureDownloader::class);
+        $this->app->singleton(PodcastEnclosureDownloader::class, HttpPodcastEnclosureDownloader::class);
         $this->app->singleton(PodcastObservationWriter::class, FunesPodcastObservationWriter::class);
         $this->app->singleton(LaunchPodcastIngestion::class);
         $this->app->singleton(CommunicationSources::class);
