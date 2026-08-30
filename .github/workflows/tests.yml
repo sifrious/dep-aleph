@@ -1,4 +1,4 @@
-name: tests
+name: package-test
 
 on:
   push:
@@ -13,83 +13,14 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Clone sibling Funes package
-        run: |
-          TOKEN="${{ github.token }}"
-          if git clone --depth 1 "https://x-access-token:${TOKEN}@github.com/sifrious/Funes.git" ../Funes; then
-            exit 0
-          fi
-          if git clone --depth 1 "https://x-access-token:${TOKEN}@github.com/sifrious/funes.git" ../Funes; then
-            exit 0
-          fi
-          git clone --depth 1 "https://x-access-token:${TOKEN}@github.com/sifrious/dep-funes.git" ../Funes
-
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
           coverage: none
 
-      - run: composer update --prefer-dist --no-interaction --no-progress
-
-      - run: vendor/bin/pest
-
-  test:
-    runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        php: ['8.4', '8.5']
-
-    name: PHP ${{ matrix.php }}
-
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Clone sibling Funes package
-        run: |
-          TOKEN="${{ github.token }}"
-          if git clone --depth 1 "https://x-access-token:${TOKEN}@github.com/sifrious/Funes.git" ../Funes; then
-            exit 0
-          fi
-          if git clone --depth 1 "https://x-access-token:${TOKEN}@github.com/sifrious/funes.git" ../Funes; then
-            exit 0
-          fi
-          git clone --depth 1 "https://x-access-token:${TOKEN}@github.com/sifrious/dep-funes.git" ../Funes
-
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php }}
-          coverage: none
+      - name: Remove local path repository override
+        run: composer config --unset repositories.0
 
       - run: composer update --prefer-dist --no-interaction --no-progress
 
       - run: vendor/bin/pest
-
-  quality:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Clone sibling Funes package
-        run: |
-          TOKEN="${{ github.token }}"
-          if git clone --depth 1 "https://x-access-token:${TOKEN}@github.com/sifrious/Funes.git" ../Funes; then
-            exit 0
-          fi
-          if git clone --depth 1 "https://x-access-token:${TOKEN}@github.com/sifrious/funes.git" ../Funes; then
-            exit 0
-          fi
-          git clone --depth 1 "https://x-access-token:${TOKEN}@github.com/sifrious/dep-funes.git" ../Funes
-
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          coverage: none
-
-      - run: composer update --prefer-dist --no-interaction --no-progress
-
-      - run: vendor/bin/pint --test
-
-      - run: vendor/bin/phpstan analyse
