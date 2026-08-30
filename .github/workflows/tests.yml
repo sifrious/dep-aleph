@@ -6,6 +6,27 @@ on:
   pull_request:
 
 jobs:
+  package-test:
+    runs-on: ubuntu-latest
+    name: package-test
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/checkout@v5
+        with:
+          repository: sifrious/dep-funes
+          path: ../Funes
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - run: composer update --prefer-dist --no-interaction --no-progress
+
+      - run: vendor/bin/pest
+
   test:
     runs-on: ubuntu-latest
 
@@ -18,6 +39,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+
+      - uses: actions/checkout@v5
+        with:
+          repository: sifrious/dep-funes
+          path: ../Funes
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -33,6 +59,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+
+      - uses: actions/checkout@v5
+        with:
+          repository: sifrious/dep-funes
+          path: ../Funes
 
       - uses: shivammathur/setup-php@v2
         with:
