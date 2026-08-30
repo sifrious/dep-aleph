@@ -18,6 +18,10 @@ jobs:
           php-version: '8.4'
           coverage: none
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: Remove local path repository override
         run: |
           php -r '

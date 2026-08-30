@@ -117,9 +117,15 @@ use Sifrious\Aleph\Connector\Slack\SlackActivitySources;
 use Sifrious\Aleph\Connector\Slack\SlackActivitySubmitter;
 use Sifrious\Aleph\Connector\Slack\SlackCredentials;
 use Sifrious\Aleph\Connector\Slack\SlackEventSecrets;
+use Sifrious\Aleph\Connector\VideoFile\AbsentPythonVideoFileAdapter;
 use Sifrious\Aleph\Connector\VideoFile\FunesVideoFileObservationWriter;
 use Sifrious\Aleph\Connector\VideoFile\LaunchLocalVideoIngestion;
+use Sifrious\Aleph\Connector\VideoFile\ProcessPythonVideoFileAdapter;
+use Sifrious\Aleph\Connector\VideoFile\PythonVideoFileAdapter;
+use Sifrious\Aleph\Connector\VideoFile\VideoFileEnvelopeDocument;
 use Sifrious\Aleph\Connector\VideoFile\VideoFileObservationWriter;
+use Sifrious\Aleph\Ingestion\IngestAdapterRegistry;
+use Sifrious\Aleph\Ingestion\IngestLanguage;
 use Sifrious\Aleph\Connector\Watch\RepositoryWatches;
 use Sifrious\Aleph\Connector\YouTube\FunesYouTubeObservationWriter;
 use Sifrious\Aleph\Connector\YouTube\LaunchYouTubeIngestion;
@@ -277,6 +283,28 @@ class AlephServiceProvider extends ServiceProvider
         $this->app->singleton(YouTubeObservationWriter::class, FunesYouTubeObservationWriter::class);
         $this->app->singleton(LaunchYouTubeIngestion::class);
         $this->app->singleton(VideoFileObservationWriter::class, FunesVideoFileObservationWriter::class);
+        $this->app->singleton(
+            PythonVideoFileAdapter::class,
+            function (): PythonVideoFileAdapter {
+                $process = new ProcessPythonVideoFileAdapter;
+
+                return $process->available() ? $process : new AbsentPythonVideoFileAdapter;
+            },
+        );
+        $this->app->singleton(
+            IngestAdapterRegistry::class,
+            function (Application $app): IngestAdapterRegistry {
+                $registry = new IngestAdapterRegistry;
+                $registry->register(VideoFileEnvelopeDocument::CAPABILITY, IngestLanguage::Php, true);
+                $registry->register(
+                    VideoFileEnvelopeDocument::CAPABILITY,
+                    IngestLanguage::Python,
+                    $app->make(PythonVideoFileAdapter::class)->available(),
+                );
+
+                return $registry;
+            },
+        );
         $this->app->singleton(LaunchLocalVideoIngestion::class);
         $this->app->singleton(SpokenSoundObservationWriter::class, FunesSpokenSoundObservationWriter::class);
         $this->app->singleton(LaunchSpokenSoundIngestion::class);

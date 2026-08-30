@@ -19,5 +19,6 @@ final readonly class VideoFileArtifactSubmission
         public string $checksum,
         public int $bytes,
         public array $metadata,
+        public string $language = 'php',
     ) {}
 }
