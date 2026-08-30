@@ -1,5 +1,9 @@
 # Aleph
 
+> **License:** Copyright © 2026 Sifrious. All rights reserved. This is
+> publicly viewable proprietary software, not open-source software. See
+> [LICENSE.md](LICENSE.md).
+
 Aleph is a Laravel package for bounded ingestion from external sources. Its implemented capability is a public-web crawl whose operational state remains in Aleph and whose retrieved content and discovery provenance are accepted by Funes.
 
 ## Installation
