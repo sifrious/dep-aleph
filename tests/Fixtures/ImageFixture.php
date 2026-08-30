@@ -41,7 +41,7 @@ final class ImageFixture
     public static function jpegEmptyExif(): string
     {
         // SOI + APP1 Exif (empty IFD) + SOF0 1×1 + EOI
-        $tiff = 'II*\x00'           // little-endian TIFF header
+        $tiff = "II*\x00"           // little-endian TIFF header
             ."\x08\x00\x00\x00"     // IFD0 offset
             ."\x00\x00"             // entry count = 0
             ."\x00\x00\x00\x00";    // next IFD
@@ -59,7 +59,7 @@ final class ImageFixture
     public static function jpegWithExifDate(): string
     {
         $date = "2026:08:29 12:00:00\0"; // 20 bytes
-        // Build TIFF with one ASCII tag (0x9003 DateTimeOriginal) stored inline? count=20 > 4, so offset.
+        // Build TIFF with one ASCII tag (0x9003 DateTimeOriginal). count=20 > 4, so offset.
         // Layout:
         // 0: II*\0
         // 4: IFD offset = 8
@@ -73,7 +73,7 @@ final class ImageFixture
             .pack('v', 2)                   // ASCII
             .pack('V', strlen($date))       // count
             .pack('V', $valueOffset);       // offset to value
-        $tiff = 'II*\x00'
+        $tiff = "II*\x00"
             .pack('V', $ifdOffset)
             .pack('v', 1)
             .$entry
