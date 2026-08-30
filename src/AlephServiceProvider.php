@@ -284,12 +284,10 @@ class AlephServiceProvider extends ServiceProvider
         $this->app->singleton(ScoreTabLocalModel::class, AbsentScoreTabLocalModel::class);
         $this->app->singleton(ScoreTabDerivationRecorder::class, FunesScoreTabDerivationRecorder::class);
         $this->app->singleton(LaunchScoreTabIngestion::class);
-<<<<<<< HEAD
         $this->app->singleton(HandwritingObservationWriter::class, FunesHandwritingObservationWriter::class);
         $this->app->singleton(HandwritingLocalOcrModel::class, AbsentHandwritingLocalOcrModel::class);
         $this->app->singleton(HandwritingOcrDerivationRecorder::class, FunesHandwritingOcrDerivationRecorder::class);
         $this->app->singleton(LaunchHandwritingIngestion::class);
-=======
         $this->app->singleton(ImageMetadataInspector::class, BinaryImageMetadataInspector::class);
         $this->app->singleton(ImageConverter::class, GdImageConverter::class);
         $this->app->singleton(ImageObservationWriter::class, FunesImageObservationWriter::class);
@@ -298,7 +296,6 @@ class AlephServiceProvider extends ServiceProvider
         $this->app->singleton(LaunchImageIngestion::class);
         $this->app->singleton(ConvertImageFormat::class);
         $this->app->singleton(RecordImageClassification::class);
->>>>>>> 65b30db (Add image LaunchIngestion adapter with convert and outsourced classification)
         $this->app->singleton(CommunicationSources::class);
         $this->app->singleton(CommunicationRecordSubmitter::class);
         $this->app->singleton(ImportCommunicationRecords::class);
