@@ -101,6 +101,9 @@ use Sifrious\Aleph\Connector\Midi\OursSmfMidiParser;
 use Sifrious\Aleph\Connector\SpokenSound\FunesSpokenSoundObservationWriter;
 use Sifrious\Aleph\Connector\SpokenSound\LaunchSpokenSoundIngestion;
 use Sifrious\Aleph\Connector\SpokenSound\SpokenSoundObservationWriter;
+use Sifrious\Aleph\Connector\AppleMail\AppleMailObservationWriter;
+use Sifrious\Aleph\Connector\AppleMail\FunesAppleMailObservationWriter;
+use Sifrious\Aleph\Connector\AppleMail\LaunchAppleMailIngestion;
 use Sifrious\Aleph\Connector\Slack\ConsumeSlackEvent;
 use Sifrious\Aleph\Connector\Slack\ImportSlackActivities;
 use Sifrious\Aleph\Connector\Slack\SlackActivitySources;
@@ -270,6 +273,8 @@ class AlephServiceProvider extends ServiceProvider
         $this->app->singleton(LaunchLocalVideoIngestion::class);
         $this->app->singleton(SpokenSoundObservationWriter::class, FunesSpokenSoundObservationWriter::class);
         $this->app->singleton(LaunchSpokenSoundIngestion::class);
+        $this->app->singleton(AppleMailObservationWriter::class, FunesAppleMailObservationWriter::class);
+        $this->app->singleton(LaunchAppleMailIngestion::class);
         $this->app->singleton(MidiParser::class, OursSmfMidiParser::class);
         $this->app->singleton(MidiObservationWriter::class, FunesMidiObservationWriter::class);
         $this->app->singleton(MidiExtractionRecorder::class, FunesMidiExtractionRecorder::class);
