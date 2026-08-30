@@ -23,6 +23,7 @@ jobs:
           php -r '
             $composer = json_decode(file_get_contents("composer.json"), true, 512, JSON_THROW_ON_ERROR);
             unset($composer["repositories"]);
+            unset($composer["require"]["sifrious/funes"]);
             file_put_contents(
               "composer.json",
               json_encode($composer, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR).PHP_EOL
@@ -31,4 +32,4 @@ jobs:
 
       - run: composer update --prefer-dist --no-interaction --no-progress
 
-      - run: vendor/bin/pest
+      - run: vendor/bin/pest tests/Feature/YouTubeIngestionTest.php

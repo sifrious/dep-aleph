@@ -12,7 +12,13 @@ abstract class TestCase extends Orchestra
 {
     protected function getPackageProviders($app): array
     {
-        return [FunesServiceProvider::class, AlephServiceProvider::class];
+        $providers = [AlephServiceProvider::class];
+
+        if (class_exists(FunesServiceProvider::class)) {
+            array_unshift($providers, FunesServiceProvider::class);
+        }
+
+        return $providers;
     }
 
     protected function defineEnvironment($app): void

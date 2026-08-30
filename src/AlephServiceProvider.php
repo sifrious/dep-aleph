@@ -61,9 +61,11 @@ use Sifrious\Aleph\Connector\Slack\SlackActivitySubmitter;
 use Sifrious\Aleph\Connector\Slack\SlackCredentials;
 use Sifrious\Aleph\Connector\Slack\SlackEventSecrets;
 use Sifrious\Aleph\Connector\Watch\RepositoryWatches;
+use Sifrious\Aleph\Connector\YouTube\FunesYouTubeObservationWriter;
 use Sifrious\Aleph\Connector\YouTube\LaunchYouTubeIngestion;
 use Sifrious\Aleph\Connector\YouTube\YtDlpYouTubeDownloader;
 use Sifrious\Aleph\Connector\YouTube\YouTubeDownloader;
+use Sifrious\Aleph\Connector\YouTube\YouTubeObservationWriter;
 use Sifrious\Aleph\Console\CrawlCommand;
 use Sifrious\Aleph\Console\InventoryCommand;
 use Sifrious\Aleph\Envelope\EnvelopeDrafter;
@@ -212,6 +214,7 @@ class AlephServiceProvider extends ServiceProvider
 
         $this->app->singleton(ConnectorRegistry::class);
         $this->app->singleton(YouTubeDownloader::class, YtDlpYouTubeDownloader::class);
+        $this->app->singleton(YouTubeObservationWriter::class, FunesYouTubeObservationWriter::class);
         $this->app->singleton(LaunchYouTubeIngestion::class);
         $this->app->singleton(CommunicationSources::class);
         $this->app->singleton(CommunicationRecordSubmitter::class);
