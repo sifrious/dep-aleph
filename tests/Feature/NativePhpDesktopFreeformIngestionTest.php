@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use RuntimeException;
 use Illuminate\Support\Facades\DB;
 use Sifrious\Aleph\Connector\ConnectorInstallations;
 use Sifrious\Aleph\Connector\ConnectorRegistry;
@@ -27,9 +28,17 @@ final class RecordingNativePhpDesktopWriter implements NativePhpDesktopObservati
     /** @var list<NativePhpDesktopFreeformSubmission> */
     public array $submissions = [];
 
+    public int $failuresRemaining = 0;
+
     public function write(NativePhpDesktopFreeformSubmission $submission, string $attemptId): string
     {
         $this->submissions[] = $submission;
+
+        if ($this->failuresRemaining > 0) {
+            $this->failuresRemaining--;
+
+            throw new RuntimeException('transient_nativephp_desktop_write_failure');
+        }
 
         return 'accepted:'.$submission->artifactReference;
     }
@@ -60,7 +69,7 @@ function nativePhpDesktopLauncher(): array
     $writer = new RecordingNativePhpDesktopWriter;
 
     return [
-        new LaunchNativePhpDesktopFreeformIngestion($launch, app(IngestionRuns::class), $writer),
+        new LaunchNativePhpDesktopFreeformIngestion($launch, app(IngestionRuns::class), $registry, $writer),
         $firstInstallation,
         $secondInstallation,
         $writer,
@@ -144,5 +153,30 @@ it('uses installation plus content hash for idempotency', function (): void {
         ->and($first->replayed)->toBeFalse()
         ->and($second->replayed)->toBeFalse()
         ->and(DB::table('aleph_ingestion_runs')->count())->toBe(2)
+        ->and($writer->submissions)->toHaveCount(2);
+});
+
+it('retries a replayed retryable failed run instead of returning immediately', function (): void {
+    [$launcher, $installation, , $writer] = nativePhpDesktopLauncher();
+    $body = "Transient failure should be retryable on replay.";
+    $request = new LaunchNativePhpDesktopFreeformIngestionRequest(
+        sourceInstallationId: $installation->id,
+        sourceReference: 'nativephp-desktop://device/workstation-1',
+        body: $body,
+        authorization: LaunchAuthorization::granted('identity:user/mary', 'authorization:nativephp-desktop/4'),
+    );
+    $writer->failuresRemaining = 1;
+
+    expect(fn () => $launcher->launch($request))
+        ->toThrow(RuntimeException::class, 'transient_nativephp_desktop_write_failure');
+
+    $result = $launcher->launch($request);
+    $run = app(IngestionRuns::class)->find($result->runId);
+
+    expect($result->replayed)->toBeFalse()
+        ->and($run)->not->toBeNull()
+        ->and($run?->status)->toBe(RunStatus::Completed)
+        ->and(DB::table('aleph_ingestion_runs')->count())->toBe(1)
+        ->and(DB::table('aleph_ingestion_attempts')->count())->toBe(2)
         ->and($writer->submissions)->toHaveCount(2);
 });
