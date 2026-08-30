@@ -19,7 +19,15 @@ jobs:
           coverage: none
 
       - name: Remove local path repository override
-        run: composer config --unset repositories.0
+        run: |
+          php -r '
+            $composer = json_decode(file_get_contents("composer.json"), true, 512, JSON_THROW_ON_ERROR);
+            unset($composer["repositories"]);
+            file_put_contents(
+              "composer.json",
+              json_encode($composer, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR).PHP_EOL
+            );
+          '
 
       - run: composer update --prefer-dist --no-interaction --no-progress
 
