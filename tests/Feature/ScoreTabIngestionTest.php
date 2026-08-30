@@ -7,8 +7,6 @@ use RuntimeException;
 use Sifrious\Aleph\Connector\ConnectorInstallations;
 use Sifrious\Aleph\Connector\ConnectorRegistry;
 use Sifrious\Aleph\Connector\ScoreTab\AbsentScoreTabLocalModel;
-use Sifrious\Aleph\Connector\ScoreTab\FunesScoreTabDerivationRecorder;
-use Sifrious\Aleph\Connector\ScoreTab\FunesScoreTabObservationWriter;
 use Sifrious\Aleph\Connector\ScoreTab\LaunchScoreTabIngestion;
 use Sifrious\Aleph\Connector\ScoreTab\LaunchScoreTabIngestionRequest;
 use Sifrious\Aleph\Connector\ScoreTab\LocalScoreTabFilePayload;
@@ -25,7 +23,6 @@ use Sifrious\Aleph\Ingestion\LaunchIngestion;
 use Sifrious\Aleph\Ingestion\LaunchIngestionResult;
 use Sifrious\Aleph\Ingestion\ManualIngestionDispatcher;
 use Sifrious\Aleph\Ingestion\RunStatus;
-use Sifrious\Funes\Persistence\ObservationStore;
 
 final class ScoreTabNullManualDispatcher implements ManualIngestionDispatcher
 {
@@ -289,19 +286,16 @@ it('records an optional local model derivation without failing ingest when the m
         ->and($derivations->records)->toBe([]);
 });
 
-it('stores a present free local model derivation as a new Funes extraction without overwriting raw bytes', function (): void {
+it('stores a present free local model derivation as a new version without overwriting raw bytes', function (): void {
     $raw = '<score-partwise version="3.1"><part id="P1"/></score-partwise>';
+    $derivations = new RecordingScoreTabDerivationRecorder;
     $model = new FixtureScoreTabLocalModel(
         derivation: new ScoreTabModelDerivation('oss-omr', '1.2.0', [
             'kind' => 'music_document_graph_stub',
             'parts' => [['id' => 'P1']],
         ]),
     );
-    [$launcher, $installation] = scoreTabLauncher(
-        $model,
-        app(FunesScoreTabObservationWriter::class),
-        app(FunesScoreTabDerivationRecorder::class),
-    );
+    [$launcher, $installation, , $writer] = scoreTabLauncher($model, derivations: $derivations);
 
     $result = $launcher->launch(LaunchScoreTabIngestionRequest::fromFile(
         sourceInstallationId: $installation->id,
@@ -309,22 +303,21 @@ it('stores a present free local model derivation as a new Funes extraction witho
         file: new LocalScoreTabFilePayload('melody.musicxml', $raw, 'application/vnd.recordare.musicxml+xml'),
         authorization: LaunchAuthorization::granted('identity:user/mary', 'authorization:score-tab/7'),
     ));
-
-    $observation = app(ObservationStore::class)->get($result->acceptedReferences[0] ?? '');
-    $extraction = DB::table('funes_extractions')->where('observation_id', $observation?->id)->first();
-    $decoded = json_decode((string) ($extraction->result ?? 'null'), true, 512, JSON_THROW_ON_ERROR);
+    $run = app(IngestionRuns::class)->find($result->runId);
+    $submitted = $writer->submissions[0] ?? null;
+    $recorded = $derivations->records[0] ?? null;
 
     expect($result->replayed)->toBeFalse()
-        ->and($observation)->not->toBeNull()
-        ->and($observation?->payload)->toBe($raw)
-        ->and($observation?->payloadHash)->toBe(hash('sha256', $raw))
-        ->and($extraction)->not->toBeNull()
-        ->and($extraction->extractor)->toBe('oss-omr')
-        ->and($extraction->version)->toBe('1.2.0')
-        ->and($extraction->status)->toBe('succeeded')
-        ->and($decoded['kind'] ?? null)->toBe('score_tab_derived_representation')
-        ->and($decoded['model'] ?? null)->toMatchArray(['name' => 'oss-omr', 'version' => '1.2.0'])
-        ->and($decoded['representation']['parts'][0]['id'] ?? null)->toBe('P1');
+        ->and($run?->status)->toBe(RunStatus::Completed)
+        ->and($writer->submissions)->toHaveCount(1)
+        ->and($submitted?->contents)->toBe($raw)
+        ->and($submitted?->checksum)->toBe(hash('sha256', $raw))
+        ->and($derivations->records)->toHaveCount(1)
+        ->and($recorded['observation_id'] ?? null)->toBe($result->acceptedReferences[0] ?? null)
+        ->and($recorded['run_id'] ?? null)->toBe($result->runId)
+        ->and($recorded['derivation']->modelName ?? null)->toBe('oss-omr')
+        ->and($recorded['derivation']->modelVersion ?? null)->toBe('1.2.0')
+        ->and($recorded['derivation']->representation['parts'][0]['id'] ?? null)->toBe('P1');
 });
 
 it('implements a real DownloadsArtifacts downloadArtifact for path and file inputs', function (): void {
