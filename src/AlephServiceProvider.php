@@ -66,6 +66,19 @@ use Sifrious\Aleph\Connector\Handwriting\HandwritingLocalOcrModel;
 use Sifrious\Aleph\Connector\Handwriting\HandwritingObservationWriter;
 use Sifrious\Aleph\Connector\Handwriting\HandwritingOcrDerivationRecorder;
 use Sifrious\Aleph\Connector\Handwriting\LaunchHandwritingIngestion;
+use Sifrious\Aleph\Connector\Image\BinaryImageMetadataInspector;
+use Sifrious\Aleph\Connector\Image\ConvertImageFormat;
+use Sifrious\Aleph\Connector\Image\FunesImageClassificationRecorder;
+use Sifrious\Aleph\Connector\Image\FunesImageConversionRecorder;
+use Sifrious\Aleph\Connector\Image\FunesImageObservationWriter;
+use Sifrious\Aleph\Connector\Image\GdImageConverter;
+use Sifrious\Aleph\Connector\Image\ImageClassificationRecorder;
+use Sifrious\Aleph\Connector\Image\ImageConversionRecorder;
+use Sifrious\Aleph\Connector\Image\ImageConverter;
+use Sifrious\Aleph\Connector\Image\ImageMetadataInspector;
+use Sifrious\Aleph\Connector\Image\ImageObservationWriter;
+use Sifrious\Aleph\Connector\Image\LaunchImageIngestion;
+use Sifrious\Aleph\Connector\Image\RecordImageClassification;
 use Sifrious\Aleph\Connector\ScoreTab\AbsentScoreTabLocalModel;
 use Sifrious\Aleph\Connector\ScoreTab\FunesScoreTabDerivationRecorder;
 use Sifrious\Aleph\Connector\ScoreTab\FunesScoreTabObservationWriter;
@@ -271,10 +284,21 @@ class AlephServiceProvider extends ServiceProvider
         $this->app->singleton(ScoreTabLocalModel::class, AbsentScoreTabLocalModel::class);
         $this->app->singleton(ScoreTabDerivationRecorder::class, FunesScoreTabDerivationRecorder::class);
         $this->app->singleton(LaunchScoreTabIngestion::class);
+<<<<<<< HEAD
         $this->app->singleton(HandwritingObservationWriter::class, FunesHandwritingObservationWriter::class);
         $this->app->singleton(HandwritingLocalOcrModel::class, AbsentHandwritingLocalOcrModel::class);
         $this->app->singleton(HandwritingOcrDerivationRecorder::class, FunesHandwritingOcrDerivationRecorder::class);
         $this->app->singleton(LaunchHandwritingIngestion::class);
+=======
+        $this->app->singleton(ImageMetadataInspector::class, BinaryImageMetadataInspector::class);
+        $this->app->singleton(ImageConverter::class, GdImageConverter::class);
+        $this->app->singleton(ImageObservationWriter::class, FunesImageObservationWriter::class);
+        $this->app->singleton(ImageConversionRecorder::class, FunesImageConversionRecorder::class);
+        $this->app->singleton(ImageClassificationRecorder::class, FunesImageClassificationRecorder::class);
+        $this->app->singleton(LaunchImageIngestion::class);
+        $this->app->singleton(ConvertImageFormat::class);
+        $this->app->singleton(RecordImageClassification::class);
+>>>>>>> 65b30db (Add image LaunchIngestion adapter with convert and outsourced classification)
         $this->app->singleton(CommunicationSources::class);
         $this->app->singleton(CommunicationRecordSubmitter::class);
         $this->app->singleton(ImportCommunicationRecords::class);
