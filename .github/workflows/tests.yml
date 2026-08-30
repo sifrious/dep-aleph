@@ -13,10 +13,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/checkout@v5
-        with:
-          repository: sifrious/dep-funes
-          path: ../Funes
+      - name: Clone sibling Funes package
+        run: git clone --depth 1 https://github.com/sifrious/dep-funes.git ../Funes
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -40,10 +38,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/checkout@v5
-        with:
-          repository: sifrious/dep-funes
-          path: ../Funes
+      - name: Clone sibling Funes package
+        run: git clone --depth 1 https://github.com/sifrious/dep-funes.git ../Funes
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -60,10 +56,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/checkout@v5
-        with:
-          repository: sifrious/dep-funes
-          path: ../Funes
+      - name: Clone sibling Funes package
+        run: git clone --depth 1 https://github.com/sifrious/dep-funes.git ../Funes
 
       - uses: shivammathur/setup-php@v2
         with:
