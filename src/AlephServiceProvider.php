@@ -13,7 +13,9 @@ use Illuminate\Database\DatabaseManager;
 use Illuminate\Support\ServiceProvider;
 use Sifrious\Aleph\Acceptance\AcceptanceClient;
 use Sifrious\Aleph\Acceptance\Backfill;
+use Sifrious\Aleph\Acceptance\HistoricalAssertionAcceptance;
 use Sifrious\Aleph\Acceptance\Submissions;
+use Sifrious\Aleph\Assertion\HistoricalAssertionAdapters;
 use Sifrious\Aleph\Connector\Communication\CommunicationRecordSubmitter;
 use Sifrious\Aleph\Connector\Communication\CommunicationSources;
 use Sifrious\Aleph\Connector\Communication\ImportCommunicationRecords;
@@ -167,6 +169,7 @@ use Sifrious\Aleph\Web\SystemClock;
 use Sifrious\Aleph\Web\WebSources;
 use Sifrious\Funes\Acceptance\AcceptanceBacklog;
 use Sifrious\Funes\Acceptance\AcceptanceGateway;
+use Sifrious\Funes\Assertion\HistoricalAssertionStore;
 use Sifrious\Funes\Persistence\ObservationStore;
 
 class AlephServiceProvider extends ServiceProvider
@@ -174,6 +177,14 @@ class AlephServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(__DIR__.'/../config/aleph.php', 'aleph');
+
+        $this->app->singleton(HistoricalAssertionAdapters::class, fn (Application $app): HistoricalAssertionAdapters => new HistoricalAssertionAdapters(
+            $app->tagged('aleph.historical_assertion_adapters'),
+        ));
+        $this->app->singleton(HistoricalAssertionAcceptance::class, fn (Application $app): HistoricalAssertionAcceptance => new HistoricalAssertionAcceptance(
+            $app->make(HistoricalAssertionAdapters::class),
+            $app->make(HistoricalAssertionStore::class),
+        ));
 
         $this->app->bind(WebSources::class, fn (Application $app): WebSources => new WebSources(
             (array) $app->make(Config::class)->get('aleph.web_sources', []),

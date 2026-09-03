@@ -270,3 +270,11 @@ retains original and normalized forms but makes no claim about the person contro
 
 **Unavailable communication object** — explicit source evidence that a provider channel, thread, or
 message no longer exposes content; absence is retained as lifecycle state instead of a missing row.
+
+**Historical assertion adapter** — a provider registration that converts one external claim payload
+into a canonical Funes observed, declared, or inferred assertion. It retains the raw provider record
+as a cross-package provenance reference.
+
+**Assertion normalization report** — the canonical assertion plus its raw-source reference,
+provider fields that Aleph could not represent, and optional provider confidence. This is mapping
+evidence, not canonical Funes state.

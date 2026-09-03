@@ -55,7 +55,8 @@
         "Gmail, Microsoft Graph, and IMAP records normalize to provider-neutral F28 messages; bounded mailbox pages advance opaque provider checkpoints only after Funes acceptance, and attachments remain Digory references.",
         "Slack credential migration retains workspace/account/scopes/status/timestamps and an opaque host secret-store reference; token material and legacy-row deletion remain outside Aleph.",
         "Landing SlackSyncRun rows import into the shared lifecycle with Slack workspace/channel scope and reconciled cursor, oldest, and high-water checkpoint state.",
-        "Slack polling and verified Events API observations converge through canonical activity identity; cursor/high-water checkpoints advance after Funes acceptance and attachment chunks hand off to Digory references."
+        "Slack polling and verified Events API observations converge through canonical activity identity; cursor/high-water checkpoints advance after Funes acceptance and attachment chunks hand off to Digory references.",
+        "Historical assertion adapters register by stable provider name, map provider payloads into Funes observed, declared, or inferred assertions, and report omitted fields and confidence outside canonical state."
     ],
     "assumptions": [
         "A sequential concurrency ceiling of one is sufficient for the bounded AHSD crawl.",
