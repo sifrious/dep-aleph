@@ -119,6 +119,7 @@ use Sifrious\Aleph\Connector\Slack\ConsumeSlackEvent;
 use Sifrious\Aleph\Connector\Slack\ImportSlackActivities;
 use Sifrious\Aleph\Connector\Slack\SlackActivitySources;
 use Sifrious\Aleph\Connector\Slack\SlackActivitySubmitter;
+use Sifrious\Aleph\Connector\Slack\SlackConnector;
 use Sifrious\Aleph\Connector\Slack\SlackCredentials;
 use Sifrious\Aleph\Connector\Slack\SlackEventSecrets;
 use Sifrious\Aleph\Connector\SourceInstallationQueries;
@@ -433,6 +434,15 @@ class AlephServiceProvider extends ServiceProvider
                 $app->make(SlackEventSecrets::class),
                 $app->make(ConnectorInstallations::class),
                 $app->make(SlackActivitySubmitter::class),
+            ),
+        );
+
+        $this->app->singleton(
+            SlackConnector::class,
+            fn (Application $app): SlackConnector => new SlackConnector(
+                $app->make(ImportSlackActivities::class),
+                $app->make(ConsumeSlackEvent::class),
+                $app->make(SourceConfigurationRecorder::class),
             ),
         );
 

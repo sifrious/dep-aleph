@@ -66,6 +66,13 @@ The workspace must be a Slack workspace identifier (`T…`) and every channel a 
 (`C…`, `G…`, or `D…`). The token itself is never an input; it stays wherever the host keeps
 credentials and reaches Aleph as `credentialReference`.
 
+`ALEPH_SMOKE_SLACK_TOKEN` is used only by `tests/Smoke/SlackWebApiSmokeTest.php`. It is not package
+configuration and must not be committed. Run that test explicitly when checking a real Slack app:
+
+```bash
+ALEPH_SMOKE_SLACK_TOKEN='resolved-by-your-shell' vendor/bin/pest tests/Smoke/SlackWebApiSmokeTest.php
+```
+
 ## Adding a source kind
 
 Implement `SourceConfigurationProvider` — `sourceKind()`, `schema()`, `credentialKind()`,

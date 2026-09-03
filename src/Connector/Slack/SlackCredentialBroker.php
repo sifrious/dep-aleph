@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Sifrious\Aleph\Connector\Slack;
 
 use DateTimeImmutable;
+use Sifrious\Aleph\Connector\ConnectorInstallations;
 
 final readonly class SlackCredentialBroker
 {
     public function __construct(
         private SlackCredentials $credentials,
         private SlackSecretStore $secrets,
+        private ?ConnectorInstallations $installations = null,
     ) {}
 
     public function accessToken(string $sourceInstallationId, DateTimeImmutable $at): SlackTokenSecret
@@ -18,7 +20,14 @@ final readonly class SlackCredentialBroker
         $credential = $this->credentials->forInstallation($sourceInstallationId);
 
         if ($credential === null) {
-            throw new SlackCredentialFailure(SlackCredentialState::Missing);
+            $reference = $this->installations?->find($sourceInstallationId)?->credentialsReference;
+
+            if ($reference === null || $reference === '') {
+                throw new SlackCredentialFailure(SlackCredentialState::Missing);
+            }
+
+            return $this->secrets->resolve($reference)
+                ?? throw new SlackCredentialFailure(SlackCredentialState::Missing);
         }
 
         $state = $credential->stateAt($at);

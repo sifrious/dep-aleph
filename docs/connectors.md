@@ -234,6 +234,34 @@ close as retryable partial work. Polling and events share canonical provider ide
 `AcquireSlackAttachment` resumes chunk acquisition from an opaque checkpoint and hands bytes to a
 stable Digory historical reference without creating Aleph-owned content history.
 
+`Connector/Slack/SlackWebApiActivitySource` is the live polling adapter. It resolves the source
+installation's opaque credential reference through `SlackCredentialBroker`, then calls
+`users.list`, `conversations.list`, or `conversations.history` through
+`Connector/Slack/SlackWebApiTransport`. The package includes
+`Connector/Slack/HttpSlackWebApiTransport`; the host supplies the Guzzle client and
+`SlackSecretStore`.
+
+Register one source for each configured installation:
+
+```php
+$broker = new SlackCredentialBroker(
+    app(SlackCredentials::class),
+    app(SlackSecretStore::class),
+    app(ConnectorInstallations::class),
+);
+
+app(SlackActivitySources::class)->register(new SlackWebApiActivitySource(
+    'slack:workspace/T0123456789',
+    $installation->id,
+    $broker,
+    new HttpSlackWebApiTransport(app(ClientInterface::class)),
+));
+```
+
+The adapter sends the token only in the Authorization header. Provider responses become plain
+`SlackActivity` values before they cross the source boundary. A 429 response records the retry time
+on the Aleph attempt and leaves the checkpoint unchanged.
+
 ## Provider-neutral communication adapters
 
 `ProviderCommunicationConnector` owns bounded backfill and incremental lifecycle behavior shared by
