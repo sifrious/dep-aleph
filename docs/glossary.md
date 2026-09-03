@@ -281,3 +281,7 @@ evidence, not canonical Funes state.
 
 **Operator command.** An Artisan transport over an Aleph application service. It parses input and
 renders text or JSON, but it does not implement ingestion, retry, resume, or provider behavior.
+
+**Source installation state.** The read model returned for one configured source. It combines the
+installation, current health report, active streams and checkpoints, schedules, recent runs, and
+active retry backoff without copying those records into another table.

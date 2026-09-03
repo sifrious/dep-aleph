@@ -11,6 +11,7 @@ use Sifrious\Aleph\Ingestion\IngestionRun;
 use Sifrious\Aleph\Ingestion\IngestionRuns;
 use Sifrious\Aleph\Ingestion\IngestionSchedules;
 use Sifrious\Aleph\Ingestion\IngestionTrigger;
+use Sifrious\Aleph\Ingestion\RunFailure;
 use Sifrious\Aleph\Ingestion\ScheduledIngestion;
 use Sifrious\Aleph\Ingestion\ScheduledIngestionDispatcher;
 use Sifrious\Aleph\Testing\Fakes\DiscoveryAndDownloadConnector;
@@ -73,7 +74,7 @@ it('schedules two accounts of one connector at different cadences without code c
         $at,
     );
     $dispatcher = new ScheduleFakeDispatcher(app(IngestionRuns::class));
-    $command = new DispatchDueSchedules($schedules, $dispatcher);
+    $command = new DispatchDueSchedules($schedules, $dispatcher, app(IngestionRuns::class));
     $dispatched = $command->dispatch('scheduler:one', new DateTimeImmutable('2026-08-28T14:15:00+00:00'));
     $rescheduled = $schedules->reschedule(
         $secondSchedule,
@@ -157,4 +158,71 @@ it('uses expiring distributed claims and respects disabled schedules', function 
         ->and($expiredClaim)->toHaveCount(1)
         ->and($expiredClaim[0]->lockedBy)->toBe('scheduler:two')
         ->and($schedules->claimDue('scheduler:three', $dueAt->modify('+180 seconds'), 1, 60))->toBe([]);
+});
+
+it('does not claim due work for a disabled source installation', function (): void {
+    [$installation, , $schedules] = scheduleFixture();
+    $createdAt = new DateTimeImmutable('2026-08-28T14:00:00+00:00');
+    $schedules->create(
+        $installation->id,
+        ConnectorCapability::DiscoversSources,
+        '*/5 * * * *',
+        'UTC',
+        [],
+        $createdAt,
+    );
+    app(ConnectorInstallations::class)->disable($installation->id);
+
+    expect($schedules->claimDue(
+        'scheduler:disabled-source',
+        new DateTimeImmutable('2026-08-28T14:05:00+00:00'),
+        10,
+        60,
+    ))->toBe([]);
+});
+
+it('defers scheduled work during active backoff and dispatches it after expiry', function (): void {
+    [$installation, , $schedules] = scheduleFixture();
+    $runs = app(IngestionRuns::class);
+    $createdAt = new DateTimeImmutable('2026-08-28T14:00:00+00:00');
+    $schedule = $schedules->create(
+        $installation->id,
+        ConnectorCapability::DiscoversSources,
+        '*/5 * * * *',
+        'UTC',
+        [],
+        $createdAt,
+    );
+    $run = $runs->start(
+        'archive-drop:backoff',
+        Capability::DiscoverSources,
+        [],
+        connectorId: 'archive-drop',
+        sourceInstallationId: $installation->id,
+    );
+    $attempt = $runs->beginAttempt($run);
+    $runs->failAttempt(
+        $run,
+        $attempt,
+        new RunFailure('rate_limited', 'Try later.', true),
+        backoffUntil: new DateTimeImmutable('2026-08-28T14:10:00+00:00'),
+    );
+    $dispatcher = new ScheduleFakeDispatcher($runs);
+    $command = new DispatchDueSchedules($schedules, $dispatcher, $runs);
+
+    expect($command->dispatch(
+        'scheduler:backoff',
+        new DateTimeImmutable('2026-08-28T14:05:00+00:00'),
+    ))->toBe([])
+        ->and($dispatcher->dispatches)->toBe(0)
+        ->and($schedules->find($schedule->id)?->lockedBy)->toBeNull();
+
+    $dispatched = $command->dispatch(
+        'scheduler:after-backoff',
+        new DateTimeImmutable('2026-08-28T14:10:01+00:00'),
+    );
+
+    expect($dispatched)->toHaveCount(1)
+        ->and($dispatcher->dispatches)->toBe(1)
+        ->and($dispatched[0]->scheduleId)->toBe($schedule->id);
 });

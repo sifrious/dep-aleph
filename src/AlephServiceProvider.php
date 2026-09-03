@@ -119,6 +119,7 @@ use Sifrious\Aleph\Connector\Slack\SlackActivitySources;
 use Sifrious\Aleph\Connector\Slack\SlackActivitySubmitter;
 use Sifrious\Aleph\Connector\Slack\SlackCredentials;
 use Sifrious\Aleph\Connector\Slack\SlackEventSecrets;
+use Sifrious\Aleph\Connector\SourceInstallationQueries;
 use Sifrious\Aleph\Connector\SpokenSound\FunesSpokenSoundObservationWriter;
 use Sifrious\Aleph\Connector\SpokenSound\LaunchSpokenSoundIngestion;
 use Sifrious\Aleph\Connector\SpokenSound\SpokenSoundObservationWriter;
@@ -138,15 +139,21 @@ use Sifrious\Aleph\Connector\YouTube\YtDlpYouTubeDownloader;
 use Sifrious\Aleph\Console\ConfigureSourceCommand;
 use Sifrious\Aleph\Console\ConnectorsCommand;
 use Sifrious\Aleph\Console\CrawlCommand;
+use Sifrious\Aleph\Console\DisableSourceCommand;
+use Sifrious\Aleph\Console\DispatchSchedulesCommand;
+use Sifrious\Aleph\Console\EnableSourceCommand;
 use Sifrious\Aleph\Console\InventoryCommand;
 use Sifrious\Aleph\Console\ResumeRunCommand;
 use Sifrious\Aleph\Console\RetryRunCommand;
 use Sifrious\Aleph\Console\RunCommand;
 use Sifrious\Aleph\Console\RunsCommand;
 use Sifrious\Aleph\Console\ShowRunCommand;
+use Sifrious\Aleph\Console\ShowSourceCommand;
+use Sifrious\Aleph\Console\SourcesCommand;
 use Sifrious\Aleph\Envelope\EnvelopeDrafter;
 use Sifrious\Aleph\Envelope\EnvelopeSubmitter;
 use Sifrious\Aleph\Ingestion\ContinuationLeases;
+use Sifrious\Aleph\Ingestion\DispatchDueSchedules;
 use Sifrious\Aleph\Ingestion\DomainRunQueries;
 use Sifrious\Aleph\Ingestion\GitHubRunQueries;
 use Sifrious\Aleph\Ingestion\IncrementalChanges;
@@ -158,6 +165,7 @@ use Sifrious\Aleph\Ingestion\IngestionRuns;
 use Sifrious\Aleph\Ingestion\IngestionSchedules;
 use Sifrious\Aleph\Ingestion\IngestLanguage;
 use Sifrious\Aleph\Ingestion\LinearRunQueries;
+use Sifrious\Aleph\Ingestion\ScheduledIngestionDispatcher;
 use Sifrious\Aleph\Ingestion\SlackRunQueries;
 use Sifrious\Aleph\Ingestion\SourceStreams;
 use Sifrious\Aleph\Ingestion\SourceStreamStatuses;
@@ -610,6 +618,28 @@ class AlephServiceProvider extends ServiceProvider
         );
 
         $this->app->singleton(
+            SourceInstallationQueries::class,
+            fn (Application $app): SourceInstallationQueries => new SourceInstallationQueries(
+                $app->make(ConnectorInstallations::class),
+                $app->make(ConnectorHealthQueries::class),
+                $app->make(SourceStreams::class),
+                $app->make(SourceStreamStatuses::class),
+                $app->make(IngestionCheckpoints::class),
+                $app->make(IngestionSchedules::class),
+                $app->make(IngestionRunQueries::class),
+            ),
+        );
+
+        $this->app->singleton(
+            DispatchDueSchedules::class,
+            fn (Application $app): DispatchDueSchedules => new DispatchDueSchedules(
+                $app->make(IngestionSchedules::class),
+                $app->make(ScheduledIngestionDispatcher::class),
+                $app->make(IngestionRuns::class),
+            ),
+        );
+
+        $this->app->singleton(
             SourceScopeAssociations::class,
             fn (Application $app): SourceScopeAssociations => new SourceScopeAssociations($this->connection($app)),
         );
@@ -695,12 +725,17 @@ class AlephServiceProvider extends ServiceProvider
                 ConfigureSourceCommand::class,
                 ConnectorsCommand::class,
                 CrawlCommand::class,
+                DisableSourceCommand::class,
+                DispatchSchedulesCommand::class,
+                EnableSourceCommand::class,
                 InventoryCommand::class,
                 ResumeRunCommand::class,
                 RetryRunCommand::class,
                 RunCommand::class,
                 RunsCommand::class,
                 ShowRunCommand::class,
+                ShowSourceCommand::class,
+                SourcesCommand::class,
             ]);
 
             $this->publishes([
