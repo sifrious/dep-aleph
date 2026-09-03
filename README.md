@@ -17,6 +17,10 @@ reference rather than canonical Funes state.
 
 ## Installation
 
+The complete fresh-application walkthrough is in [`docs/installation.md`](docs/installation.md).
+Upgrade checks are documented in [`docs/upgrading.md`](docs/upgrading.md), and current connector
+coverage is listed in [`docs/connector-support.md`](docs/connector-support.md).
+
 Install Aleph and run the package migrations:
 
 ```bash

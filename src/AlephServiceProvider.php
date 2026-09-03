@@ -25,6 +25,7 @@ use Sifrious\Aleph\Connector\Communication\ImportCommunicationRecords;
 use Sifrious\Aleph\Connector\Configuration\ConfigureSource;
 use Sifrious\Aleph\Connector\Configuration\FunesSourceConfigurationRecorder;
 use Sifrious\Aleph\Connector\Configuration\SourceConfigurationRecorder;
+use Sifrious\Aleph\Connector\Configuration\WebCrawlConnector;
 use Sifrious\Aleph\Connector\ConnectorCatalogue;
 use Sifrious\Aleph\Connector\ConnectorCredentials;
 use Sifrious\Aleph\Connector\ConnectorDispatcher;
@@ -153,6 +154,7 @@ use Sifrious\Aleph\Console\RunsCommand;
 use Sifrious\Aleph\Console\ShowRunCommand;
 use Sifrious\Aleph\Console\ShowSourceCommand;
 use Sifrious\Aleph\Console\SourcesCommand;
+use Sifrious\Aleph\Console\UpgradeCheckCommand;
 use Sifrious\Aleph\Envelope\EnvelopeDrafter;
 use Sifrious\Aleph\Envelope\EnvelopeSubmitter;
 use Sifrious\Aleph\Ingestion\ContinuationLeases;
@@ -606,6 +608,13 @@ class AlephServiceProvider extends ServiceProvider
         );
 
         $this->app->singleton(
+            WebCrawlConnector::class,
+            fn (Application $app): WebCrawlConnector => new WebCrawlConnector(
+                $app->make(SourceConfigurationRecorder::class),
+            ),
+        );
+
+        $this->app->singleton(
             RegisterSourceAccount::class,
             fn (Application $app): RegisterSourceAccount => new RegisterSourceAccount(
                 $this->connection($app),
@@ -749,6 +758,7 @@ class AlephServiceProvider extends ServiceProvider
                 ShowRunCommand::class,
                 ShowSourceCommand::class,
                 SourcesCommand::class,
+                UpgradeCheckCommand::class,
             ]);
 
             $this->publishes([

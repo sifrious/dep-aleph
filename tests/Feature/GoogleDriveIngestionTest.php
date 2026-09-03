@@ -272,7 +272,7 @@ function realGoogleDriveLauncher(FixtureGoogleDriveFileClient $client): array
     ];
 }
 
-it('ingests one Google Doc into interchange bytes plus a 777 format handoff', function (): void {
+it('ingests one Google Doc into interchange bytes plus a document format handoff', function (): void {
     [$fileId, $client, $docx, $revision] = googleDriveDocFixture();
     [$launcher, $installation, , $writer, $handoff] = googleDriveLauncher($client, launchFormatRun: true);
 

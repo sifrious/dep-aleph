@@ -23,6 +23,8 @@ and PPTX remain explicit deferred results. Slack has a Web API polling adapter t
 host credentials, resumes bounded pages from accepted checkpoints, and converges with verified
 webhooks on canonical activity identity. The crawler records accepted redirect aliases and uses them
 to avoid duplicate retrievals on later runs while keeping both requested and final URLs visible.
+Fresh installation and upgrade guides, a connector support table, matrix CI, and opt-in smoke tests
+cover routine package use.
 
 ## Milestone 1: operator-facing capability commands
 
