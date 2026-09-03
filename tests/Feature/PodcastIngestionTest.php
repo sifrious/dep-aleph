@@ -196,3 +196,12 @@ it('supports rss episode references and rejects drm-only apple music tracks', fu
             authorization: LaunchAuthorization::granted('identity:user/mary', 'authorization:podcast/4'),
         )))->toThrow(UnfetchablePodcastEpisode::class, 'DRM-protected');
 });
+
+it('ships a direct enclosure resolver without treating ordinary pages as media', function (): void {
+    $resolver = app(PodcastEpisodeResolver::class);
+    $url = 'https://cdn.example.test/podcast/episode-42.mp3';
+
+    expect($resolver->resolve('enclosure:'.$url)->enclosureUrl)->toBe($url)
+        ->and(fn () => $resolver->resolve('https://podcasts.example.test/show/42'))
+        ->toThrow(UnsupportedPodcastReference::class);
+});

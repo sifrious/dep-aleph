@@ -226,6 +226,15 @@ bytes nor inferred people. Hosts own OAuth refresh and mailbox authorization. A 
 `src/Connector/Email/GmailTokenResolver.php` gives the HTTP transport a token for one source
 installation at request time.
 
+## Podcast enclosures
+
+`src/Connector/Podcast/DirectPodcastEpisodeResolver.php` accepts an explicit
+`enclosure:https://...` reference. It uses the enclosure URL to create a stable episode identity,
+then the existing podcast launch path downloads the media and submits its bytes, checksum, media
+type, and source URL to Funes. Ordinary web URLs remain unsupported because Aleph cannot tell from a
+URL alone whether it names a show page, an episode page, a feed, or a media file. Hosts may replace
+the resolver when they can resolve Apple Podcasts, RSS, or another catalogue without guessing.
+
 ## Slack credential adapters
 
 `SlackCredentialBroker` gives connector code a resolved access token only through a host-provided
