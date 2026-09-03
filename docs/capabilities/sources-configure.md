@@ -120,6 +120,21 @@ Adapter: `Configuration\GoogleDriveConfigurationAdapter`. Source kind `google-dr
 not part of configuration. The host resolves the opaque credential reference when it constructs the
 `GoogleDriveFileClient` used by that source.
 
+## Gmail mailbox inputs
+
+Adapter: `src/Connector/Configuration/GmailMailboxConfigurationAdapter.php`. Source kind `gmail`.
+Requires a `CredentialKind::OAuth2` reference.
+
+| Input | Env key | Type | Default | Secret | When absent |
+| --- | --- | --- | --- | --- | --- |
+| `mailbox` | `ALEPH_GMAIL_MAILBOX` | string | none | no | rejected |
+| `include_spam_trash` | `ALEPH_GMAIL_INCLUDE_SPAM_TRASH` | boolean | `false` | no | default applied |
+
+`mailbox` accepts an email address or `me` for the mailbox tied to the OAuth token. The host resolves
+the opaque OAuth reference when it constructs `src/Connector/Email/HttpGmailApiTransport.php`.
+The token needs a Gmail read scope. `ALEPH_SMOKE_GMAIL_TOKEN` and
+`ALEPH_SMOKE_GMAIL_MAILBOX` are test-only values for the opt-in live check.
+
 ## Adding a source kind
 
 Implement `SourceConfigurationProvider` — `sourceKind()`, `schema()`, `credentialKind()`,

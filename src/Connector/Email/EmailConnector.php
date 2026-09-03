@@ -5,18 +5,27 @@ declare(strict_types=1);
 namespace Sifrious\Aleph\Connector\Email;
 
 use InvalidArgumentException;
+use Sifrious\Aleph\Connector\Configuration\GmailMailboxConfigurationAdapter;
+use Sifrious\Aleph\Connector\Configuration\GmailMailboxSourceConfigurator;
+use Sifrious\Aleph\Connector\Configuration\SourceConfiguration;
+use Sifrious\Aleph\Connector\Configuration\SourceConfigurationRecorder;
+use Sifrious\Aleph\Connector\Configuration\SourceConfigurationRequest;
 use Sifrious\Aleph\Connector\ConfigurationSchema;
 use Sifrious\Aleph\Connector\Connector;
 use Sifrious\Aleph\Connector\Contracts\Backfills;
+use Sifrious\Aleph\Connector\Contracts\ConfiguresSources;
 use Sifrious\Aleph\Connector\Contracts\SyncsIncrementally;
 use Sifrious\Aleph\Connector\Values\OperationRequest;
 use Sifrious\Aleph\Connector\Values\OperationResult;
 use Sifrious\Aleph\Ingestion\Capability;
 use Throwable;
 
-final readonly class EmailConnector implements Backfills, Connector, SyncsIncrementally
+final readonly class EmailConnector implements Backfills, ConfiguresSources, Connector, SyncsIncrementally
 {
-    public function __construct(private ImportEmailMessages $importer) {}
+    public function __construct(
+        private ImportEmailMessages $importer,
+        private ?SourceConfigurationRecorder $configurationRecorder = null,
+    ) {}
 
     public function id(): string
     {
@@ -35,7 +44,12 @@ final readonly class EmailConnector implements Backfills, Connector, SyncsIncrem
 
     public function configuration(): ConfigurationSchema
     {
-        return new ConfigurationSchema;
+        return (new GmailMailboxConfigurationAdapter)->schema();
+    }
+
+    public function configureSource(SourceConfigurationRequest $request): SourceConfiguration
+    {
+        return (new GmailMailboxSourceConfigurator($this, $this->configurationRecorder))->configureSource($request);
     }
 
     public function backfill(OperationRequest $request): OperationResult

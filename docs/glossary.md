@@ -57,6 +57,11 @@ repository, pull request, review, comment, and reaction activities. See
 tasks, and links. The bundled HTTP transport resolves an OAuth token or personal API key for one
 source installation before each GraphQL request. See `src/Connector/Linear/LinearGraphqlSource.php`.
 
+**Gmail mailbox source.** A configured Gmail mailbox read through OAuth. The bundled source lists and
+fetches full messages on its first sync, then reads mailbox history after the last accepted Gmail
+history ID. The checkpoint also retains provider page tokens when a bounded run pauses. See
+`src/Connector/Email/GmailApiSource.php` and `src/Connector/Email/GmailCheckpoint.php`.
+
 **Extractor selector** — chooses `aleph.html:1`, `aleph.pdf:1`, or `aleph.unsupported:1` from the
 normalized response media type.
 
@@ -260,8 +265,8 @@ Linear workspace stream.
 threading, original headers and addresses, normalized participants, timestamps, bodies, mailbox
 state, attachment references, and raw-source provenance.
 
-**Email provider checkpoint** — an opaque Gmail history ID, Microsoft Graph delta link, or IMAP
-UIDVALIDITY/UID value committed only after the preceding page is accepted by Funes.
+**Email provider checkpoint.** Versioned Gmail sync state, a Microsoft Graph delta link, or an IMAP
+UIDVALIDITY and UID value committed only after Funes accepts the preceding page.
 
 **Digory attachment handoff** — a stable historical reference to provider-owned attachment content;
 Aleph retains identity and metadata while artifact retrieval and storage remain Digory concerns.
