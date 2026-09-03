@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\DB;
 use Sifrious\Aleph\Connector\ConnectorInstallations;
 use Sifrious\Aleph\Connector\ConnectorRegistry;
+use Sifrious\Aleph\Connector\Contracts\DownloadsArtifacts;
 use Sifrious\Aleph\Connector\Midi\LaunchMidiIngestion;
 use Sifrious\Aleph\Connector\Midi\LaunchMidiIngestionRequest;
 use Sifrious\Aleph\Connector\Midi\LocalMidiFilePayload;
@@ -14,6 +15,7 @@ use Sifrious\Aleph\Connector\Midi\MidiExtractionRecorder;
 use Sifrious\Aleph\Connector\Midi\MidiObservationWriter;
 use Sifrious\Aleph\Connector\Midi\MidiParseResult;
 use Sifrious\Aleph\Connector\Midi\OursSmfMidiParser;
+use Sifrious\Aleph\Connector\Values\ArtifactRequest;
 use Sifrious\Aleph\Ingestion\IngestionRuns;
 use Sifrious\Aleph\Ingestion\LaunchAuthorization;
 use Sifrious\Aleph\Ingestion\LaunchIngestion;
@@ -259,12 +261,12 @@ it('implements a real DownloadsArtifacts downloadArtifact for path and file inpu
     $bytes = MidiFixture::smf0Simple();
     $path = tempMidi($bytes, 'midi');
 
-    $fromPath = $connector->downloadArtifact(new \Sifrious\Aleph\Connector\Values\ArtifactRequest(
+    $fromPath = $connector->downloadArtifact(new ArtifactRequest(
         sourceReference: 'desktop:midi-library',
         artifactReference: 'file://'.$path,
         parameters: ['input' => 'path', 'path' => $path],
     ));
-    $fromFile = $connector->downloadArtifact(new \Sifrious\Aleph\Connector\Values\ArtifactRequest(
+    $fromFile = $connector->downloadArtifact(new ArtifactRequest(
         sourceReference: 'desktop:midi-library',
         artifactReference: 'memory://probe.mid',
         parameters: [
@@ -275,7 +277,7 @@ it('implements a real DownloadsArtifacts downloadArtifact for path and file inpu
         ],
     ));
 
-    expect($connector)->toBeInstanceOf(\Sifrious\Aleph\Connector\Contracts\DownloadsArtifacts::class)
+    expect($connector)->toBeInstanceOf(DownloadsArtifacts::class)
         ->and($fromPath->contents)->toBe($bytes)
         ->and($fromPath->mediaType)->toBe('audio/midi')
         ->and($fromFile->contents)->toBe($bytes)

@@ -108,7 +108,7 @@ final readonly class LaunchPodcastIngestion
                 contents: $artifact->contents,
                 checksum: $checksum,
                 bytes: strlen($artifact->contents),
-                episodeMetadata: is_array($artifact->metadata) ? array_merge($resolved->metadata, $artifact->metadata) : $resolved->metadata,
+                episodeMetadata: array_merge($resolved->metadata, $artifact->metadata),
             ), $attempt->id);
 
             $this->runs->succeedAttempt(
@@ -124,7 +124,7 @@ final readonly class LaunchPodcastIngestion
                 new RunFailure(
                     'podcast_ingestion',
                     $failure->getMessage(),
-                    ! $failure instanceof InvalidArgumentException && ! $failure instanceof UnfetchablePodcastEpisode && ! $failure instanceof UnsupportedPodcastReference,
+                    ! $failure instanceof InvalidArgumentException && ! $failure instanceof UnfetchablePodcastEpisode,
                     ['failure' => $failure::class],
                 ),
             );

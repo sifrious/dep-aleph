@@ -40,7 +40,7 @@ final readonly class FunesYouTubeObservationWriter implements YouTubeObservation
                 'download_strategy' => 'best-practical-media',
             ]),
             contentType: $submission->mediaType,
-            artifacts: array_values(array_filter([
+            artifacts: array_filter([
                 new ArtifactReference(
                     reference: $submission->canonicalUrl.'#media',
                     relationship: 'primary',
@@ -51,7 +51,7 @@ final readonly class FunesYouTubeObservationWriter implements YouTubeObservation
                     ],
                 ),
                 $transcriptReference,
-            ])),
+            ]),
             extensions: [
                 new ExtensionMetadata('youtube.video', 1, [
                     'canonical_url' => $submission->canonicalUrl,

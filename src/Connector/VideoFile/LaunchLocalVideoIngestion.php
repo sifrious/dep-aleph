@@ -10,8 +10,8 @@ use Sifrious\Aleph\Connector\ConnectorRegistry;
 use Sifrious\Aleph\Connector\Contracts\DownloadsArtifacts;
 use Sifrious\Aleph\Connector\Values\ArtifactRequest;
 use Sifrious\Aleph\Ingestion\IngestAdapterRegistry;
-use Sifrious\Aleph\Ingestion\IngestLanguage;
 use Sifrious\Aleph\Ingestion\IngestionRuns;
+use Sifrious\Aleph\Ingestion\IngestLanguage;
 use Sifrious\Aleph\Ingestion\LaunchIngestion;
 use Sifrious\Aleph\Ingestion\LaunchIngestionRequest;
 use Sifrious\Aleph\Ingestion\RunFailure;
@@ -82,7 +82,7 @@ final readonly class LaunchLocalVideoIngestion
             $this->runs->succeedAttempt(
                 $run,
                 $attempt,
-                ['artifacts' => 1, 'accepted' => 1, 'language' => $language->value],
+                ['artifacts' => 1, 'accepted' => 1],
                 [$accepted],
             );
         } catch (Throwable $failure) {
@@ -144,7 +144,7 @@ final readonly class LaunchLocalVideoIngestion
             contents: $artifact->contents,
             checksum: $videoChecksum,
             bytes: strlen($artifact->contents),
-            metadata: is_array($artifact->metadata) ? $artifact->metadata : [],
+            metadata: $artifact->metadata,
             language: IngestLanguage::Php->value,
         ), $attemptId);
     }
@@ -188,7 +188,7 @@ final readonly class LaunchLocalVideoIngestion
             artifactReference: $prepared['artifact_reference'],
             mediaType: $artifact->mediaType,
             contents: $artifact->contents,
-            metadata: is_array($artifact->metadata) ? $artifact->metadata : [],
+            metadata: $artifact->metadata,
         );
 
         if (($document['payload_sha256'] ?? null) !== $videoChecksum) {
@@ -229,16 +229,16 @@ final readonly class LaunchLocalVideoIngestion
             return [
                 'artifact_reference' => 'file://'.$path,
                 'checksum' => $checksum,
-                'run_parameters' => array_filter([
+                'run_parameters' => [
                     'input' => 'path',
                     'path' => $path,
                     'name' => basename($path),
                     'sha256' => $checksum,
-                ], static fn (mixed $value): bool => $value !== null),
-                'connector_parameters' => array_filter([
+                ],
+                'connector_parameters' => [
                     'input' => 'path',
                     'path' => $path,
-                ], static fn (mixed $value): bool => $value !== null),
+                ],
             ];
         }
 

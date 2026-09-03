@@ -6,11 +6,14 @@ namespace Sifrious\Aleph\Testing\Contracts;
 
 use Sifrious\Aleph\Connector\Capability;
 use Sifrious\Aleph\Connector\CapabilitySet;
+use Sifrious\Aleph\Connector\Configuration\SourceConfigurationRejected;
+use Sifrious\Aleph\Connector\Configuration\SourceConfigurationRequest;
 use Sifrious\Aleph\Connector\ConfigurationField;
 use Sifrious\Aleph\Connector\Connector;
 use Sifrious\Aleph\Connector\ConnectorManifest;
 use Sifrious\Aleph\Connector\Contracts\Backfills;
 use Sifrious\Aleph\Connector\Contracts\ChecksHealth;
+use Sifrious\Aleph\Connector\Contracts\ConfiguresSources;
 use Sifrious\Aleph\Connector\Contracts\ConsumesWebhooks;
 use Sifrious\Aleph\Connector\Contracts\DiscoversSources;
 use Sifrious\Aleph\Connector\Contracts\DownloadsArtifacts;
@@ -77,7 +80,7 @@ final class ConnectorContract
         $violations = [];
 
         foreach ($connector->configuration()->toArray() as $field) {
-            foreach (['value', 'default', 'secret_value', 'token', 'password'] as $forbidden) {
+            foreach (['value', 'secret_value', 'token', 'password'] as $forbidden) {
                 if (array_key_exists($forbidden, $field)) {
                     $violations[] = "configuration field [{$field['name']}] exposes [{$forbidden}]";
                 }
@@ -87,6 +90,10 @@ final class ConnectorContract
         foreach ($connector->configuration()->fields as $field) {
             if (self::looksSecret($field) && ! $field->secret) {
                 $violations[] = "configuration field [{$field->name}] looks like a credential but is not marked secret";
+            }
+
+            if ($field->secret && ($field->hasDefault() || $field->envKey !== null)) {
+                $violations[] = "configuration field [{$field->name}] is secret and must not declare a default or environment key";
             }
         }
 
@@ -136,6 +143,10 @@ final class ConnectorContract
             return ["connector does not implement {$contract}"];
         }
 
+        if ($capability === Capability::ConfiguresSources && $connector instanceof ConfiguresSources) {
+            return self::probeConfiguration($connector);
+        }
+
         try {
             $result = self::invoke($connector, $capability);
         } catch (Throwable $failure) {
@@ -169,6 +180,30 @@ final class ConnectorContract
         }
 
         return $violations;
+    }
+
+    /**
+     * A configuring connector must refuse an input its schema does not declare.
+     *
+     * @return list<string>
+     */
+    private static function probeConfiguration(ConfiguresSources $connector): array
+    {
+        try {
+            $connector->configureSource(new SourceConfigurationRequest(
+                'contract-probe',
+                'Contract probe',
+                ['aleph_contract_probe_unknown_input' => 'probe'],
+            ));
+        } catch (SourceConfigurationRejected $rejection) {
+            return $rejection->reason === SourceConfigurationRejected::UNKNOWN_INPUT
+                ? []
+                : ['[sources.configure] refused an undeclared input for the wrong reason: '.$rejection->reason];
+        } catch (Throwable $failure) {
+            return ['invoking [sources.configure] threw '.$failure::class.': '.$failure->getMessage()];
+        }
+
+        return ['[sources.configure] accepted an input its schema does not declare'];
     }
 
     private static function invoke(Connector $connector, Capability $capability): mixed

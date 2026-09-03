@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\DB;
 use Sifrious\Aleph\Connector\ConnectorInstallations;
 use Sifrious\Aleph\Connector\ConnectorRegistry;
+use Sifrious\Aleph\Connector\Contracts\DownloadsArtifacts;
 use Sifrious\Aleph\Connector\GoogleDrive\AbsentDocumentFormatHandoff;
 use Sifrious\Aleph\Connector\GoogleDrive\DocumentFormatHandoff;
 use Sifrious\Aleph\Connector\GoogleDrive\DocumentFormatHandoffRequest;
@@ -236,7 +237,7 @@ it('ingests one Google Doc into interchange bytes plus a 777 format handoff', fu
 it('stores a PDF sitting in Drive as a PDF and routes without re-wrapping', function (): void {
     $fileId = 'pdf-file-1';
     $revision = 'rev-pdf-1';
-    $pdf = "%PDF-1.4 drive-fixture-bytes";
+    $pdf = '%PDF-1.4 drive-fixture-bytes';
     $client = new FixtureGoogleDriveFileClient(
         [
             $fileId => new GoogleDriveFileMetadata($fileId, $revision, 'application/pdf', 'invoice.pdf'),
@@ -365,7 +366,7 @@ it('implements a real DownloadsArtifacts downloadArtifact for Drive exports', fu
         ->and($artifact->mediaType)->toBe(GoogleDriveExportPlan::DOCX)
         ->and($artifact->metadata['file_id'] ?? null)->toBe($fileId)
         ->and($artifact->metadata['revision_id'] ?? null)->toBe($revision)
-        ->and($connector)->toBeInstanceOf(\Sifrious\Aleph\Connector\Contracts\DownloadsArtifacts::class);
+        ->and($connector)->toBeInstanceOf(DownloadsArtifacts::class);
 });
 
 it('treats empty Drive export bytes as an explicit export denial', function (): void {

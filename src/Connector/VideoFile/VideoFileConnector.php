@@ -67,12 +67,12 @@ final readonly class VideoFileConnector implements Connector, DownloadsArtifacts
             reference: $request->artifactReference,
             mediaType: $mediaType,
             contents: $contents,
-            metadata: array_filter([
+            metadata: [
                 'source_reference' => $request->sourceReference,
                 'input' => 'path',
                 'path' => $path,
                 'name' => basename($path),
-            ], static fn (mixed $value): bool => $value !== null),
+            ],
         );
     }
 
@@ -100,11 +100,11 @@ final readonly class VideoFileConnector implements Connector, DownloadsArtifacts
             reference: $request->artifactReference,
             mediaType: $mediaType,
             contents: $contents,
-            metadata: array_filter([
+            metadata: [
                 'source_reference' => $request->sourceReference,
                 'input' => 'file',
                 'name' => $name,
-            ], static fn (mixed $value): bool => $value !== null),
+            ],
         );
     }
 

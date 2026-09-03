@@ -83,7 +83,7 @@ final readonly class LaunchMidiIngestion
                 checksum: $checksum,
                 bytes: strlen($artifact->contents),
                 metadata: array_merge(
-                    is_array($artifact->metadata) ? $artifact->metadata : [],
+                    $artifact->metadata,
                     [
                         'smf_format' => $parse->format,
                         'parser' => MidiParseResult::PARSER_NAME,
@@ -109,9 +109,7 @@ final readonly class LaunchMidiIngestion
                     'artifacts' => 1,
                     'accepted' => 1,
                     'bytes' => strlen($artifact->contents),
-                    'smf_format' => $parse->format,
                     'events' => count($parse->events),
-                    'parser' => MidiParseResult::PARSER_NAME,
                 ],
                 [$accepted],
             );
@@ -161,17 +159,17 @@ final readonly class LaunchMidiIngestion
             return [
                 'artifact_reference' => 'file://'.$path,
                 'checksum' => $checksum,
-                'run_parameters' => array_filter([
+                'run_parameters' => [
                     'input' => 'path',
                     'path' => $path,
                     'name' => basename($path),
                     'sha256' => $checksum,
                     'parser' => MidiParseResult::PARSER_NAME,
-                ], static fn (mixed $value): bool => $value !== null),
-                'connector_parameters' => array_filter([
+                ],
+                'connector_parameters' => [
                     'input' => 'path',
                     'path' => $path,
-                ], static fn (mixed $value): bool => $value !== null),
+                ],
             ];
         }
 

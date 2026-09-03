@@ -6,6 +6,4 @@ namespace Sifrious\Aleph\Connector\GoogleDrive;
 
 use RuntimeException;
 
-final class MissingGoogleDriveCredentials extends RuntimeException
-{
-}
+final class MissingGoogleDriveCredentials extends RuntimeException {}

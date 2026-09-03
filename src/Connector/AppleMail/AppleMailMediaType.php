@@ -56,7 +56,7 @@ final class AppleMailMediaType
         $prefix = substr($contents, 0, 16);
 
         return match (true) {
-            str_starts_with($prefix, "%PDF") => 'application/pdf',
+            str_starts_with($prefix, '%PDF') => 'application/pdf',
             str_starts_with($prefix, "\x89PNG\r\n\x1a\n") => 'image/png',
             str_starts_with($prefix, "\xff\xd8\xff") => 'image/jpeg',
             str_starts_with($prefix, 'GIF87a'), str_starts_with($prefix, 'GIF89a') => 'image/gif',

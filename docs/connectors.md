@@ -35,6 +35,7 @@ Add a capability by implementing its interface. That is the whole registration s
 
 | Capability | Interface | Method | Dispatchable |
 | --- | --- | --- | --- |
+| `sources.configure` | `ConfiguresSources` | `configureSource` | no |
 | `sources.discover` | `DiscoversSources` | `discoverSources` | yes |
 | `history.backfill` | `Backfills` | `backfill` | yes |
 | `sync.incremental` | `SyncsIncrementally` | `syncIncrementally` | yes |
@@ -45,7 +46,11 @@ Add a capability by implementing its interface. That is the whole registration s
 | `records.normalize` | `Normalizes` | `normalize` | no |
 | `agents.assist` | `UsesAgents` | `runAgentTask` | no |
 
-The last three participate in a run rather than being started on their own — see D-030.
+`sources.configure` declares a source before any run exists, and the last three participate in a run
+rather than being started on their own — see D-030.
+
+Capability pages under `docs/capabilities/` document every input a group reads:
+[`sources.configure`](capabilities/sources-configure.md).
 
 There is no capability list to maintain. `CapabilitySet::of($connector)` derives capabilities from
 the interfaces you implement, and the manifest is built from that, so the two cannot disagree.
@@ -212,9 +217,20 @@ API cursors use the shared acceptance-gated checkpoint. Attachments use stable
 `digory:discord-attachment` references; bot/OAuth credentials and Discord SDK values remain behind
 the source boundary.
 
+## Source configuration adapters
+
+`WebCrawlConfigurationAdapter` and `SlackWorkspaceConfigurationAdapter` declare what a source of
+their kind is: fields, bounds, and whether a credential is required.
+`AbstractSourceConfigurator` applies the shared invariants — unknown inputs and inline credential
+values are refused, absent inputs fall back to their environment value then their declared default,
+and the accepted declaration is recorded as an observation under the stable `<kind>:<key>` source
+reference. `ConfigureSource` resolves the connector, persists the accepted configuration as an
+installation, and returns the reference every later run uses. See
+[`docs/capabilities/sources-configure.md`](capabilities/sources-configure.md).
+
 ## Fakes
 
 Composable doubles live in `Sifrious\Aleph\Testing\Fakes` so orchestration tests need no real
 accounts: `MinimalConnector` (no capabilities), `DiscoveryConnector`, `DownloadConnector`,
 `IncrementalConnector`, `WebhookConnector`, `HealthyConnector`, `CompositeConnector`, and
-`DiscoveryAndDownloadConnector`. Prefer combining small fakes over one fake with toggles.
+`DiscoveryAndDownloadConnector`, and `ConfiguringConnector`. Prefer combining small fakes over one fake with toggles.

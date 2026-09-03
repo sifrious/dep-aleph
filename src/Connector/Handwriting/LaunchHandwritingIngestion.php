@@ -81,7 +81,7 @@ final readonly class LaunchHandwritingIngestion
                 contents: $artifact->contents,
                 checksum: $checksum,
                 bytes: strlen($artifact->contents),
-                metadata: is_array($artifact->metadata) ? $artifact->metadata : [],
+                metadata: $artifact->metadata,
             ), $attempt->id);
 
             $ocrStats = $this->maybeRecognize(
@@ -174,16 +174,16 @@ final readonly class LaunchHandwritingIngestion
             return [
                 'artifact_reference' => 'file://'.$path,
                 'checksum' => $checksum,
-                'run_parameters' => array_filter([
+                'run_parameters' => [
                     'input' => 'path',
                     'path' => $path,
                     'name' => basename($path),
                     'sha256' => $checksum,
-                ], static fn (mixed $value): bool => $value !== null),
-                'connector_parameters' => array_filter([
+                ],
+                'connector_parameters' => [
                     'input' => 'path',
                     'path' => $path,
-                ], static fn (mixed $value): bool => $value !== null),
+                ],
             ];
         }
 
