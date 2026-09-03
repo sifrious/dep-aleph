@@ -193,13 +193,14 @@ Hosts own transcript discovery and access; Kilgore or another consumer owns sema
 
 ## Linear activity adapters
 
-`LinearActivityConnector` owns backfill, incremental, and verified webhook ingestion. A workspace
-installation registers either `LinearGraphqlSource` with a credential-resolving transport or another
+`LinearActivityConnector` owns configuration, backfill, incremental, and verified webhook ingestion.
+A workspace installation registers `LinearGraphqlSource` with `HttpLinearGraphqlTransport` or another
 `LinearActivitySource`. Projects, issues, milestones, updates, reports, tasks, and links have separate
 accepted-through cursors. Poll and webhook observations share canonical Linear identity. Verified
 deliveries are encrypted and replayable; attachment IDs and URLs remain references rather than Aleph
 artifact records. Host HTTP, CLI, queue, and scheduler code only creates or dispatches operation
-requests and formats the returned result.
+requests and formats the returned result. The host-owned token resolver supplies OAuth or personal
+API credentials only when the transport sends a request.
 
 ## Email adapters
 

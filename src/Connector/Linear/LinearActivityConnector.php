@@ -5,9 +5,15 @@ declare(strict_types=1);
 namespace Sifrious\Aleph\Connector\Linear;
 
 use InvalidArgumentException;
+use Sifrious\Aleph\Connector\Configuration\LinearWorkspaceConfigurationAdapter;
+use Sifrious\Aleph\Connector\Configuration\LinearWorkspaceSourceConfigurator;
+use Sifrious\Aleph\Connector\Configuration\SourceConfiguration;
+use Sifrious\Aleph\Connector\Configuration\SourceConfigurationRecorder;
+use Sifrious\Aleph\Connector\Configuration\SourceConfigurationRequest;
 use Sifrious\Aleph\Connector\ConfigurationSchema;
 use Sifrious\Aleph\Connector\Connector;
 use Sifrious\Aleph\Connector\Contracts\Backfills;
+use Sifrious\Aleph\Connector\Contracts\ConfiguresSources;
 use Sifrious\Aleph\Connector\Contracts\ConsumesWebhooks;
 use Sifrious\Aleph\Connector\Contracts\SyncsIncrementally;
 use Sifrious\Aleph\Connector\Values\OperationRequest;
@@ -16,11 +22,12 @@ use Sifrious\Aleph\Connector\Values\WebhookDelivery;
 use Sifrious\Aleph\Ingestion\Capability;
 use Throwable;
 
-final readonly class LinearActivityConnector implements Backfills, Connector, ConsumesWebhooks, SyncsIncrementally
+final readonly class LinearActivityConnector implements Backfills, ConfiguresSources, Connector, ConsumesWebhooks, SyncsIncrementally
 {
     public function __construct(
         private ImportLinearActivities $importer,
         private ConsumeLinearWebhook $webhooks,
+        private ?SourceConfigurationRecorder $configurationRecorder = null,
     ) {}
 
     public function id(): string
@@ -40,7 +47,12 @@ final readonly class LinearActivityConnector implements Backfills, Connector, Co
 
     public function configuration(): ConfigurationSchema
     {
-        return new ConfigurationSchema;
+        return (new LinearWorkspaceConfigurationAdapter)->schema();
+    }
+
+    public function configureSource(SourceConfigurationRequest $request): SourceConfiguration
+    {
+        return (new LinearWorkspaceSourceConfigurator($this, $this->configurationRecorder))->configureSource($request);
     }
 
     public function backfill(OperationRequest $request): OperationResult

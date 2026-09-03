@@ -3,7 +3,10 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\DB;
+use Sifrious\Aleph\Connector\Configuration\ConfigureSource;
+use Sifrious\Aleph\Connector\Configuration\SourceConfigurationRequest;
 use Sifrious\Aleph\Connector\ConnectorInstallations;
+use Sifrious\Aleph\Connector\ConnectorRegistry;
 use Sifrious\Aleph\Connector\Linear\ConsumeLinearWebhook;
 use Sifrious\Aleph\Connector\Linear\ImportLinearActivities;
 use Sifrious\Aleph\Connector\Linear\LinearActivity;
@@ -306,6 +309,25 @@ it('owns GraphQL pagination shape behind a replaceable transport', function (): 
         ->and($page->endCursor)->toBe('update-cursor-1')
         ->and($page->hasNextPage)->toBeTrue()
         ->and($transport->variables)->toBe([['after' => 'prior-cursor', 'first' => 25]]);
+});
+
+it('configures the shipped Linear connector with an opaque token reference', function (): void {
+    $connector = app(LinearActivityConnector::class);
+    app(ConnectorRegistry::class)->register($connector);
+
+    $configured = app(ConfigureSource::class)->configure('linear-activity', new SourceConfigurationRequest(
+        sourceKey: 'acme',
+        name: 'Acme Linear',
+        values: ['workspace' => 'Acme', 'streams' => ['issues', 'projects', 'issues']],
+        credentialReference: 'secret://linear/acme',
+    ));
+
+    expect($configured->sourceReference())->toBe('linear:acme')
+        ->and($configured->installation->credentialsReference)->toBe('secret://linear/acme')
+        ->and($configured->installation->configuration)->toBe([
+            'workspace' => 'acme',
+            'streams' => ['issues', 'projects'],
+        ]);
 });
 
 it('returns identical ingestion behavior through HTTP CLI queue and scheduler-shaped invokers', function (string $invoker): void {
