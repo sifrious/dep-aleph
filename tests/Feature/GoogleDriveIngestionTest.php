@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\DB;
+use Sifrious\Aleph\Connector\Configuration\ConfigureSource;
+use Sifrious\Aleph\Connector\Configuration\SourceConfigurationRequest;
 use Sifrious\Aleph\Connector\ConnectorInstallations;
 use Sifrious\Aleph\Connector\ConnectorRegistry;
 use Sifrious\Aleph\Connector\Contracts\DownloadsArtifacts;
@@ -17,6 +19,7 @@ use Sifrious\Aleph\Connector\GoogleDrive\GoogleDriveExportDenied;
 use Sifrious\Aleph\Connector\GoogleDrive\GoogleDriveExportPlan;
 use Sifrious\Aleph\Connector\GoogleDrive\GoogleDriveExportResult;
 use Sifrious\Aleph\Connector\GoogleDrive\GoogleDriveFileClient;
+use Sifrious\Aleph\Connector\GoogleDrive\GoogleDriveFileClients;
 use Sifrious\Aleph\Connector\GoogleDrive\GoogleDriveFileMetadata;
 use Sifrious\Aleph\Connector\GoogleDrive\GoogleDriveObservationWriter;
 use Sifrious\Aleph\Connector\GoogleDrive\LaunchGoogleDriveIngestion;
@@ -699,6 +702,44 @@ it('records XLSX shared inline numeric and boolean cells', function (): void {
     expect($result->formatHandoff['status'] ?? null)->toBe('launched')
         ->and($derived['text'])->toBe("Name\tGross sales\tApproved\nEast\t1250.50\tTRUE\n\nNotes")
         ->and($derived['source']['media_type'])->toBe(GoogleDriveExportPlan::XLSX);
+});
+
+it('configures the shipped Google Drive connector with an opaque OAuth reference', function (): void {
+    $connector = app(GoogleDriveConnector::class);
+    app(ConnectorRegistry::class)->register($connector);
+
+    $configured = app(ConfigureSource::class)->configure('google-drive', new SourceConfigurationRequest(
+        sourceKey: 'personal',
+        name: 'Personal Drive',
+        values: ['drive' => 'user:me@example.com'],
+        credentialReference: 'vault://google-drive/personal',
+    ));
+
+    expect($configured->sourceReference())->toBe('google-drive:personal')
+        ->and($configured->installation->credentialsReference)->toBe('vault://google-drive/personal')
+        ->and($configured->installation->configuration)->toBe(['drive' => 'user:me@example.com'])
+        ->and(DB::table('funes_observations')->count())->toBe(1);
+});
+
+it('selects a Google Drive client by configured source reference', function (): void {
+    $default = new FixtureGoogleDriveFileClient([], []);
+    $personal = new FixtureGoogleDriveFileClient(
+        ['file-1' => new GoogleDriveFileMetadata('file-1', 'revision-1', 'text/plain', 'notes.txt')],
+        ['file-1' => new GoogleDriveExportResult('file-1', 'revision-1', 'text/plain', 'text/plain', 'txt', 'notes.txt', 'personal bytes', false)],
+    );
+    $clients = new GoogleDriveFileClients;
+    $clients->register('google-drive:personal', $personal);
+    $connector = new GoogleDriveConnector($default, clients: $clients);
+
+    $artifact = $connector->downloadArtifact(new ArtifactRequest(
+        'google-drive:personal',
+        '',
+        ['file_id' => 'file-1'],
+    ));
+
+    expect($artifact->contents)->toBe('personal bytes')
+        ->and($personal->exportCalls)->toBe([['file-1', null]])
+        ->and($default->exportCalls)->toBe([]);
 });
 
 it('leaves malformed supported documents retryable without a derivation', function (): void {

@@ -15,7 +15,7 @@ external provider or binary has a separate opt-in check. A blank live column is 
 | Shell history | backfill and incremental | zsh, Atuin, and Claude fixtures |  | local history reader |
 | AI conversations | backfill and incremental | Claude, Codex, and alternate fixtures |  | transcript reader |
 | Communication records | backfill and incremental | Telegram, Discord, SMS, and MMS fixtures |  | provider source |
-| Google Drive | artifact download and document handoff | DOCX, XLSX, PPTX, PDF, and text |  | Drive client |
+| Google Drive | configuration, artifact download and document handoff | DOCX, XLSX, PPTX, PDF, and text |  | OAuth-resolving Drive client |
 | YouTube | artifact download | process fixtures | opt-in `yt-dlp` check | `yt-dlp` |
 | Podcast | artifact download | RSS and HTTP fixtures |  | network access |
 | Apple Mail | artifact download | local message fixtures |  | mailbox reader |
