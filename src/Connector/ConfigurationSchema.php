@@ -26,6 +26,55 @@ final readonly class ConfigurationSchema implements Countable
         return count($this->fields);
     }
 
+    public function has(string $name): bool
+    {
+        return $this->field($name) !== null;
+    }
+
+    public function field(string $name): ?ConfigurationField
+    {
+        foreach ($this->fields as $field) {
+            if ($field->name === $name) {
+                return $field;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function names(): array
+    {
+        return $this->namesWhere(static fn (ConfigurationField $field): bool => true);
+    }
+
+    /**
+     * Every non-secret input resolved from the environment, falling back to its declared default.
+     *
+     * @param  null|callable(string): (string|null)  $reader
+     * @return array<string, mixed>
+     */
+    public function resolveDefaults(?callable $reader = null): array
+    {
+        $defaults = [];
+
+        foreach ($this->fields as $field) {
+            if ($field->secret) {
+                continue;
+            }
+
+            $value = $field->resolveDefault($reader);
+
+            if ($value !== null) {
+                $defaults[$field->name] = $value;
+            }
+        }
+
+        return $defaults;
+    }
+
     /**
      * @return list<string>
      */

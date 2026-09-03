@@ -17,6 +17,9 @@ use Sifrious\Aleph\Acceptance\Submissions;
 use Sifrious\Aleph\Connector\Communication\CommunicationRecordSubmitter;
 use Sifrious\Aleph\Connector\Communication\CommunicationSources;
 use Sifrious\Aleph\Connector\Communication\ImportCommunicationRecords;
+use Sifrious\Aleph\Connector\Configuration\ConfigureSource;
+use Sifrious\Aleph\Connector\Configuration\FunesSourceConfigurationRecorder;
+use Sifrious\Aleph\Connector\Configuration\SourceConfigurationRecorder;
 use Sifrious\Aleph\Connector\ConnectorCatalogue;
 use Sifrious\Aleph\Connector\ConnectorCredentials;
 use Sifrious\Aleph\Connector\ConnectorDispatcher;
@@ -412,6 +415,21 @@ class AlephServiceProvider extends ServiceProvider
             fn (Application $app): ConnectorCredentials => new ConnectorCredentials(
                 $this->connection($app),
                 $app->make(Encrypter::class),
+                $app->make(ConnectorInstallations::class),
+            ),
+        );
+
+        $this->app->singleton(
+            SourceConfigurationRecorder::class,
+            fn (Application $app): SourceConfigurationRecorder => new FunesSourceConfigurationRecorder(
+                $app->make(EnvelopeSubmitter::class),
+            ),
+        );
+
+        $this->app->singleton(
+            ConfigureSource::class,
+            fn (Application $app): ConfigureSource => new ConfigureSource(
+                $app->make(ConnectorRegistry::class),
                 $app->make(ConnectorInstallations::class),
             ),
         );

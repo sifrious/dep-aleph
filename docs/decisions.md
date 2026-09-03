@@ -1310,3 +1310,23 @@ deleting earlier decisions would prevent operators from explaining a changed rec
 without changing identity or time, and hosts receive a presentation-neutral state grouping. The host
 selects candidates and a human or authorized process decides; Aleph performs no DNS, registrar, or
 project-management mutation.
+
+## D-089 — Source configuration is a declared capability with env-readable inputs and reference-only credentials
+
+**Decision.** `sources.configure` is a participatory capability contract, `ConfiguresSources`.
+`AbstractSourceConfigurator` owns its invariants — a lowercase source key, refusal of undeclared
+inputs, refusal of inline credential values, environment-then-default resolution of absent inputs,
+an opaque credential reference where the provider declares a `CredentialKind`, provider-owned bounds,
+and recording the accepted declaration as an observation under the stable `<kind>:<key>` source
+reference. A `ConfigurationField` may declare an environment key and a default; a field marked secret
+may declare neither. `ConfigureSource` persists the accepted declaration as an installation.
+
+**Rationale.** Crawl bounds were read ad hoc from `aleph.web_sources`, and no connector author had one
+place to learn what declaring a source requires. Allowing a default on a secret field would let a
+credential value enter configuration history through the schema, which is why the contract verifier
+now forbids it while permitting non-secret defaults it previously rejected outright.
+
+**Consequence.** A source reference exists before any run and does not change afterwards. Hosts may
+supply bounds from the environment without a code change, and no configuration path can carry
+credential material. Adding a source kind means implementing `SourceConfigurationProvider` and
+extending the base configurator; credential acquisition, storage, and rotation stay with the host.

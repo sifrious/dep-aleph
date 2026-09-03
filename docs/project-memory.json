@@ -55,7 +55,9 @@
         "Gmail, Microsoft Graph, and IMAP records normalize to provider-neutral F28 messages; bounded mailbox pages advance opaque provider checkpoints only after Funes acceptance, and attachments remain Digory references.",
         "Slack credential migration retains workspace/account/scopes/status/timestamps and an opaque host secret-store reference; token material and legacy-row deletion remain outside Aleph.",
         "Landing SlackSyncRun rows import into the shared lifecycle with Slack workspace/channel scope and reconciled cursor, oldest, and high-water checkpoint state.",
-        "Slack polling and verified Events API observations converge through canonical activity identity; cursor/high-water checkpoints advance after Funes acceptance and attachment chunks hand off to Digory references."
+        "Slack polling and verified Events API observations converge through canonical activity identity; cursor/high-water checkpoints advance after Funes acceptance and attachment chunks hand off to Digory references.",
+        "Declaring a source is the `sources.configure` capability: `AbstractSourceConfigurator` validates submissions against the provider's schema, refuses undeclared inputs and inline credential values, resolves absent inputs from the environment then the declared default, and records the accepted declaration as an observation under the stable `<kind>:<key>` source reference.",
+        "A ConfigurationField may declare an environment key and a default; a secret field may declare neither, so no credential value can reach configuration history."
     ],
     "assumptions": [
         "A sequential concurrency ceiling of one is sufficient for the bounded AHSD crawl.",
@@ -259,6 +261,10 @@
         {
             "decision": "Converge Slack polling and Events API before Funes and checkpoint cursor/high-water only after acceptance.",
             "rationale": "Transport overlap must not duplicate messages, incomplete paging must retain its cursor without advancing the floor, and attachment bytes belong to downstream owners."
+        },
+        {
+            "decision": "Make `sources.configure` a declared capability whose base configurator refuses undeclared inputs and inline credential values, resolves absent inputs from the environment then a declared default, and records the accepted declaration under a stable `<kind>:<key>` source reference.",
+            "rationale": "Crawl bounds were read ad hoc from `aleph.web_sources` with no single place documenting what declaring a source requires; permitting a default on a secret field would let credential material enter configuration history through the schema."
         }
     ],
     "open_questions": [
