@@ -62,6 +62,10 @@ fetches full messages on its first sync, then reads mailbox history after the la
 history ID. The checkpoint also retains provider page tokens when a bounded run pauses. See
 `src/Connector/Email/GmailApiSource.php` and `src/Connector/Email/GmailCheckpoint.php`.
 
+**Direct podcast enclosure.** An explicit `enclosure:https://...` input that names media bytes rather
+than a show page, episode page, or feed. Aleph hashes the full URL for episode identity and preserves
+the URL as provenance. See `src/Connector/Podcast/DirectPodcastEpisodeResolver.php`.
+
 **Extractor selector** — chooses `aleph.html:1`, `aleph.pdf:1`, or `aleph.unsupported:1` from the
 normalized response media type.
 
