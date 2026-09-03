@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-it('lets only the acceptance layer reach Funes persistence', function (): void {
+it('keeps direct Funes dependencies inside reviewed boundary adapters', function (): void {
     $offenders = [];
 
     $files = new RecursiveIteratorIterator(
@@ -30,6 +30,11 @@ it('lets only the acceptance layer reach Funes persistence', function (): void {
         'Acceptance/AcceptanceClient.php',
         'Acceptance/Backfill.php',
         'AlephServiceProvider.php',
+        'Connector/Handwriting/FunesHandwritingOcrDerivationRecorder.php',
+        'Connector/Image/FunesImageClassificationRecorder.php',
+        'Connector/Image/FunesImageConversionRecorder.php',
+        'Connector/Midi/FunesMidiExtractionRecorder.php',
+        'Connector/ScoreTab/FunesScoreTabDerivationRecorder.php',
         'Inventory/InventoryReader.php',
         'Web/FunesObservationWriter.php',
     ]);
@@ -57,6 +62,35 @@ it('leaves no way to create accepted history except the acceptance gateway', fun
     }
 
     expect($callers)->toBe([]);
+});
+
+it('keeps historical assertion persistence inside acceptance', function (): void {
+    $users = [];
+
+    $files = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator(dirname(__DIR__, 2).'/src')
+    );
+
+    foreach ($files as $file) {
+        if (! $file->isFile() || $file->getExtension() !== 'php') {
+            continue;
+        }
+
+        $source = (string) file_get_contents($file->getPathname());
+
+        if (! str_contains($source, 'HistoricalAssertionStore')) {
+            continue;
+        }
+
+        $users[] = str_replace(dirname(__DIR__, 2).'/src/', '', $file->getPathname());
+    }
+
+    sort($users);
+
+    expect($users)->toBe([
+        'Acceptance/HistoricalAssertionAcceptance.php',
+        'AlephServiceProvider.php',
+    ]);
 });
 
 it('keeps connector packages away from Funes persistence entirely', function (): void {

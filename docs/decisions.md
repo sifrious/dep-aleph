@@ -1310,3 +1310,21 @@ deleting earlier decisions would prevent operators from explaining a changed rec
 without changing identity or time, and hosts receive a presentation-neutral state grouping. The host
 selects candidates and a human or authorized process decides; Aleph performs no DNS, registrar, or
 project-management mutation.
+
+## D-089 — Provider claims cross one adapter boundary
+
+**Decision.** `HistoricalAssertionAdapter` maps one registered provider's payload into Funes's
+observed, declared, or inferred assertion types. `HistoricalAssertionAdapters` owns selection.
+`HistoricalAssertionAcceptance` performs the Funes append. The normalization report carries raw-source
+provenance, omitted provider fields, and optional confidence outside the canonical assertion.
+
+**Rationale.** Provider identity and epistemic status are independent. A Claude claim may be
+observed, declared, or inferred, so provider subclasses would force two meanings into one inheritance
+tree. Explicit registration also makes unsupported providers and duplicate registrations fail before
+storage.
+
+**Consequence.** Exact replay uses Funes's assertion fingerprint. Aleph records mapping loss without
+teaching Funes about provider payloads. Hosts add adapters through the
+`aleph.historical_assertion_adapters` container tag. Incomplete payloads, malformed mappings,
+unsupported providers, and unsupported assertion types have distinct exceptions. Aleph does not
+hide persistence failures. A caller may retry the same input because Funes append is idempotent.

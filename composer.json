@@ -26,7 +26,8 @@
         "illuminate/http": "^13.0",
         "illuminate/support": "^13.0",
         "psr/http-message": "^1.1|^2.0",
-        "sifrious/funes": "dev-main",
+        "sifrious/authorization-contract": "dev-main#fc79e39723637f52730a1394b57797f57ee2a49b",
+        "sifrious/funes": "0.1.0",
         "smalot/pdfparser": "^2.12",
         "symfony/uid": "^7.0|^8.0"
     },
@@ -66,11 +67,20 @@
     },
     "repositories": [
         {
-            "type": "path",
-            "url": "../Funes",
-            "options": {
-                "symlink": true
-            }
+            "type": "vcs",
+            "url": "https://github.com/sifrious/dep-authorization-contract.git"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/sifrious/dep-event-contract.git"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/sifrious/dep-funes.git"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/sifrious/dep-reference-contract.git"
         }
     ],
     "minimum-stability": "stable",

@@ -6,6 +6,13 @@
 
 Aleph is a Laravel package for bounded ingestion from external sources. Its implemented capability is a public-web crawl whose operational state remains in Aleph and whose retrieved content and discovery provenance are accepted by Funes.
 
+Provider claims cross that boundary through `HistoricalAssertionAdapter`. A host tags adapters as
+`aleph.historical_assertion_adapters`, and `HistoricalAssertionAdapters` selects one by its stable
+provider name. Each adapter returns a canonical observed, declared, or inferred Funes assertion plus
+the provider fields it omitted and optional confidence. `HistoricalAssertionAcceptance` appends the
+claim with the caller's authorization context. The raw provider record remains a portable provenance
+reference rather than canonical Funes state.
+
 ## Installation
 
 Install Aleph and run the package migrations:
