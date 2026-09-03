@@ -30,6 +30,11 @@ resource discovered through an anchor, iframe, or embed.
 **Mechanical extraction** — a deterministic, versioned derivation from preserved response bytes.
 Current classifications are HTML, PDF, and unsupported.
 
+**Document format handoff.** This step runs after Aleph accepts a Google Drive export. It sends the
+accepted bytes to a formatter and records derived text against the original Funes observation.
+Unsupported formats remain deferred. See `src/Connector/GoogleDrive/DocumentFormatHandoff.php` and
+`src/Connector/GoogleDrive/FunesDocumentFormatHandoff.php`.
+
 **Extractor selector** — chooses `aleph.html:1`, `aleph.pdf:1`, or `aleph.unsupported:1` from the
 normalized response media type.
 

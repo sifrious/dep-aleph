@@ -114,6 +114,21 @@ each partition, schedules, recent runs, and active retry backoff. A due schedule
 its installation and schedule are enabled, its claim lock is free or expired, and no attempt for the
 same installation and capability has an active backoff.
 
+## Google Drive document formatting
+
+`LaunchGoogleDriveIngestion` stores the exported file as the accepted observation. It then passes the
+same bytes to `Connector/GoogleDrive/DocumentFormatHandoff`. The default
+`Connector/GoogleDrive/FunesDocumentFormatHandoff` records extracted text in `funes_extractions`; it
+does not create a second observation.
+
+`Connector/GoogleDrive/LocalDocumentFormatter` reads DOCX, PDF, Markdown, CSV, and plain text. DOCX
+requires PHP's DOM and Zip extensions. PDF parsing uses `smalot/pdfparser`. XLSX and PPTX return
+`document_format_not_supported`, so the original file remains accepted without a false text result.
+
+Funes keys each extraction by the accepted observation, formatter name, and formatter version. An
+exact replay returns the existing extraction ID. A different result for the same key fails instead of
+rewriting history. Change `LocalDocumentFormatter::VERSION` whenever formatting behavior changes.
+
 ## Display layers
 
 Ask the manifest; never encode provider knowledge in the UI.
