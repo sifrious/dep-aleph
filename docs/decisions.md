@@ -1348,3 +1348,18 @@ now forbids it while permitting non-secret defaults it previously rejected outri
 supply bounds from the environment without a code change, and no configuration path can carry
 credential material. Adding a source kind means implementing `SourceConfigurationProvider` and
 extending the base configurator; credential acquisition, storage, and rotation stay with the host.
+
+## D-091 — Accepted redirects create source-scoped aliases
+
+**Decision.** After Funes accepts a retrieved response, Aleph records a source-scoped mapping from
+the requested canonical URL to the canonical final URL when they differ. On later runs, the frontier
+keeps the requested URL as a skipped `redirect_alias` row and admits the final URL once.
+
+**Rationale.** The bare domain, `www` host, and trailing-slash cases cannot be merged safely from
+their spelling. A redirect response is evidence that two references converged for this source. The
+mapping belongs to Aleph's retrieval state because it controls future work, while Funes retains the
+accepted observation and redirect provenance.
+
+**Consequence.** Later runs avoid fetching two proven aliases. Inventory still reports requested and
+final URLs plus the alias decision. File paths and hosts without accepted redirect evidence remain
+distinct. A new accepted redirect can update the mapping without rewriting old observations.

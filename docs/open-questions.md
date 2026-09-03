@@ -1,14 +1,5 @@
 # Open questions
 
-## Q-001 — Trailing-slash normalization
-
-`ahsd.org/robots.txt` responds `301` to `.../robots.txt/`. SchoolMessenger appends trailing slashes,
-so `/page` and `/page/` are the same resource but two canonical URLs, costing one redirect each.
-
-Forcing a trailing slash in `UrlCanonicalizer` is wrong in general — it breaks `/file.pdf`. Funes
-identity uses the canonical final URI, but Aleph does not yet collapse two frontier entries that
-redirect to that same resource.
-
 ## Q-002 — The `query_parameters` allowlist for AHSD remains empty
 
 Every query parameter is currently dropped for the `ahsd` source. ALEPH-009 confirmed that the
@@ -31,15 +22,6 @@ with non-ASCII hosts.
 
 See D-006. It stays until Aleph needs sitemap discovery or strict RFC 9309 conformance.
 
-## Q-007 — Bare domain versus `www`
-
-Verified live: `https://ahsd.org/` redirects to `https://www.ahsd.org/`, while the four school
-subdomains serve directly. The district seed now points at `www` so a redirect is not paid on every
-run, and both hosts remain allowed.
-
-They are still two canonical URLs for one resource. If a page links to the bare domain, the frontier
-will hold both even though Funes resolves both retrievals to final-URI identity.
-
 ## Q-006 — Concurrency
 
 The crawl is single-process and sequential; its concurrency ceiling is one and the per-host delay is
@@ -57,7 +39,8 @@ to the CDN, because discoveries would not be extracted from it. The inventory ke
 (`canonical_url` and `final_url`), so the divergence is queryable rather than hidden.
 
 Options are to allow the CDN hosts, to record the pre-redirect URL as the resource reference, or to
-leave it. None is justified by a measured failure yet. Related to Q-001 and Q-007.
+leave it. None is justified by a measured failure yet. Accepted redirect aliases prevent repeated
+fetches but do not change whether discoveries from the final host are in scope.
 
 ## Q-009 — The staleness probe loads payloads it does not need
 

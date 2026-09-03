@@ -14,6 +14,7 @@ final readonly class Frontier
         private ConnectionInterface $connection,
         private UrlCanonicalizer $canonicalizer,
         private string $runId,
+        private string $sourceReference,
     ) {}
 
     public function record(
@@ -24,6 +25,7 @@ final readonly class Frontier
         ?int $parentId,
         FrontierState $state,
         ?SkipReason $skipReason = null,
+        ?string $finalUrl = null,
     ): ?int {
         $hash = $url->hash();
 
@@ -38,6 +40,7 @@ final readonly class Frontier
             'origin' => $origin->value,
             'state' => $state->value,
             'skip_reason' => $skipReason?->value,
+            'final_url' => $finalUrl,
             'created_at' => Carbon::now(),
         ]);
 
@@ -51,6 +54,46 @@ final readonly class Frontier
             ->value('id');
 
         return $id === null ? null : (int) $id;
+    }
+
+    public function knownFinal(CanonicalUrl $requested): ?CanonicalUrl
+    {
+        $value = $this->connection->table('aleph_web_redirect_aliases')
+            ->where('source_reference', $this->sourceReference())
+            ->where('requested_hash', $requested->hash())
+            ->value('final_url');
+
+        return is_string($value) ? $this->canonicalizer->canonicalize($value) : null;
+    }
+
+    public function rememberRedirect(
+        FrontierCandidate $candidate,
+        CanonicalUrl $final,
+        AcceptedRetrieval $accepted,
+    ): void {
+        if ($candidate->url->hash() === $final->hash()) {
+            return;
+        }
+
+        $now = Carbon::now();
+        $this->connection->table('aleph_web_redirect_aliases')->upsert([[
+            'source_reference' => $this->sourceReference(),
+            'requested_url' => $candidate->url->value,
+            'requested_hash' => $candidate->url->hash(),
+            'final_url' => $final->value,
+            'final_hash' => $final->hash(),
+            'observation_id' => $accepted->observationId,
+            'observed_at' => $accepted->observedAt,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]], ['source_reference', 'requested_hash'], [
+            'requested_url',
+            'final_url',
+            'final_hash',
+            'observation_id',
+            'observed_at',
+            'updated_at',
+        ]);
     }
 
     public function claimNext(): ?FrontierCandidate
@@ -181,5 +224,10 @@ final readonly class Frontier
     private function table(): Builder
     {
         return $this->connection->table('aleph_frontier_candidates');
+    }
+
+    private function sourceReference(): string
+    {
+        return $this->sourceReference;
     }
 }

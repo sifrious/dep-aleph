@@ -115,6 +115,7 @@ final readonly class Crawler
                 $extraction,
                 array_values($observationDiscoveries),
             );
+            $frontier->rememberRedirect($candidate, $base, $accepted);
             $frontier->markFetched($candidate, $result, $accepted);
             $fetched++;
 
@@ -157,6 +158,31 @@ final readonly class Crawler
         } elseif ($depth > $source->limits->maxDepth) {
             $reason = SkipReason::DepthLimit;
         } else {
+            $knownFinal = $frontier->knownFinal($url);
+
+            if ($knownFinal !== null && $knownFinal->hash() !== $url->hash()) {
+                $alias = $frontier->record(
+                    $url,
+                    $requestedUrl,
+                    $depth,
+                    $origin,
+                    $parentId,
+                    FrontierState::Skipped,
+                    SkipReason::RedirectAlias,
+                    $knownFinal->value,
+                );
+                $frontier->record(
+                    $knownFinal,
+                    $knownFinal->value,
+                    $depth,
+                    $origin,
+                    $parentId,
+                    FrontierState::Pending,
+                );
+
+                return $alias;
+            }
+
             $state = FrontierState::Pending;
         }
 

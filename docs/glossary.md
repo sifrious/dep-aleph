@@ -21,6 +21,10 @@ references that canonicalize alike are the same resource.
 
 **Canonical hash** — sha256 of the canonical URL. The indexed identity (D-004).
 
+**Redirect alias.** A requested canonical URL that accepted evidence has shown resolves to another
+canonical URL. Later runs retain the alias as a skipped frontier row and fetch the proven final URL
+once. Similar spelling, a trailing slash, or a `www` prefix does not create an alias by itself.
+
 **Discovery origin** — `seed`, `link`, `iframe`, or `embed`. Preserves how a resource entered the
 operational frontier.
 
