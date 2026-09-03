@@ -3,7 +3,10 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\DB;
+use Sifrious\Aleph\Connector\Configuration\ConfigureSource;
+use Sifrious\Aleph\Connector\Configuration\SourceConfigurationRequest;
 use Sifrious\Aleph\Connector\ConnectorInstallations;
+use Sifrious\Aleph\Connector\ConnectorRegistry;
 use Sifrious\Aleph\Connector\Email\EmailConnector;
 use Sifrious\Aleph\Connector\Email\EmailPage;
 use Sifrious\Aleph\Connector\Email\EmailSource;
@@ -86,6 +89,26 @@ function emailConnector(): EmailConnector
 {
     return new EmailConnector(app(ImportEmailMessages::class));
 }
+
+it('configures the shipped email connector as a Gmail mailbox without storing OAuth material', function (): void {
+    $connector = app(EmailConnector::class);
+    app(ConnectorRegistry::class)->register($connector);
+
+    $configured = app(ConfigureSource::class)->configure('email', new SourceConfigurationRequest(
+        sourceKey: 'alice',
+        name: 'Alice Gmail',
+        values: ['mailbox' => 'Alice@Example.com', 'include_spam_trash' => false],
+        credentialReference: 'secret://gmail/alice',
+    ));
+
+    expect($configured->sourceReference())->toBe('gmail:alice')
+        ->and($configured->installation->credentialsReference)->toBe('secret://gmail/alice')
+        ->and($configured->installation->configuration)->toBe([
+            'mailbox' => 'alice@example.com',
+            'include_spam_trash' => false,
+        ])
+        ->and(json_encode($configured->installation->toArray(), JSON_THROW_ON_ERROR))->not->toContain('gmail-token');
+});
 
 function emailInstallation(EmailConnector $connector, string $mailbox): object
 {

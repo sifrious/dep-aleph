@@ -10,7 +10,7 @@ external provider or binary has a separate opt-in check. A blank live column is 
 | Slack | configuration, backfill, incremental, webhook | recorded Web API and webhook fixtures | opt-in `auth.test` | secret store and Slack token |
 | GitHub | configuration, backfill, incremental, webhook | recorded GraphQL and webhook fixtures | opt-in GraphQL query | token resolver and webhook secret |
 | Linear | configuration, backfill, incremental, webhook | recorded GraphQL and webhook fixtures | opt-in GraphQL query | token resolver and webhook secret |
-| Email | backfill and incremental | Gmail, Graph, and IMAP fixtures |  | provider source |
+| Email | Gmail configuration, backfill and incremental | recorded Gmail API plus Graph and IMAP fixtures | opt-in Gmail mailbox read | Gmail token resolver or provider source |
 | Git | backfill and incremental | local repository fixtures |  | repository reader |
 | Shell history | backfill and incremental | zsh, Atuin, and Claude fixtures |  | local history reader |
 | AI conversations | backfill and incremental | Claude, Codex, and alternate fixtures |  | transcript reader |
@@ -34,6 +34,7 @@ ALEPH_SMOKE_EXTERNAL_TOOLS=1 vendor/bin/pest tests/Smoke/ExternalToolSmokeTest.p
 ALEPH_SMOKE_SLACK_TOKEN='resolved-by-your-shell' vendor/bin/pest tests/Smoke/SlackWebApiSmokeTest.php
 ALEPH_SMOKE_GITHUB_TOKEN='resolved-by-your-shell' ALEPH_SMOKE_GITHUB_REPOSITORY='owner/name' vendor/bin/pest tests/Smoke/GitHubGraphqlSmokeTest.php
 ALEPH_SMOKE_LINEAR_TOKEN='resolved-by-your-shell' ALEPH_SMOKE_LINEAR_WORKSPACE='workspace' vendor/bin/pest tests/Smoke/LinearGraphqlSmokeTest.php
+ALEPH_SMOKE_GMAIL_TOKEN='resolved-by-your-shell' ALEPH_SMOKE_GMAIL_MAILBOX='me' vendor/bin/pest tests/Smoke/GmailApiSmokeTest.php
 ```
 
 The Google Drive formatter runs in normal CI. Office Open XML formats use PHP's DOM and Zip

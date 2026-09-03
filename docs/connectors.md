@@ -210,15 +210,21 @@ API credentials only when the transport sends a request.
 
 ## Email adapters
 
-`EmailConnector` owns bounded backfill and incremental ingestion after a host registers an
-`EmailSource`. Gmail, Microsoft Graph, and IMAP adapters normalize provider records to F28 messages
-without carrying provider SDK values across the boundary. Sources expose opaque provider checkpoints:
-Gmail history IDs, Graph delta links, or IMAP UIDVALIDITY/UID state. Aleph advances a checkpoint only
+`src/Connector/Email/EmailConnector.php` owns Gmail source configuration plus bounded backfill and
+incremental ingestion after a host registers an `EmailSource`.
+`src/Connector/Email/GmailApiSource.php` performs the first full mailbox read with `messages.list`
+and `messages.get`. Its versioned checkpoint then switches later reads to `history.list`. An expired
+Gmail history ID fails with an instruction to start a new full sync.
+
+Gmail, Microsoft Graph, and IMAP adapters normalize provider records to F28 messages without carrying
+provider SDK values across the boundary. Sources expose opaque provider checkpoints such as Gmail
+sync state, Graph delta links, or IMAP UIDVALIDITY and UID state. Aleph advances a checkpoint only
 after the page's messages are accepted by Funes, so a page budget can pause and resume safely.
 Original address and header values remain beside normalized addresses. Attachments retain stable
 `digory:email-attachment` references for later artifact handling; Aleph stores neither attachment
-bytes nor inferred people. Hosts own authentication, provider clients, mailbox authorization, and
-credential refresh, and must not include credentials in adapter records.
+bytes nor inferred people. Hosts own OAuth refresh and mailbox authorization. A host-provided
+`src/Connector/Email/GmailTokenResolver.php` gives the HTTP transport a token for one source
+installation at request time.
 
 ## Slack credential adapters
 

@@ -33,6 +33,7 @@ use Sifrious\Aleph\Connector\ConnectorInstallations;
 use Sifrious\Aleph\Connector\ConnectorRegistry;
 use Sifrious\Aleph\Connector\Conversation\AiConversationSources;
 use Sifrious\Aleph\Connector\Conversation\IngestAiConversations;
+use Sifrious\Aleph\Connector\Email\EmailConnector;
 use Sifrious\Aleph\Connector\Email\EmailMessageSubmitter;
 use Sifrious\Aleph\Connector\Email\EmailSources;
 use Sifrious\Aleph\Connector\Email\ImportEmailMessages;
@@ -394,6 +395,14 @@ class AlephServiceProvider extends ServiceProvider
         $this->app->singleton(AiConversationSources::class);
         $this->app->singleton(EmailSources::class);
         $this->app->singleton(EmailMessageSubmitter::class);
+
+        $this->app->singleton(
+            EmailConnector::class,
+            fn (Application $app): EmailConnector => new EmailConnector(
+                $app->make(ImportEmailMessages::class),
+                $app->make(SourceConfigurationRecorder::class),
+            ),
+        );
 
         $this->app->singleton(
             ImportEmailMessages::class,
