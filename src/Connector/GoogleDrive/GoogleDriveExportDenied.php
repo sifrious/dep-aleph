@@ -6,6 +6,4 @@ namespace Sifrious\Aleph\Connector\GoogleDrive;
 
 use RuntimeException;
 
-final class GoogleDriveExportDenied extends RuntimeException
-{
-}
+final class GoogleDriveExportDenied extends RuntimeException {}

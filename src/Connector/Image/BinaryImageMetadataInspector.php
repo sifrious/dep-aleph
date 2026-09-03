@@ -66,8 +66,8 @@ final class BinaryImageMetadataInspector implements ImageMetadataInspector
 
             if (is_array($info)) {
                 return [
-                    'width' => isset($info[0]) ? (int) $info[0] : null,
-                    'height' => isset($info[1]) ? (int) $info[1] : null,
+                    'width' => $info[0],
+                    'height' => $info[1],
                     'color_space' => null,
                 ];
             }

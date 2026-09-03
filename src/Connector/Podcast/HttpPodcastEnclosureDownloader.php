@@ -51,11 +51,11 @@ final readonly class HttpPodcastEnclosureDownloader implements PodcastEnclosureD
         return new PodcastEnclosureDownload(
             mediaType: $this->mediaType($response->header('Content-Type')),
             contents: $body,
-            metadata: array_filter([
+            metadata: [
                 'http_status' => $response->status(),
                 'content_length' => strlen($body),
                 'content_type' => $response->header('Content-Type'),
-            ], static fn (mixed $value): bool => $value !== null),
+            ],
         );
     }
 
@@ -81,6 +81,6 @@ final readonly class HttpPodcastEnclosureDownloader implements PodcastEnclosureD
             return 'application/octet-stream';
         }
 
-        return strtolower(trim(explode(';', $contentType)[0] ?? 'application/octet-stream'));
+        return strtolower(trim(explode(';', $contentType)[0]));
     }
 }

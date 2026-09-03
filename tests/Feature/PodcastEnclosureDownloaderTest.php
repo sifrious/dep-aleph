@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Factory;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Sifrious\Aleph\Connector\Podcast\HttpPodcastEnclosureDownloader;
@@ -13,7 +14,7 @@ it('downloads a podcast enclosure over http with stable media metadata', functio
     Http::fake([
         'https://media.example.test/episode-1.mp3' => Http::response('fixture-audio', 200, ['Content-Type' => 'audio/mpeg; charset=binary']),
     ]);
-    $downloader = new HttpPodcastEnclosureDownloader(app(\Illuminate\Http\Client\Factory::class));
+    $downloader = new HttpPodcastEnclosureDownloader(app(Factory::class));
 
     $download = $downloader->download('https://media.example.test/episode-1.mp3');
 
@@ -25,7 +26,7 @@ it('downloads a podcast enclosure over http with stable media metadata', functio
 
 it('marks transient enclosure failures as retryable', function (): void {
     Http::fake(fn (): never => throw new ConnectionException('cURL error 28: timed out'));
-    $downloader = new HttpPodcastEnclosureDownloader(app(\Illuminate\Http\Client\Factory::class));
+    $downloader = new HttpPodcastEnclosureDownloader(app(Factory::class));
 
     expect(fn () => $downloader->download('https://media.example.test/episode-2.m4a'))
         ->toThrow(RetryablePodcastEnclosureDownloadFailure::class, 'timed out');
@@ -36,7 +37,7 @@ it('rejects non-http or non-successful enclosure downloads as unfetchable', func
         'https://media.example.test/not-found.mp3' => Http::response('missing', 404),
         'https://media.example.test/rate-limited.mp3' => Http::response('busy', 429),
     ]);
-    $downloader = new HttpPodcastEnclosureDownloader(app(\Illuminate\Http\Client\Factory::class));
+    $downloader = new HttpPodcastEnclosureDownloader(app(Factory::class));
 
     expect(fn () => $downloader->download('file:///tmp/episode.mp3'))
         ->toThrow(UnfetchablePodcastEpisode::class, 'http or https')
@@ -53,7 +54,7 @@ it('sends a package user-agent when fetching enclosure bytes', function (): void
 
         return Http::response('audio', 200, ['Content-Type' => 'audio/mp4']);
     });
-    $downloader = new HttpPodcastEnclosureDownloader(app(\Illuminate\Http\Client\Factory::class));
+    $downloader = new HttpPodcastEnclosureDownloader(app(Factory::class));
     $downloader->download('https://media.example.test/episode-3.m4a');
 
     expect($captured)->toBe(['AlephPodcastIngestion/1.0']);

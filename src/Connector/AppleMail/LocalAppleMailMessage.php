@@ -34,11 +34,6 @@ final readonly class LocalAppleMailMessage
             throw new InvalidArgumentException('Apple Mail messages require an RFC Message-ID.');
         }
 
-        foreach ($attachments as $attachment) {
-            if (! $attachment instanceof LocalAppleMailAttachment) {
-                throw new InvalidArgumentException('Apple Mail attachments must be LocalAppleMailAttachment values.');
-            }
-        }
     }
 
     public function normalizedMessageId(): string

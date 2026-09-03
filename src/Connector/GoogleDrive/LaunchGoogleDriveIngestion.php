@@ -161,7 +161,7 @@ final readonly class LaunchGoogleDriveIngestion
                 checksum: $checksum,
                 bytes: strlen($artifact->contents),
                 nativeGoogleFormat: $native,
-                metadata: is_array($artifact->metadata) ? $artifact->metadata : [],
+                metadata: $artifact->metadata,
             ), $attempt->id);
 
             $handoff = $this->formatHandoff->handOff(new DocumentFormatHandoffRequest(
@@ -197,10 +197,6 @@ final readonly class LaunchGoogleDriveIngestion
                     'artifacts' => 1,
                     'accepted' => 1,
                     'bytes' => strlen($artifact->contents),
-                    'file_id' => $meta->fileId,
-                    'revision_id' => $revisionId,
-                    'export_media_type' => $exportMediaType,
-                    'format_handoff' => $handoffPayload,
                 ],
                 [$accepted],
             );

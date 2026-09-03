@@ -39,7 +39,7 @@ final readonly class YouTubeCanonicalUrl
     }
 
     /**
-     * @param  array<string, mixed>  $query
+     * @param  array<array-key, array<mixed>|string>  $query
      */
     private static function videoId(string $host, string $path, array $query): ?string
     {

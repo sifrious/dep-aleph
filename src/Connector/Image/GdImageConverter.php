@@ -35,10 +35,6 @@ final class GdImageConverter implements ImageConverter
             $width = imagesx($image);
             $height = imagesy($image);
 
-            if ($width < 1 || $height < 1) {
-                throw new InvalidArgumentException('Image conversion requires a positive pixel grid.');
-            }
-
             ob_start();
             $ok = match ($format) {
                 'jpg', 'jpeg' => imagejpeg($image, null, 90),

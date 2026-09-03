@@ -69,13 +69,13 @@ final readonly class HandwritingConnector implements Connector, DownloadsArtifac
             reference: $request->artifactReference,
             mediaType: $mediaType,
             contents: $contents,
-            metadata: array_filter([
+            metadata: [
                 'source_reference' => $request->sourceReference,
                 'input' => 'path',
                 'path' => $path,
                 'name' => $name,
                 'format' => 'handwritten_image',
-            ], static fn (mixed $value): bool => $value !== null),
+            ],
         );
     }
 
@@ -104,12 +104,12 @@ final readonly class HandwritingConnector implements Connector, DownloadsArtifac
             reference: $request->artifactReference,
             mediaType: $mediaType,
             contents: $contents,
-            metadata: array_filter([
+            metadata: [
                 'source_reference' => $request->sourceReference,
                 'input' => 'file',
                 'name' => $name,
                 'format' => 'handwritten_image',
-            ], static fn (mixed $value): bool => $value !== null),
+            ],
         );
     }
 

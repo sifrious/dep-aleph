@@ -103,9 +103,6 @@ final class SpokenSoundConnector implements Connector, DownloadsArtifacts
         );
     }
 
-    /**
-     * @return Artifact
-     */
     private function artifact(
         ArtifactRequest $request,
         string $contents,
@@ -155,6 +152,7 @@ final class SpokenSoundConnector implements Connector, DownloadsArtifacts
     }
 
     /**
+     * @param  array<string, mixed>  $parameters
      * @return array<string, mixed>
      */
     private function containerMetadata(string $name, string $mediaType, array $parameters): array

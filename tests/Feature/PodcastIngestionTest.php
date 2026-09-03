@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use RuntimeException;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 use Sifrious\Aleph\Connector\ConnectorInstallations;
 use Sifrious\Aleph\Connector\ConnectorRegistry;
 use Sifrious\Aleph\Connector\Podcast\LaunchPodcastIngestion;

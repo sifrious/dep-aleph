@@ -82,20 +82,27 @@ final readonly class LaunchImageIngestion
                 checksum: $checksum,
                 bytes: strlen($artifact->contents),
                 image: $imageMeta,
-                metadata: is_array($artifact->metadata) ? $artifact->metadata : [],
+                metadata: $artifact->metadata,
             ), $attempt->id);
+
+            $stats = [
+                'artifacts' => 1,
+                'accepted' => 1,
+                'bytes' => strlen($artifact->contents),
+            ];
+
+            if ($imageMeta->width !== null) {
+                $stats['width'] = $imageMeta->width;
+            }
+
+            if ($imageMeta->height !== null) {
+                $stats['height'] = $imageMeta->height;
+            }
 
             $this->runs->succeedAttempt(
                 $run,
                 $attempt,
-                [
-                    'artifacts' => 1,
-                    'accepted' => 1,
-                    'bytes' => strlen($artifact->contents),
-                    'width' => $imageMeta->width,
-                    'height' => $imageMeta->height,
-                    'exif_presence' => $imageMeta->exifPresence->value,
-                ],
+                $stats,
                 [$accepted],
             );
         } catch (Throwable $failure) {
@@ -136,10 +143,17 @@ final readonly class LaunchImageIngestion
             }
         }
 
-        return $this->inspector->inspect($contents, $mediaType, [
-            'captured_at' => is_string($metadata['captured_at'] ?? null) ? $metadata['captured_at'] : null,
-            'modified_at' => is_string($metadata['modified_at'] ?? null) ? $metadata['modified_at'] : null,
-        ]);
+        $hints = [];
+
+        if (is_string($metadata['captured_at'] ?? null)) {
+            $hints['captured_at'] = $metadata['captured_at'];
+        }
+
+        if (is_string($metadata['modified_at'] ?? null)) {
+            $hints['modified_at'] = $metadata['modified_at'];
+        }
+
+        return $this->inspector->inspect($contents, $mediaType, $hints);
     }
 
     /**
