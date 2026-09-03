@@ -49,6 +49,10 @@ implementation resolves a token through the source installation and maps provide
 repository, pull request, review, comment, and reaction activities. See
 `src/Connector/GitHub/GitHubGraphqlActivitySource.php`.
 
+**Linear activity source.** A reader for workspace projects, issues, milestones, updates, reports,
+tasks, and links. The bundled HTTP transport resolves an OAuth token or personal API key for one
+source installation before each GraphQL request. See `src/Connector/Linear/LinearGraphqlSource.php`.
+
 **Extractor selector** — chooses `aleph.html:1`, `aleph.pdf:1`, or `aleph.unsupported:1` from the
 normalized response media type.
 

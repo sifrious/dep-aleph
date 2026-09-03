@@ -90,6 +90,23 @@ store and reaches source configuration only as `credentialReference`.
 `ALEPH_SMOKE_GITHUB_TOKEN` and `ALEPH_SMOKE_GITHUB_REPOSITORY` are test-only values. They are not
 package configuration and must not be committed.
 
+## Linear workspace inputs
+
+Adapter: `Configuration\LinearWorkspaceConfigurationAdapter`. Source kind `linear`. Requires a
+`CredentialKind::Token` reference.
+
+| Input | Env key | Type | Default | Secret | When absent |
+| --- | --- | --- | --- | --- | --- |
+| `workspace` | `ALEPH_LINEAR_WORKSPACE` | string | none | no | rejected |
+| `streams` | `ALEPH_LINEAR_STREAMS` | array | `projects,issues,milestones,updates` | no | default applied |
+
+Supported streams are projects, issues, milestones, updates, reports, tasks, and links. The host
+resolves either an OAuth access token or personal API key for
+`Connector/Linear/HttpLinearGraphqlTransport`. Test-only credentials use
+`ALEPH_SMOKE_LINEAR_TOKEN` and `ALEPH_SMOKE_LINEAR_WORKSPACE`. Set
+`ALEPH_SMOKE_LINEAR_OAUTH=1` when the smoke token came from OAuth. Without it, the test sends a
+personal API key.
+
 ## Adding a source kind
 
 Implement `SourceConfigurationProvider` — `sourceKind()`, `schema()`, `credentialKind()`,

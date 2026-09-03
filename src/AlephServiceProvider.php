@@ -81,6 +81,7 @@ use Sifrious\Aleph\Connector\Image\LaunchImageIngestion;
 use Sifrious\Aleph\Connector\Image\RecordImageClassification;
 use Sifrious\Aleph\Connector\Linear\ConsumeLinearWebhook;
 use Sifrious\Aleph\Connector\Linear\ImportLinearActivities;
+use Sifrious\Aleph\Connector\Linear\LinearActivityConnector;
 use Sifrious\Aleph\Connector\Linear\LinearActivityNormalizer;
 use Sifrious\Aleph\Connector\Linear\LinearActivitySources;
 use Sifrious\Aleph\Connector\Linear\LinearActivitySubmitter;
@@ -486,6 +487,14 @@ class AlephServiceProvider extends ServiceProvider
         $this->app->singleton(GitHubActivitySubmitter::class);
 
         $this->app->singleton(LinearActivitySources::class);
+        $this->app->singleton(
+            LinearActivityConnector::class,
+            fn (Application $app): LinearActivityConnector => new LinearActivityConnector(
+                $app->make(ImportLinearActivities::class),
+                $app->make(ConsumeLinearWebhook::class),
+                $app->make(SourceConfigurationRecorder::class),
+            ),
+        );
         $this->app->singleton(LinearActivityNormalizer::class);
         $this->app->singleton(LinearActivitySubmitter::class);
         $this->app->singleton(LinearWebhookSecrets::class);
