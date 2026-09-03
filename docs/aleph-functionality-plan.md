@@ -19,7 +19,9 @@ and the Funes acceptance boundary.
 Operator commands now cover connector discovery, source configuration and state, durable launches,
 schedule dispatch, recent runs, inspection, retry, and resume. Google Drive preserves downloaded
 bytes and records text from DOCX, PDF, Markdown, CSV, and plain-text files as Funes extractions. XLSX
-and PPTX remain explicit deferred results.
+and PPTX remain explicit deferred results. Slack has a Web API polling adapter that resolves opaque
+host credentials, resumes bounded pages from accepted checkpoints, and converges with verified
+webhooks on canonical activity identity.
 
 ## Milestone 1: operator-facing capability commands
 

@@ -35,6 +35,10 @@ accepted bytes to a formatter and records derived text against the original Fune
 Unsupported formats remain deferred. See `src/Connector/GoogleDrive/DocumentFormatHandoff.php` and
 `src/Connector/GoogleDrive/FunesDocumentFormatHandoff.php`.
 
+**Slack activity source.** A host-registered reader for one Slack workspace. The live implementation
+uses the Web API through an opaque token resolved by the host. It returns provider-neutral users,
+channels, and messages to Aleph. See `src/Connector/Slack/SlackWebApiActivitySource.php`.
+
 **Extractor selector** — chooses `aleph.html:1`, `aleph.pdf:1`, or `aleph.unsupported:1` from the
 normalized response media type.
 

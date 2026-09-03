@@ -5,9 +5,15 @@ declare(strict_types=1);
 namespace Sifrious\Aleph\Connector\Slack;
 
 use InvalidArgumentException;
+use Sifrious\Aleph\Connector\Configuration\SlackWorkspaceConfigurationAdapter;
+use Sifrious\Aleph\Connector\Configuration\SlackWorkspaceSourceConfigurator;
+use Sifrious\Aleph\Connector\Configuration\SourceConfiguration;
+use Sifrious\Aleph\Connector\Configuration\SourceConfigurationRecorder;
+use Sifrious\Aleph\Connector\Configuration\SourceConfigurationRequest;
 use Sifrious\Aleph\Connector\ConfigurationSchema;
 use Sifrious\Aleph\Connector\Connector;
 use Sifrious\Aleph\Connector\Contracts\Backfills;
+use Sifrious\Aleph\Connector\Contracts\ConfiguresSources;
 use Sifrious\Aleph\Connector\Contracts\ConsumesWebhooks;
 use Sifrious\Aleph\Connector\Contracts\SyncsIncrementally;
 use Sifrious\Aleph\Connector\Values\OperationRequest;
@@ -16,9 +22,13 @@ use Sifrious\Aleph\Connector\Values\WebhookDelivery;
 use Sifrious\Aleph\Ingestion\Capability;
 use Throwable;
 
-final readonly class SlackConnector implements Backfills, Connector, ConsumesWebhooks, SyncsIncrementally
+final readonly class SlackConnector implements Backfills, ConfiguresSources, Connector, ConsumesWebhooks, SyncsIncrementally
 {
-    public function __construct(private ImportSlackActivities $importer, private ConsumeSlackEvent $events) {}
+    public function __construct(
+        private ImportSlackActivities $importer,
+        private ConsumeSlackEvent $events,
+        private ?SourceConfigurationRecorder $configurationRecorder = null,
+    ) {}
 
     public function id(): string
     {
@@ -37,7 +47,12 @@ final readonly class SlackConnector implements Backfills, Connector, ConsumesWeb
 
     public function configuration(): ConfigurationSchema
     {
-        return new ConfigurationSchema;
+        return (new SlackWorkspaceConfigurationAdapter)->schema();
+    }
+
+    public function configureSource(SourceConfigurationRequest $request): SourceConfiguration
+    {
+        return (new SlackWorkspaceSourceConfigurator($this, $this->configurationRecorder))->configureSource($request);
     }
 
     public function backfill(OperationRequest $request): OperationResult
