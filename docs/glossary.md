@@ -36,7 +36,8 @@ Current classifications are HTML, PDF, and unsupported.
 
 **Document format handoff.** This step runs after Aleph accepts a Google Drive export. It sends the
 accepted bytes to a formatter and records derived text against the original Funes observation.
-Unsupported formats remain deferred. See `src/Connector/GoogleDrive/DocumentFormatHandoff.php` and
+The bundled formatter supports DOCX, XLSX, PPTX, PDF, Markdown, CSV, and plain text. Other formats
+remain deferred. See `src/Connector/GoogleDrive/DocumentFormatHandoff.php` and
 `src/Connector/GoogleDrive/FunesDocumentFormatHandoff.php`.
 
 **Slack activity source.** A host-registered reader for one Slack workspace. The live implementation
