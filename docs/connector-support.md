@@ -15,7 +15,7 @@ external provider or binary has a separate opt-in check. A blank live column is 
 | Shell history | backfill and incremental | zsh, Atuin, and Claude fixtures |  | local history reader |
 | AI conversations | backfill and incremental | Claude, Codex, and alternate fixtures |  | transcript reader |
 | Communication records | backfill and incremental | Telegram, Discord, SMS, and MMS fixtures |  | provider source |
-| Google Drive | artifact download and document handoff | DOCX, PDF, text, and deferred formats |  | Drive client |
+| Google Drive | artifact download and document handoff | DOCX, XLSX, PPTX, PDF, and text |  | Drive client |
 | YouTube | artifact download | process fixtures | opt-in `yt-dlp` check | `yt-dlp` |
 | Podcast | artifact download | RSS and HTTP fixtures |  | network access |
 | Apple Mail | artifact download | local message fixtures |  | mailbox reader |
@@ -34,6 +34,5 @@ ALEPH_SMOKE_EXTERNAL_TOOLS=1 vendor/bin/pest tests/Smoke/ExternalToolSmokeTest.p
 ALEPH_SMOKE_SLACK_TOKEN='resolved-by-your-shell' vendor/bin/pest tests/Smoke/SlackWebApiSmokeTest.php
 ```
 
-The Google Drive formatter runs in normal CI because DOCX uses PHP's DOM and Zip extensions and PDF
-uses a Composer dependency. XLSX and PPTX remain accepted original artifacts with an explicit
-deferred format result.
+The Google Drive formatter runs in normal CI. Office Open XML formats use PHP's DOM and Zip
+extensions, and PDF uses a Composer dependency.

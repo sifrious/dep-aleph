@@ -121,9 +121,10 @@ same bytes to `Connector/GoogleDrive/DocumentFormatHandoff`. The default
 `Connector/GoogleDrive/FunesDocumentFormatHandoff` records extracted text in `funes_extractions`; it
 does not create a second observation.
 
-`Connector/GoogleDrive/LocalDocumentFormatter` reads DOCX, PDF, Markdown, CSV, and plain text. DOCX
-requires PHP's DOM and Zip extensions. PDF parsing uses `smalot/pdfparser`. XLSX and PPTX return
-`document_format_not_supported`, so the original file remains accepted without a false text result.
+`Connector/GoogleDrive/LocalDocumentFormatter` reads DOCX, XLSX, PPTX, PDF, Markdown, CSV, and plain
+text. The Office formats require PHP's DOM and Zip extensions. XLSX extraction reads cell values,
+including shared and inline strings, in worksheet order. PPTX extraction reads text in numbered slide
+order. PDF parsing uses `smalot/pdfparser`.
 
 Funes keys each extraction by the accepted observation, formatter name, and formatter version. An
 exact replay returns the existing extraction ID. A different result for the same key fails instead of

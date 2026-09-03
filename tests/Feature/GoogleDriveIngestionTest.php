@@ -240,6 +240,36 @@ function googleDriveDocx(string ...$paragraphs): string
     return $contents;
 }
 
+/** @param array<string, string> $parts */
+function googleDriveOfficeArchive(array $parts): string
+{
+    $path = tempnam(sys_get_temp_dir(), 'aleph-office-test-');
+
+    if ($path === false) {
+        throw new RuntimeException('Could not create the Office test fixture.');
+    }
+
+    $archive = new ZipArchive;
+
+    if ($archive->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+        throw new RuntimeException('Could not open the Office test fixture.');
+    }
+
+    foreach ($parts as $name => $contents) {
+        $archive->addFromString($name, $contents);
+    }
+
+    $archive->close();
+    $contents = file_get_contents($path);
+    unlink($path);
+
+    if (! is_string($contents)) {
+        throw new RuntimeException('Could not read the Office test fixture.');
+    }
+
+    return $contents;
+}
+
 /**
  * @return array{LaunchGoogleDriveIngestion, mixed}
  */
@@ -538,7 +568,7 @@ it('records DOCX text as one versioned Funes extraction', function (): void {
         ->and(DB::table('funes_extractions')->count())->toBe(1)
         ->and($extraction->observation_id)->toBe($result->acceptedReferences[0])
         ->and($extraction->extractor)->toBe('aleph.document.local')
-        ->and($extraction->version)->toBe('1')
+        ->and($extraction->version)->toBe('2')
         ->and($derived['kind'])->toBe('document_text')
         ->and($derived['text'])->toBe("Quarterly notes\n\nRevenue is up.")
         ->and($derived['source']['sha256'])->toBe(hash('sha256', $docx))
@@ -595,9 +625,14 @@ it('uses the same extraction contract for PDF without another observation', func
         ->and($derived['source']['media_type'])->toBe(GoogleDriveExportPlan::PDF);
 });
 
-it('defers unsupported PPTX formatting after accepting the original', function (): void {
-    $fileId = 'unsupported-pptx';
-    $revision = 'unsupported-pptx-rev';
+it('records PPTX slides in their numbered order', function (): void {
+    $fileId = 'formatted-pptx';
+    $revision = 'formatted-pptx-rev';
+    $pptx = googleDriveOfficeArchive([
+        'ppt/slides/slide10.xml' => '<?xml version="1.0"?><p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><p:cSld><a:p><a:r><a:t>Tenth slide</a:t></a:r></a:p></p:cSld></p:sld>',
+        'ppt/slides/slide2.xml' => '<?xml version="1.0"?><p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><p:cSld><a:p><a:r><a:t>Second </a:t></a:r><a:r><a:t>slide</a:t></a:r></a:p></p:cSld></p:sld>',
+        'ppt/slides/slide1.xml' => '<?xml version="1.0"?><p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><p:cSld><a:p><a:r><a:t>First slide</a:t></a:r></a:p></p:cSld></p:sld>',
+    ]);
     $client = new FixtureGoogleDriveFileClient(
         [$fileId => new GoogleDriveFileMetadata($fileId, $revision, GoogleDriveExportPlan::SLIDES_MIME, 'Deck')],
         [$fileId => new GoogleDriveExportResult(
@@ -607,7 +642,7 @@ it('defers unsupported PPTX formatting after accepting the original', function (
             GoogleDriveExportPlan::PPTX,
             'pptx',
             'Deck.pptx',
-            'pptx bytes',
+            $pptx,
             true,
         )],
     );
@@ -617,13 +652,53 @@ it('defers unsupported PPTX formatting after accepting the original', function (
         sourceInstallationId: $installation->id,
         sourceReference: 'google-drive:workspace/pptx',
         fileId: $fileId,
-        authorization: googleDriveAuthorization('unsupported-pptx'),
+        authorization: googleDriveAuthorization('formatted-pptx'),
     ));
+    $extraction = DB::table('funes_extractions')->first();
+    $derived = json_decode((string) $extraction->result, true, 512, JSON_THROW_ON_ERROR);
 
-    expect($result->formatHandoff['status'] ?? null)->toBe('deferred')
-        ->and($result->formatHandoff['details']['reason'] ?? null)->toBe('document_format_not_supported')
+    expect($result->formatHandoff['status'] ?? null)->toBe('launched')
+        ->and($derived['text'])->toBe("First slide\n\nSecond slide\n\nTenth slide")
+        ->and($derived['source']['media_type'])->toBe(GoogleDriveExportPlan::PPTX)
         ->and(DB::table('funes_observations')->count())->toBe(1)
-        ->and(DB::table('funes_extractions')->count())->toBe(0);
+        ->and(DB::table('funes_extractions')->count())->toBe(1);
+});
+
+it('records XLSX shared inline numeric and boolean cells', function (): void {
+    $fileId = 'formatted-xlsx';
+    $revision = 'formatted-xlsx-rev';
+    $xlsx = googleDriveOfficeArchive([
+        'xl/sharedStrings.xml' => '<?xml version="1.0"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><si><t>Name</t></si><si><r><t>Gross </t></r><r><t>sales</t></r></si></sst>',
+        'xl/worksheets/sheet1.xml' => '<?xml version="1.0"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData><row><c t="s"><v>0</v></c><c t="s"><v>1</v></c><c t="inlineStr"><is><t>Approved</t></is></c></row><row><c t="inlineStr"><is><t>East</t></is></c><c><v>1250.50</v></c><c t="b"><v>1</v></c></row></sheetData></worksheet>',
+        'xl/worksheets/sheet2.xml' => '<?xml version="1.0"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData><row><c t="inlineStr"><is><t>Notes</t></is></c></row></sheetData></worksheet>',
+    ]);
+    $client = new FixtureGoogleDriveFileClient(
+        [$fileId => new GoogleDriveFileMetadata($fileId, $revision, GoogleDriveExportPlan::SHEETS_MIME, 'Report')],
+        [$fileId => new GoogleDriveExportResult(
+            $fileId,
+            $revision,
+            GoogleDriveExportPlan::SHEETS_MIME,
+            GoogleDriveExportPlan::XLSX,
+            'xlsx',
+            'Report.xlsx',
+            $xlsx,
+            true,
+        )],
+    );
+    [$launcher, $installation] = realGoogleDriveLauncher($client);
+
+    $result = $launcher->launch(new LaunchGoogleDriveIngestionRequest(
+        sourceInstallationId: $installation->id,
+        sourceReference: 'google-drive:workspace/xlsx',
+        fileId: $fileId,
+        authorization: googleDriveAuthorization('formatted-xlsx'),
+    ));
+    $extraction = DB::table('funes_extractions')->first();
+    $derived = json_decode((string) $extraction->result, true, 512, JSON_THROW_ON_ERROR);
+
+    expect($result->formatHandoff['status'] ?? null)->toBe('launched')
+        ->and($derived['text'])->toBe("Name\tGross sales\tApproved\nEast\t1250.50\tTRUE\n\nNotes")
+        ->and($derived['source']['media_type'])->toBe(GoogleDriveExportPlan::XLSX);
 });
 
 it('leaves malformed supported documents retryable without a derivation', function (): void {
