@@ -21,7 +21,8 @@ schedule dispatch, recent runs, inspection, retry, and resume. Google Drive pres
 bytes and records text from DOCX, PDF, Markdown, CSV, and plain-text files as Funes extractions. XLSX
 and PPTX remain explicit deferred results. Slack has a Web API polling adapter that resolves opaque
 host credentials, resumes bounded pages from accepted checkpoints, and converges with verified
-webhooks on canonical activity identity.
+webhooks on canonical activity identity. The crawler records accepted redirect aliases and uses them
+to avoid duplicate retrievals on later runs while keeping both requested and final URLs visible.
 
 ## Milestone 1: operator-facing capability commands
 

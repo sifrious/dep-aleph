@@ -13,6 +13,6 @@ final readonly class FrontierFactory
 
     public function for(WebSource $source, IngestionRun $run): Frontier
     {
-        return new Frontier($this->connection, $source->canonicalizer(), $run->id);
+        return new Frontier($this->connection, $source->canonicalizer(), $run->id, $run->sourceReference);
     }
 }

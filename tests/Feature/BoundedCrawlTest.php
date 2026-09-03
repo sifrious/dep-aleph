@@ -181,5 +181,36 @@ it('follows a redirect and keeps requested and final urls distinct', function ()
         ->first();
 
     expect($row->state)->toBe('fetched')
-        ->and($row->final_url)->toBe('https://ahsd.test/news/2026');
+        ->and($row->final_url)->toBe('https://ahsd.test/news/2026')
+        ->and(DB::table('aleph_web_redirect_aliases')->where('requested_url', 'https://ahsd.test/news')->value('final_url'))
+        ->toBe('https://ahsd.test/news/2026');
+});
+
+it('uses accepted redirect evidence to fetch one canonical target on later runs', function (): void {
+    $bare = 'https://ahsd.test/';
+    $www = 'https://www.ahsd.test/';
+    configureAhsd(['seeds' => [$bare], 'allowed_hosts' => ['ahsd.test', '*.ahsd.test']]);
+    runAhsdCrawl((new FakeSite)->redirect($bare, $www)->page($www));
+
+    configureAhsd(['seeds' => [$bare, $www], 'allowed_hosts' => ['ahsd.test', '*.ahsd.test']]);
+    $secondSite = (new FakeSite)->page($www);
+    $stats = runAhsdCrawl($secondSite, ['--fresh' => true]);
+    $runId = DB::table('aleph_ingestion_runs')->orderByDesc('id')->value('id');
+    $alias = DB::table('aleph_frontier_candidates')
+        ->where('run_id', $runId)
+        ->where('canonical_url', $bare)
+        ->first();
+    $target = DB::table('aleph_frontier_candidates')
+        ->where('run_id', $runId)
+        ->where('canonical_url', $www)
+        ->first();
+
+    expect($secondSite->requested)->toBe([$www])
+        ->and($stats['fetched'])->toBe(1)
+        ->and($stats['skipped_by_reason'])->toBe(['redirect_alias' => 1])
+        ->and($alias->state)->toBe('skipped')
+        ->and($alias->skip_reason)->toBe('redirect_alias')
+        ->and($alias->final_url)->toBe($www)
+        ->and($target->state)->toBe('fetched')
+        ->and($target->final_url)->toBe($www);
 });
