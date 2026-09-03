@@ -41,6 +41,13 @@ use Sifrious\Aleph\Connector\GitHub\GitHubWebhookNormalizer;
 use Sifrious\Aleph\Connector\GitHub\GitHubWebhookSecrets;
 use Sifrious\Aleph\Connector\GitHub\GitHubWebhookVerifier;
 use Sifrious\Aleph\Connector\GitHub\ImportGitHubActivities;
+use Sifrious\Aleph\Connector\GoogleDrive\AbsentDocumentFormatHandoff;
+use Sifrious\Aleph\Connector\GoogleDrive\DocumentFormatHandoff;
+use Sifrious\Aleph\Connector\GoogleDrive\FunesGoogleDriveObservationWriter;
+use Sifrious\Aleph\Connector\GoogleDrive\GoogleDriveFileClient;
+use Sifrious\Aleph\Connector\GoogleDrive\GoogleDriveObservationWriter;
+use Sifrious\Aleph\Connector\GoogleDrive\LaunchGoogleDriveIngestion;
+use Sifrious\Aleph\Connector\GoogleDrive\NullGoogleDriveFileClient;
 use Sifrious\Aleph\Connector\Health\ConnectorHealthChecks;
 use Sifrious\Aleph\Connector\Health\ConnectorHealthQueries;
 use Sifrious\Aleph\Connector\Linear\ConsumeLinearWebhook;
@@ -52,18 +59,82 @@ use Sifrious\Aleph\Connector\Linear\LinearWebhookDeliveries;
 use Sifrious\Aleph\Connector\Linear\LinearWebhookNormalizer;
 use Sifrious\Aleph\Connector\Linear\LinearWebhookSecrets;
 use Sifrious\Aleph\Connector\Linear\LinearWebhookVerifier;
+use Sifrious\Aleph\Connector\Podcast\FunesPodcastObservationWriter;
+use Sifrious\Aleph\Connector\Podcast\HttpPodcastEnclosureDownloader;
+use Sifrious\Aleph\Connector\Podcast\LaunchPodcastIngestion;
+use Sifrious\Aleph\Connector\Podcast\NullPodcastEpisodeResolver;
+use Sifrious\Aleph\Connector\Podcast\PodcastEnclosureDownloader;
+use Sifrious\Aleph\Connector\Podcast\PodcastEpisodeResolver;
+use Sifrious\Aleph\Connector\Podcast\PodcastObservationWriter;
+use Sifrious\Aleph\Connector\NativePhpDesktop\FunesNativePhpDesktopObservationWriter;
+use Sifrious\Aleph\Connector\NativePhpDesktop\LaunchNativePhpDesktopFreeformIngestion;
+use Sifrious\Aleph\Connector\NativePhpDesktop\NativePhpDesktopObservationWriter;
+use Sifrious\Aleph\Connector\Handwriting\AbsentHandwritingLocalOcrModel;
+use Sifrious\Aleph\Connector\Handwriting\FunesHandwritingObservationWriter;
+use Sifrious\Aleph\Connector\Handwriting\FunesHandwritingOcrDerivationRecorder;
+use Sifrious\Aleph\Connector\Handwriting\HandwritingLocalOcrModel;
+use Sifrious\Aleph\Connector\Handwriting\HandwritingObservationWriter;
+use Sifrious\Aleph\Connector\Handwriting\HandwritingOcrDerivationRecorder;
+use Sifrious\Aleph\Connector\Handwriting\LaunchHandwritingIngestion;
+use Sifrious\Aleph\Connector\Image\BinaryImageMetadataInspector;
+use Sifrious\Aleph\Connector\Image\ConvertImageFormat;
+use Sifrious\Aleph\Connector\Image\FunesImageClassificationRecorder;
+use Sifrious\Aleph\Connector\Image\FunesImageConversionRecorder;
+use Sifrious\Aleph\Connector\Image\FunesImageObservationWriter;
+use Sifrious\Aleph\Connector\Image\GdImageConverter;
+use Sifrious\Aleph\Connector\Image\ImageClassificationRecorder;
+use Sifrious\Aleph\Connector\Image\ImageConversionRecorder;
+use Sifrious\Aleph\Connector\Image\ImageConverter;
+use Sifrious\Aleph\Connector\Image\ImageMetadataInspector;
+use Sifrious\Aleph\Connector\Image\ImageObservationWriter;
+use Sifrious\Aleph\Connector\Image\LaunchImageIngestion;
+use Sifrious\Aleph\Connector\Image\RecordImageClassification;
+use Sifrious\Aleph\Connector\ScoreTab\AbsentScoreTabLocalModel;
+use Sifrious\Aleph\Connector\ScoreTab\FunesScoreTabDerivationRecorder;
+use Sifrious\Aleph\Connector\ScoreTab\FunesScoreTabObservationWriter;
+use Sifrious\Aleph\Connector\ScoreTab\LaunchScoreTabIngestion;
+use Sifrious\Aleph\Connector\ScoreTab\ScoreTabDerivationRecorder;
+use Sifrious\Aleph\Connector\ScoreTab\ScoreTabLocalModel;
+use Sifrious\Aleph\Connector\ScoreTab\ScoreTabObservationWriter;
 use Sifrious\Aleph\Connector\RegisterSourceAccount;
 use Sifrious\Aleph\Connector\Shell\IngestShellHistory;
 use Sifrious\Aleph\Connector\Shell\ShellCommandTokenizer;
 use Sifrious\Aleph\Connector\Shell\ShellHistorySources;
 use Sifrious\Aleph\Connector\Shell\ShellRedactionPolicy;
+use Sifrious\Aleph\Connector\Midi\FunesMidiExtractionRecorder;
+use Sifrious\Aleph\Connector\Midi\FunesMidiObservationWriter;
+use Sifrious\Aleph\Connector\Midi\LaunchMidiIngestion;
+use Sifrious\Aleph\Connector\Midi\MidiExtractionRecorder;
+use Sifrious\Aleph\Connector\Midi\MidiObservationWriter;
+use Sifrious\Aleph\Connector\Midi\MidiParser;
+use Sifrious\Aleph\Connector\Midi\OursSmfMidiParser;
+use Sifrious\Aleph\Connector\SpokenSound\FunesSpokenSoundObservationWriter;
+use Sifrious\Aleph\Connector\SpokenSound\LaunchSpokenSoundIngestion;
+use Sifrious\Aleph\Connector\SpokenSound\SpokenSoundObservationWriter;
+use Sifrious\Aleph\Connector\AppleMail\AppleMailObservationWriter;
+use Sifrious\Aleph\Connector\AppleMail\FunesAppleMailObservationWriter;
+use Sifrious\Aleph\Connector\AppleMail\LaunchAppleMailIngestion;
 use Sifrious\Aleph\Connector\Slack\ConsumeSlackEvent;
 use Sifrious\Aleph\Connector\Slack\ImportSlackActivities;
 use Sifrious\Aleph\Connector\Slack\SlackActivitySources;
 use Sifrious\Aleph\Connector\Slack\SlackActivitySubmitter;
 use Sifrious\Aleph\Connector\Slack\SlackCredentials;
 use Sifrious\Aleph\Connector\Slack\SlackEventSecrets;
+use Sifrious\Aleph\Connector\VideoFile\AbsentPythonVideoFileAdapter;
+use Sifrious\Aleph\Connector\VideoFile\FunesVideoFileObservationWriter;
+use Sifrious\Aleph\Connector\VideoFile\LaunchLocalVideoIngestion;
+use Sifrious\Aleph\Connector\VideoFile\ProcessPythonVideoFileAdapter;
+use Sifrious\Aleph\Connector\VideoFile\PythonVideoFileAdapter;
+use Sifrious\Aleph\Connector\VideoFile\VideoFileEnvelopeDocument;
+use Sifrious\Aleph\Connector\VideoFile\VideoFileObservationWriter;
+use Sifrious\Aleph\Ingestion\IngestAdapterRegistry;
+use Sifrious\Aleph\Ingestion\IngestLanguage;
 use Sifrious\Aleph\Connector\Watch\RepositoryWatches;
+use Sifrious\Aleph\Connector\YouTube\FunesYouTubeObservationWriter;
+use Sifrious\Aleph\Connector\YouTube\LaunchYouTubeIngestion;
+use Sifrious\Aleph\Connector\YouTube\YtDlpYouTubeDownloader;
+use Sifrious\Aleph\Connector\YouTube\YouTubeDownloader;
+use Sifrious\Aleph\Connector\YouTube\YouTubeObservationWriter;
 use Sifrious\Aleph\Console\CrawlCommand;
 use Sifrious\Aleph\Console\InventoryCommand;
 use Sifrious\Aleph\Envelope\EnvelopeDrafter;
@@ -211,6 +282,67 @@ class AlephServiceProvider extends ServiceProvider
         ));
 
         $this->app->singleton(ConnectorRegistry::class);
+        $this->app->singleton(YouTubeDownloader::class, YtDlpYouTubeDownloader::class);
+        $this->app->singleton(YouTubeObservationWriter::class, FunesYouTubeObservationWriter::class);
+        $this->app->singleton(LaunchYouTubeIngestion::class);
+        $this->app->singleton(VideoFileObservationWriter::class, FunesVideoFileObservationWriter::class);
+        $this->app->singleton(
+            PythonVideoFileAdapter::class,
+            function (): PythonVideoFileAdapter {
+                $process = new ProcessPythonVideoFileAdapter;
+
+                return $process->available() ? $process : new AbsentPythonVideoFileAdapter;
+            },
+        );
+        $this->app->singleton(
+            IngestAdapterRegistry::class,
+            function (Application $app): IngestAdapterRegistry {
+                $registry = new IngestAdapterRegistry;
+                $registry->register(VideoFileEnvelopeDocument::CAPABILITY, IngestLanguage::Php, true);
+                $registry->register(
+                    VideoFileEnvelopeDocument::CAPABILITY,
+                    IngestLanguage::Python,
+                    $app->make(PythonVideoFileAdapter::class)->available(),
+                );
+
+                return $registry;
+            },
+        );
+        $this->app->singleton(LaunchLocalVideoIngestion::class);
+        $this->app->singleton(SpokenSoundObservationWriter::class, FunesSpokenSoundObservationWriter::class);
+        $this->app->singleton(LaunchSpokenSoundIngestion::class);
+        $this->app->singleton(AppleMailObservationWriter::class, FunesAppleMailObservationWriter::class);
+        $this->app->singleton(LaunchAppleMailIngestion::class);
+        $this->app->singleton(MidiParser::class, OursSmfMidiParser::class);
+        $this->app->singleton(MidiObservationWriter::class, FunesMidiObservationWriter::class);
+        $this->app->singleton(MidiExtractionRecorder::class, FunesMidiExtractionRecorder::class);
+        $this->app->singleton(LaunchMidiIngestion::class);
+        $this->app->singleton(NativePhpDesktopObservationWriter::class, FunesNativePhpDesktopObservationWriter::class);
+        $this->app->singleton(LaunchNativePhpDesktopFreeformIngestion::class);
+        $this->app->singleton(PodcastEpisodeResolver::class, NullPodcastEpisodeResolver::class);
+        $this->app->singleton(PodcastEnclosureDownloader::class, HttpPodcastEnclosureDownloader::class);
+        $this->app->singleton(PodcastObservationWriter::class, FunesPodcastObservationWriter::class);
+        $this->app->singleton(LaunchPodcastIngestion::class);
+        $this->app->singleton(ScoreTabObservationWriter::class, FunesScoreTabObservationWriter::class);
+        $this->app->singleton(ScoreTabLocalModel::class, AbsentScoreTabLocalModel::class);
+        $this->app->singleton(ScoreTabDerivationRecorder::class, FunesScoreTabDerivationRecorder::class);
+        $this->app->singleton(LaunchScoreTabIngestion::class);
+        $this->app->singleton(HandwritingObservationWriter::class, FunesHandwritingObservationWriter::class);
+        $this->app->singleton(HandwritingLocalOcrModel::class, AbsentHandwritingLocalOcrModel::class);
+        $this->app->singleton(HandwritingOcrDerivationRecorder::class, FunesHandwritingOcrDerivationRecorder::class);
+        $this->app->singleton(LaunchHandwritingIngestion::class);
+        $this->app->singleton(ImageMetadataInspector::class, BinaryImageMetadataInspector::class);
+        $this->app->singleton(ImageConverter::class, GdImageConverter::class);
+        $this->app->singleton(ImageObservationWriter::class, FunesImageObservationWriter::class);
+        $this->app->singleton(ImageConversionRecorder::class, FunesImageConversionRecorder::class);
+        $this->app->singleton(ImageClassificationRecorder::class, FunesImageClassificationRecorder::class);
+        $this->app->singleton(LaunchImageIngestion::class);
+        $this->app->singleton(ConvertImageFormat::class);
+        $this->app->singleton(RecordImageClassification::class);
+        $this->app->singleton(GoogleDriveFileClient::class, NullGoogleDriveFileClient::class);
+        $this->app->singleton(GoogleDriveObservationWriter::class, FunesGoogleDriveObservationWriter::class);
+        $this->app->singleton(DocumentFormatHandoff::class, AbsentDocumentFormatHandoff::class);
+        $this->app->singleton(LaunchGoogleDriveIngestion::class);
         $this->app->singleton(CommunicationSources::class);
         $this->app->singleton(CommunicationRecordSubmitter::class);
         $this->app->singleton(ImportCommunicationRecords::class);
