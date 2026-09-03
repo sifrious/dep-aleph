@@ -10,6 +10,7 @@ use Sifrious\Aleph\Connector\GoogleDrive\AbsentDocumentFormatHandoff;
 use Sifrious\Aleph\Connector\GoogleDrive\DocumentFormatHandoff;
 use Sifrious\Aleph\Connector\GoogleDrive\DocumentFormatHandoffRequest;
 use Sifrious\Aleph\Connector\GoogleDrive\DocumentFormatHandoffResult;
+use Sifrious\Aleph\Connector\GoogleDrive\FunesDocumentFormatHandoff;
 use Sifrious\Aleph\Connector\GoogleDrive\GoogleDriveArtifactSubmission;
 use Sifrious\Aleph\Connector\GoogleDrive\GoogleDriveConnector;
 use Sifrious\Aleph\Connector\GoogleDrive\GoogleDriveExportDenied;
@@ -29,6 +30,7 @@ use Sifrious\Aleph\Ingestion\LaunchIngestion;
 use Sifrious\Aleph\Ingestion\LaunchIngestionResult;
 use Sifrious\Aleph\Ingestion\ManualIngestionDispatcher;
 use Sifrious\Aleph\Ingestion\RunStatus;
+use ZipArchive;
 
 final class GoogleDriveNullManualDispatcher implements ManualIngestionDispatcher
 {
@@ -199,6 +201,74 @@ function googleDriveDocFixture(): array
         ),
         $docx,
         $revision,
+    ];
+}
+
+function googleDriveDocx(string ...$paragraphs): string
+{
+    $path = tempnam(sys_get_temp_dir(), 'aleph-docx-test-');
+
+    if ($path === false) {
+        throw new RuntimeException('Could not create the DOCX test fixture.');
+    }
+
+    $archive = new ZipArchive;
+
+    if ($archive->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+        throw new RuntimeException('Could not open the DOCX test fixture.');
+    }
+
+    $body = implode('', array_map(
+        static fn (string $text): string => '<w:p><w:r><w:t>'.htmlspecialchars($text, ENT_XML1).'</w:t></w:r></w:p>',
+        $paragraphs,
+    ));
+    $archive->addFromString(
+        'word/document.xml',
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        .'<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>'
+        .$body
+        .'</w:body></w:document>',
+    );
+    $archive->close();
+    $contents = file_get_contents($path);
+    unlink($path);
+
+    if (! is_string($contents)) {
+        throw new RuntimeException('Could not read the DOCX test fixture.');
+    }
+
+    return $contents;
+}
+
+/**
+ * @return array{LaunchGoogleDriveIngestion, mixed}
+ */
+function realGoogleDriveLauncher(FixtureGoogleDriveFileClient $client): array
+{
+    $registry = app(ConnectorRegistry::class);
+    $connector = new GoogleDriveConnector($client);
+    $registry->register($connector);
+    $installation = app(ConnectorInstallations::class)->create(
+        $connector,
+        'Google Drive formatter account',
+        externalAccountId: 'google-drive:formatter:1',
+    );
+
+    return [
+        new LaunchGoogleDriveIngestion(
+            new LaunchIngestion(
+                $registry,
+                app(ConnectorInstallations::class),
+                app(IngestionRuns::class),
+                new GoogleDriveNullManualDispatcher,
+            ),
+            app(IngestionRuns::class),
+            $registry,
+            $client,
+            app(GoogleDriveObservationWriter::class),
+            app(DocumentFormatHandoff::class),
+        ),
+        $installation,
     ];
 }
 
@@ -433,4 +503,158 @@ it('exports docs to markdown when preferred and hands the text interchange to th
         ->and($result->exportMediaType)->toBe(GoogleDriveExportPlan::MARKDOWN)
         ->and($writer->submissions[0]->contents)->toBe($markdown)
         ->and($handoff->requests[0]->mediaType)->toBe(GoogleDriveExportPlan::MARKDOWN);
+});
+
+it('records DOCX text as one versioned Funes extraction', function (): void {
+    $fileId = 'formatted-docx';
+    $revision = 'formatted-docx-rev';
+    $docx = googleDriveDocx('Quarterly notes', 'Revenue is up.');
+    $client = new FixtureGoogleDriveFileClient(
+        [$fileId => new GoogleDriveFileMetadata($fileId, $revision, GoogleDriveExportPlan::DOCS_MIME, 'Quarterly Notes')],
+        [$fileId => new GoogleDriveExportResult(
+            $fileId,
+            $revision,
+            GoogleDriveExportPlan::DOCS_MIME,
+            GoogleDriveExportPlan::DOCX,
+            'docx',
+            'Quarterly Notes.docx',
+            $docx,
+            true,
+        )],
+    );
+    [$launcher, $installation] = realGoogleDriveLauncher($client);
+
+    $result = $launcher->launch(new LaunchGoogleDriveIngestionRequest(
+        sourceInstallationId: $installation->id,
+        sourceReference: 'google-drive:workspace/formatter',
+        fileId: $fileId,
+        authorization: googleDriveAuthorization('formatted-docx'),
+    ));
+    $extraction = DB::table('funes_extractions')->first();
+    $derived = json_decode((string) $extraction->result, true, 512, JSON_THROW_ON_ERROR);
+
+    expect(app(DocumentFormatHandoff::class))->toBeInstanceOf(FunesDocumentFormatHandoff::class)
+        ->and(DB::table('funes_observations')->count())->toBe(1)
+        ->and(DB::table('funes_extractions')->count())->toBe(1)
+        ->and($extraction->observation_id)->toBe($result->acceptedReferences[0])
+        ->and($extraction->extractor)->toBe('aleph.document.local')
+        ->and($extraction->version)->toBe('1')
+        ->and($derived['kind'])->toBe('document_text')
+        ->and($derived['text'])->toBe("Quarterly notes\n\nRevenue is up.")
+        ->and($derived['source']['sha256'])->toBe(hash('sha256', $docx))
+        ->and($result->formatHandoff['format_run_id'] ?? null)->toBe($extraction->id);
+
+    $replayed = app(DocumentFormatHandoff::class)->handOff(new DocumentFormatHandoffRequest(
+        sourceReference: 'google-drive:workspace/formatter',
+        sourceInstallationId: $installation->id,
+        driveRunId: $result->runId,
+        acceptedObservationId: $result->acceptedReferences[0],
+        artifactReference: GoogleDriveConnector::artifactReference($fileId, $revision),
+        filename: 'Quarterly Notes.docx',
+        mediaType: GoogleDriveExportPlan::DOCX,
+        contents: $docx,
+        checksum: hash('sha256', $docx),
+        bytes: strlen($docx),
+    ));
+
+    expect($replayed->formatRunId)->toBe($extraction->id)
+        ->and(DB::table('funes_extractions')->count())->toBe(1);
+});
+
+it('uses the same extraction contract for PDF without another observation', function (): void {
+    $fileId = 'formatted-pdf';
+    $revision = 'formatted-pdf-rev';
+    $pdf = pdfWithEmbeddedText('Drive PDF body');
+    $client = new FixtureGoogleDriveFileClient(
+        [$fileId => new GoogleDriveFileMetadata($fileId, $revision, GoogleDriveExportPlan::PDF, 'notes.pdf')],
+        [$fileId => new GoogleDriveExportResult(
+            $fileId,
+            $revision,
+            GoogleDriveExportPlan::PDF,
+            GoogleDriveExportPlan::PDF,
+            'pdf',
+            'notes.pdf',
+            $pdf,
+            false,
+        )],
+    );
+    [$launcher, $installation] = realGoogleDriveLauncher($client);
+
+    $launcher->launch(new LaunchGoogleDriveIngestionRequest(
+        sourceInstallationId: $installation->id,
+        sourceReference: 'google-drive:workspace/pdf',
+        fileId: $fileId,
+        authorization: googleDriveAuthorization('formatted-pdf'),
+    ));
+    $extraction = DB::table('funes_extractions')->first();
+    $derived = json_decode((string) $extraction->result, true, 512, JSON_THROW_ON_ERROR);
+
+    expect(DB::table('funes_observations')->count())->toBe(1)
+        ->and($derived['kind'])->toBe('document_text')
+        ->and($derived['text'])->toContain('Drive PDF body')
+        ->and($derived['source']['media_type'])->toBe(GoogleDriveExportPlan::PDF);
+});
+
+it('defers unsupported PPTX formatting after accepting the original', function (): void {
+    $fileId = 'unsupported-pptx';
+    $revision = 'unsupported-pptx-rev';
+    $client = new FixtureGoogleDriveFileClient(
+        [$fileId => new GoogleDriveFileMetadata($fileId, $revision, GoogleDriveExportPlan::SLIDES_MIME, 'Deck')],
+        [$fileId => new GoogleDriveExportResult(
+            $fileId,
+            $revision,
+            GoogleDriveExportPlan::SLIDES_MIME,
+            GoogleDriveExportPlan::PPTX,
+            'pptx',
+            'Deck.pptx',
+            'pptx bytes',
+            true,
+        )],
+    );
+    [$launcher, $installation] = realGoogleDriveLauncher($client);
+
+    $result = $launcher->launch(new LaunchGoogleDriveIngestionRequest(
+        sourceInstallationId: $installation->id,
+        sourceReference: 'google-drive:workspace/pptx',
+        fileId: $fileId,
+        authorization: googleDriveAuthorization('unsupported-pptx'),
+    ));
+
+    expect($result->formatHandoff['status'] ?? null)->toBe('deferred')
+        ->and($result->formatHandoff['details']['reason'] ?? null)->toBe('document_format_not_supported')
+        ->and(DB::table('funes_observations')->count())->toBe(1)
+        ->and(DB::table('funes_extractions')->count())->toBe(0);
+});
+
+it('leaves malformed supported documents retryable without a derivation', function (): void {
+    $fileId = 'malformed-docx';
+    $revision = 'malformed-docx-rev';
+    $client = new FixtureGoogleDriveFileClient(
+        [$fileId => new GoogleDriveFileMetadata($fileId, $revision, GoogleDriveExportPlan::DOCS_MIME, 'Broken')],
+        [$fileId => new GoogleDriveExportResult(
+            $fileId,
+            $revision,
+            GoogleDriveExportPlan::DOCS_MIME,
+            GoogleDriveExportPlan::DOCX,
+            'docx',
+            'Broken.docx',
+            'not a zip archive',
+            true,
+        )],
+    );
+    [$launcher, $installation] = realGoogleDriveLauncher($client);
+
+    expect(fn () => $launcher->launch(new LaunchGoogleDriveIngestionRequest(
+        sourceInstallationId: $installation->id,
+        sourceReference: 'google-drive:workspace/broken',
+        fileId: $fileId,
+        authorization: googleDriveAuthorization('malformed-docx'),
+    )))->toThrow(RuntimeException::class, 'DOCX archive could not be opened');
+
+    $attempt = DB::table('aleph_ingestion_attempts')->first();
+    $failure = json_decode((string) $attempt->failure, true, 512, JSON_THROW_ON_ERROR);
+
+    expect($attempt->status)->toBe('failed')
+        ->and($failure['retryable'])->toBeTrue()
+        ->and(DB::table('funes_extractions')->count())->toBe(0);
 });

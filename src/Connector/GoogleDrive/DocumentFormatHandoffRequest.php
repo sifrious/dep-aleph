@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace Sifrious\Aleph\Connector\GoogleDrive;
 
 /**
- * Clear handoff into the existing MME-777 / MME-820 document format tools.
- * Drive stores interchange bytes; it does not extract markdown/HTML/PDF/Word itself.
+ * Carries accepted Drive interchange bytes to a document formatter.
  */
 final readonly class DocumentFormatHandoffRequest
 {

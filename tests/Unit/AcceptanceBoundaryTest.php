@@ -30,6 +30,7 @@ it('keeps direct Funes dependencies inside reviewed boundary adapters', function
         'Acceptance/AcceptanceClient.php',
         'Acceptance/Backfill.php',
         'AlephServiceProvider.php',
+        'Connector/GoogleDrive/FunesDocumentFormatHandoff.php',
         'Connector/Handwriting/FunesHandwritingOcrDerivationRecorder.php',
         'Connector/Image/FunesImageClassificationRecorder.php',
         'Connector/Image/FunesImageConversionRecorder.php',

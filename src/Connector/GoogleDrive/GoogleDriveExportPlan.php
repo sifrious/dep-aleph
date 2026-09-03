@@ -7,8 +7,7 @@ namespace Sifrious\Aleph\Connector\GoogleDrive;
 use InvalidArgumentException;
 
 /**
- * Maps Drive MIME types onto interchange exports for the existing MME-777 format tools.
- * Drive does not extract text; it only chooses a real interchange file.
+ * Maps Drive MIME types onto interchange exports.
  */
 final class GoogleDriveExportPlan
 {

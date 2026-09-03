@@ -16,9 +16,10 @@ webhooks, artifact downloads, extraction, normalization, health checks, and agen
 also has durable runs, attempts, checkpoints, retry history, scheduling policy, connector manifests,
 and the Funes acceptance boundary.
 
-Only web crawl and crawl inventory have Artisan commands. Most other capabilities can be reached only
-through PHP services or connector-specific launch classes. Google Drive also records a deferred
-document-format handoff when no formatter is bound.
+Operator commands now cover connector discovery, source configuration and state, durable launches,
+schedule dispatch, recent runs, inspection, retry, and resume. Google Drive preserves downloaded
+bytes and records text from DOCX, PDF, Markdown, CSV, and plain-text files as Funes extractions. XLSX
+and PPTX remain explicit deferred results.
 
 ## Milestone 1: operator-facing capability commands
 
