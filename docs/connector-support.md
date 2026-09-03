@@ -8,7 +8,7 @@ external provider or binary has a separate opt-in check. A blank live column is 
 | --- | --- | --- | --- | --- |
 | Web crawl | configuration and crawl | full bounded crawl | HTTP integration tests | network access |
 | Slack | configuration, backfill, incremental, webhook | recorded Web API and webhook fixtures | opt-in `auth.test` | secret store and Slack token |
-| GitHub | backfill, incremental, webhook | yes |  | provider transport and webhook secret |
+| GitHub | configuration, backfill, incremental, webhook | recorded GraphQL and webhook fixtures | opt-in GraphQL query | token resolver and webhook secret |
 | Linear | backfill, incremental, webhook | yes |  | GraphQL transport and webhook secret |
 | Email | backfill and incremental | Gmail, Graph, and IMAP fixtures |  | provider source |
 | Git | backfill and incremental | local repository fixtures |  | repository reader |
@@ -32,6 +32,7 @@ Normal CI never needs provider credentials. Run external checks explicitly:
 ```bash
 ALEPH_SMOKE_EXTERNAL_TOOLS=1 vendor/bin/pest tests/Smoke/ExternalToolSmokeTest.php
 ALEPH_SMOKE_SLACK_TOKEN='resolved-by-your-shell' vendor/bin/pest tests/Smoke/SlackWebApiSmokeTest.php
+ALEPH_SMOKE_GITHUB_TOKEN='resolved-by-your-shell' ALEPH_SMOKE_GITHUB_REPOSITORY='owner/name' vendor/bin/pest tests/Smoke/GitHubGraphqlSmokeTest.php
 ```
 
 The Google Drive formatter runs in normal CI. Office Open XML formats use PHP's DOM and Zip

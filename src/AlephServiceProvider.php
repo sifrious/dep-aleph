@@ -40,6 +40,7 @@ use Sifrious\Aleph\Connector\Git\GitChangeDetector;
 use Sifrious\Aleph\Connector\Git\GitRepositorySources;
 use Sifrious\Aleph\Connector\Git\ImportGitHistory;
 use Sifrious\Aleph\Connector\GitHub\ConsumeGitHubWebhook;
+use Sifrious\Aleph\Connector\GitHub\GitHubActivityConnector;
 use Sifrious\Aleph\Connector\GitHub\GitHubActivitySources;
 use Sifrious\Aleph\Connector\GitHub\GitHubActivitySubmitter;
 use Sifrious\Aleph\Connector\GitHub\GitHubWebhookDeliveries;
@@ -471,6 +472,14 @@ class AlephServiceProvider extends ServiceProvider
         $this->app->singleton(GitChangeDetector::class);
 
         $this->app->singleton(GitHubActivitySources::class);
+        $this->app->singleton(
+            GitHubActivityConnector::class,
+            fn (Application $app): GitHubActivityConnector => new GitHubActivityConnector(
+                $app->make(ImportGitHubActivities::class),
+                $app->make(ConsumeGitHubWebhook::class),
+                $app->make(SourceConfigurationRecorder::class),
+            ),
+        );
         $this->app->singleton(GitHubWebhookSecrets::class);
         $this->app->singleton(GitHubWebhookVerifier::class);
         $this->app->singleton(GitHubWebhookNormalizer::class);

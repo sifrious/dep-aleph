@@ -44,6 +44,11 @@ remain deferred. See `src/Connector/GoogleDrive/DocumentFormatHandoff.php` and
 uses the Web API through an opaque token resolved by the host. It returns provider-neutral users,
 channels, and messages to Aleph. See `src/Connector/Slack/SlackWebApiActivitySource.php`.
 
+**GitHub activity source.** A reader for repository and collaboration history. The bundled GraphQL
+implementation resolves a token through the source installation and maps provider nodes to canonical
+repository, pull request, review, comment, and reaction activities. See
+`src/Connector/GitHub/GitHubGraphqlActivitySource.php`.
+
 **Extractor selector** — chooses `aleph.html:1`, `aleph.pdf:1`, or `aleph.unsupported:1` from the
 normalized response media type.
 

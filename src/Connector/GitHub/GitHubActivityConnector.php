@@ -5,9 +5,15 @@ declare(strict_types=1);
 namespace Sifrious\Aleph\Connector\GitHub;
 
 use InvalidArgumentException;
+use Sifrious\Aleph\Connector\Configuration\GitHubRepositoryConfigurationAdapter;
+use Sifrious\Aleph\Connector\Configuration\GitHubRepositorySourceConfigurator;
+use Sifrious\Aleph\Connector\Configuration\SourceConfiguration;
+use Sifrious\Aleph\Connector\Configuration\SourceConfigurationRecorder;
+use Sifrious\Aleph\Connector\Configuration\SourceConfigurationRequest;
 use Sifrious\Aleph\Connector\ConfigurationSchema;
 use Sifrious\Aleph\Connector\Connector;
 use Sifrious\Aleph\Connector\Contracts\Backfills;
+use Sifrious\Aleph\Connector\Contracts\ConfiguresSources;
 use Sifrious\Aleph\Connector\Contracts\ConsumesWebhooks;
 use Sifrious\Aleph\Connector\Contracts\SyncsIncrementally;
 use Sifrious\Aleph\Connector\Values\OperationRequest;
@@ -16,11 +22,12 @@ use Sifrious\Aleph\Connector\Values\WebhookDelivery;
 use Sifrious\Aleph\Ingestion\Capability;
 use Throwable;
 
-final readonly class GitHubActivityConnector implements Backfills, Connector, ConsumesWebhooks, SyncsIncrementally
+final readonly class GitHubActivityConnector implements Backfills, ConfiguresSources, Connector, ConsumesWebhooks, SyncsIncrementally
 {
     public function __construct(
         private ImportGitHubActivities $importer,
         private ConsumeGitHubWebhook $webhooks,
+        private ?SourceConfigurationRecorder $configurationRecorder = null,
     ) {}
 
     public function id(): string
@@ -40,7 +47,12 @@ final readonly class GitHubActivityConnector implements Backfills, Connector, Co
 
     public function configuration(): ConfigurationSchema
     {
-        return new ConfigurationSchema;
+        return (new GitHubRepositoryConfigurationAdapter)->schema();
+    }
+
+    public function configureSource(SourceConfigurationRequest $request): SourceConfiguration
+    {
+        return (new GitHubRepositorySourceConfigurator($this, $this->configurationRecorder))->configureSource($request);
     }
 
     public function backfill(OperationRequest $request): OperationResult
