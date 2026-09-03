@@ -22,18 +22,6 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Remove local path repository override
-        run: |
-          php -r '
-            $composer = json_decode(file_get_contents("composer.json"), true, 512, JSON_THROW_ON_ERROR);
-            unset($composer["repositories"]);
-            unset($composer["require"]["sifrious/funes"]);
-            file_put_contents(
-              "composer.json",
-              json_encode($composer, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR).PHP_EOL
-            );
-          '
-
       - run: composer update --prefer-dist --no-interaction --no-progress
 
       - run: vendor/bin/pest tests/Feature/YouTubeIngestionTest.php tests/Feature/LocalVideoIngestionTest.php tests/Feature/PodcastIngestionTest.php tests/Feature/PodcastEnclosureDownloaderTest.php tests/Feature/ScoreTabIngestionTest.php tests/Feature/MidiIngestionTest.php tests/Unit/OursSmfMidiParserTest.php tests/Feature/HandwritingIngestionTest.php tests/Feature/ImageIngestionTest.php tests/Feature/AppleMailIngestionTest.php tests/Feature/GoogleDriveIngestionTest.php tests/Feature/HistoricalAssertionNormalizationTest.php tests/Unit/GoogleDriveExportPlanTest.php
