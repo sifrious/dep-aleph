@@ -163,6 +163,23 @@ final readonly class IngestionRuns
         return $row === null ? null : $this->hydrate($row);
     }
 
+    /**
+     * @return list<IngestionRun>
+     */
+    public function recent(int $limit = 25): array
+    {
+        if ($limit < 1 || $limit > 100) {
+            throw new \InvalidArgumentException('Run list limit must be between 1 and 100.');
+        }
+
+        return array_values($this->table()
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get()
+            ->map(fn (stdClass $row): IngestionRun => $this->hydrate($row))
+            ->all());
+    }
+
     public function findByIdempotencyKey(string $key): ?IngestionRun
     {
         $row = $this->table()->where('idempotency_key', $key)->first();

@@ -52,6 +52,30 @@ running -> interrupted -> running
 
 An interrupted run is resumed by default. `--fresh` starts another run. A run cannot complete while a required Funes submission has failed.
 
+## Operating Aleph
+
+The package exposes its connector catalogue and durable run controls through Artisan:
+
+```bash
+php artisan aleph:connectors
+php artisan aleph:connectors --json
+php artisan aleph:source:configure web-crawl ahsd "AHSD" \
+    --value='seeds=["https://www.ahsd.org/"]' \
+    --value='allowed_hosts=["ahsd.org","*.ahsd.org"]'
+php artisan aleph:runs
+php artisan aleph:run:show <run-id> --json
+```
+
+`aleph:run` creates a durable, authorized manual run. The host must bind
+`ManualIngestionDispatcher` to send that run to its worker system. `aleph:run:retry` and
+`aleph:run:resume` use the host's `IngestionQueue` binding. Aleph refuses unsupported capabilities,
+disabled installations, denied authorization, unsafe retries, and unbounded resume requests before
+dispatch.
+
+Source values and run parameters use repeatable `key=value` options. JSON values decode as their
+native type. Credentials are never accepted as values. Pass only an opaque host-owned reference with
+`--credential-reference`.
+
 ## Configuring a web source
 
 Sources are declared under `aleph.web_sources`:

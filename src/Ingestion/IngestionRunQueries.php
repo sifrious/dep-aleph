@@ -21,4 +21,19 @@ final readonly class IngestionRunQueries
 
         return $run === null ? null : new IngestionRunReadModel($run, $this->runs->attempts($run), $this->runs->failures($run));
     }
+
+    /**
+     * @return list<IngestionRunReadModel>
+     */
+    public function recent(int $limit = 25): array
+    {
+        return array_map(
+            fn (IngestionRun $run): IngestionRunReadModel => new IngestionRunReadModel(
+                $run,
+                $this->runs->attempts($run),
+                $this->runs->failures($run),
+            ),
+            $this->runs->recent($limit),
+        );
+    }
 }

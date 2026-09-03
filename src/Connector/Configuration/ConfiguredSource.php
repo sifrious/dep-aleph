@@ -20,4 +20,16 @@ final readonly class ConfiguredSource
     {
         return $this->configuration->sourceReference;
     }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(): array
+    {
+        return [
+            'source_reference' => $this->sourceReference(),
+            'configuration' => $this->configuration->toArray(),
+            'installation' => $this->installation->toArray(),
+        ];
+    }
 }

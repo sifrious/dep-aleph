@@ -84,6 +84,22 @@ be the first thing to discover a connector cannot do the job.
 
 Rejection reasons: `unknown_connector`, `capability_not_supported`, `capability_not_dispatchable`.
 
+The Artisan boundary uses the same catalogue and launch services:
+
+```bash
+php artisan aleph:connectors --json
+php artisan aleph:run <installation-id> history.backfill slack:T123 \
+    --idempotency=backfill-2026-09-03 \
+    --actor=user:42 \
+    --decision=authorization:884 \
+    --parameter='channels=["C123"]'
+```
+
+`aleph:run` records the request through `LaunchIngestion` and delegates execution through the host's
+`ManualIngestionDispatcher`. The command does not call a provider directly. Retry and resume commands
+delegate to `RetryIngestion` and `ResumeIngestion`, which apply the same safety checks used by other
+transports.
+
 ## Display layers
 
 Ask the manifest; never encode provider knowledge in the UI.

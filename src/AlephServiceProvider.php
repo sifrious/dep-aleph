@@ -135,8 +135,15 @@ use Sifrious\Aleph\Connector\YouTube\LaunchYouTubeIngestion;
 use Sifrious\Aleph\Connector\YouTube\YouTubeDownloader;
 use Sifrious\Aleph\Connector\YouTube\YouTubeObservationWriter;
 use Sifrious\Aleph\Connector\YouTube\YtDlpYouTubeDownloader;
+use Sifrious\Aleph\Console\ConfigureSourceCommand;
+use Sifrious\Aleph\Console\ConnectorsCommand;
 use Sifrious\Aleph\Console\CrawlCommand;
 use Sifrious\Aleph\Console\InventoryCommand;
+use Sifrious\Aleph\Console\ResumeRunCommand;
+use Sifrious\Aleph\Console\RetryRunCommand;
+use Sifrious\Aleph\Console\RunCommand;
+use Sifrious\Aleph\Console\RunsCommand;
+use Sifrious\Aleph\Console\ShowRunCommand;
 use Sifrious\Aleph\Envelope\EnvelopeDrafter;
 use Sifrious\Aleph\Envelope\EnvelopeSubmitter;
 use Sifrious\Aleph\Ingestion\ContinuationLeases;
@@ -684,7 +691,17 @@ class AlephServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
 
         if ($this->app->runningInConsole()) {
-            $this->commands([CrawlCommand::class, InventoryCommand::class]);
+            $this->commands([
+                ConfigureSourceCommand::class,
+                ConnectorsCommand::class,
+                CrawlCommand::class,
+                InventoryCommand::class,
+                ResumeRunCommand::class,
+                RetryRunCommand::class,
+                RunCommand::class,
+                RunsCommand::class,
+                ShowRunCommand::class,
+            ]);
 
             $this->publishes([
                 __DIR__.'/../config/aleph.php' => $this->app->configPath('aleph.php'),
