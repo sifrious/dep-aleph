@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace Sifrious\Aleph\Connector\GoogleDrive;
 
 /**
- * Default when MME-777 format LaunchIngestion is not bound in this package.
- * Records an explicit deferred handoff; does not extract or invent a second ingest API.
+ * Explicit fallback for hosts that disable document formatting.
  */
 final class AbsentDocumentFormatHandoff implements DocumentFormatHandoff
 {
@@ -14,7 +13,7 @@ final class AbsentDocumentFormatHandoff implements DocumentFormatHandoff
     {
         return DocumentFormatHandoffResult::deferred([
             'reason' => 'document_format_formatter_not_bound',
-            'formatter' => 'mme-777',
+            'formatter' => null,
             'artifact_reference' => $request->artifactReference,
             'accepted_observation_id' => $request->acceptedObservationId,
             'filename' => $request->filename,
