@@ -73,6 +73,23 @@ configuration and must not be committed. Run that test explicitly when checking 
 ALEPH_SMOKE_SLACK_TOKEN='resolved-by-your-shell' vendor/bin/pest tests/Smoke/SlackWebApiSmokeTest.php
 ```
 
+## GitHub repository inputs
+
+Adapter: `Configuration\GitHubRepositoryConfigurationAdapter`. Source kind `github`. Requires a
+`CredentialKind::Token` reference.
+
+| Input | Env key | Type | Default | Secret | When absent |
+| --- | --- | --- | --- | --- | --- |
+| `account` | `ALEPH_GITHUB_ACCOUNT` | string | none | no | rejected |
+| `repositories` | `ALEPH_GITHUB_REPOSITORIES` | array | none | no | rejected |
+
+The account is a GitHub user or organization login. Each repository uses `owner/name` coordinates.
+Aleph lowercases and deduplicates repository coordinates. The token remains in the host's secret
+store and reaches source configuration only as `credentialReference`.
+
+`ALEPH_SMOKE_GITHUB_TOKEN` and `ALEPH_SMOKE_GITHUB_REPOSITORY` are test-only values. They are not
+package configuration and must not be committed.
+
 ## Adding a source kind
 
 Implement `SourceConfigurationProvider` — `sourceKind()`, `schema()`, `credentialKind()`,

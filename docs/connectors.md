@@ -163,12 +163,16 @@ a synthetic request and verifies the return type.
 
 ## GitHub activity adapters
 
-`GitHubActivityConnector` owns backfill, incremental, and webhook behavior. A consuming application
-registers an account-specific `GitHubActivitySource` that translates REST or GraphQL responses into
-canonical activities and registers its resolved webhook secret by source installation. The package
-owns cursor advancement, Funes submission, signature validation, encrypted delivery replay, account
-isolation, and rate-limit failure evidence. OAuth callbacks, token acquisition, provider clients, and
-HTTP route handling stay in the consuming application.
+`GitHubActivityConnector` owns configuration, backfill, incremental, and webhook behavior. The
+bundled `GitHubGraphqlActivitySource` reads repository, pull request, review, comment, and reaction
+records through `GitHubGraphqlTransport`. Its token resolver receives the source installation ID and
+returns secret material only for the request. A consuming application registers the source and its
+resolved webhook secret by source installation. Aleph owns cursor advancement, Funes submission,
+signature validation, encrypted delivery replay, account isolation, and rate-limit failure evidence.
+OAuth callbacks, token acquisition, and HTTP route handling stay in the consuming application.
+The bundled source reads at most 100 reviews, comments, and reactions per pull request. It refuses a
+truncated nested connection. A host that needs larger pull requests must register a source that
+paginates those connections.
 
 ## Shell history adapters
 

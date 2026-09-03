@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\DB;
 use Sifrious\Aleph\Connector\Capability as ConnectorCapability;
+use Sifrious\Aleph\Connector\Configuration\ConfigureSource;
+use Sifrious\Aleph\Connector\Configuration\SourceConfigurationRequest;
 use Sifrious\Aleph\Connector\ConnectorDispatcher;
 use Sifrious\Aleph\Connector\ConnectorInstallations;
 use Sifrious\Aleph\Connector\ConnectorRegistry;
@@ -272,8 +274,29 @@ it('advertises backfill incremental and webhook capabilities through one connect
     app(ConnectorRegistry::class)->register($connector);
 
     expect(app(ConnectorRegistry::class)->manifest($connector->id())->capabilityIds())->toBe([
+        'sources.configure',
         'history.backfill',
         'sync.incremental',
         'webhooks.consume',
     ]);
+});
+
+it('configures the shipped GitHub connector with an opaque token reference', function (): void {
+    $connector = app(GitHubActivityConnector::class);
+    app(ConnectorRegistry::class)->register($connector);
+
+    $configured = app(ConfigureSource::class)->configure('github-activity', new SourceConfigurationRequest(
+        sourceKey: 'acme',
+        name: 'Acme GitHub',
+        values: ['account' => 'Acme', 'repositories' => ['Acme/Widget', 'acme/widget']],
+        credentialReference: 'secret://github/acme',
+    ));
+
+    expect($configured->sourceReference())->toBe('github:acme')
+        ->and($configured->installation->credentialsReference)->toBe('secret://github/acme')
+        ->and($configured->installation->configuration)->toBe([
+            'account' => 'acme',
+            'repositories' => ['acme/widget'],
+        ])
+        ->and(DB::table('funes_observations')->count())->toBe(1);
 });
