@@ -278,3 +278,6 @@ as a cross-package provenance reference.
 **Assertion normalization report** — the canonical assertion plus its raw-source reference,
 provider fields that Aleph could not represent, and optional provider confidence. This is mapping
 evidence, not canonical Funes state.
+
+**Operator command.** An Artisan transport over an Aleph application service. It parses input and
+renders text or JSON, but it does not implement ingestion, retry, resume, or provider behavior.

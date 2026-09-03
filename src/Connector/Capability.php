@@ -6,6 +6,7 @@ namespace Sifrious\Aleph\Connector;
 
 use Sifrious\Aleph\Connector\Contracts\Backfills;
 use Sifrious\Aleph\Connector\Contracts\ChecksHealth;
+use Sifrious\Aleph\Connector\Contracts\ConfiguresSources;
 use Sifrious\Aleph\Connector\Contracts\ConsumesWebhooks;
 use Sifrious\Aleph\Connector\Contracts\DiscoversSources;
 use Sifrious\Aleph\Connector\Contracts\DownloadsArtifacts;
@@ -16,6 +17,7 @@ use Sifrious\Aleph\Connector\Contracts\UsesAgents;
 
 enum Capability: string
 {
+    case ConfiguresSources = 'sources.configure';
     case DiscoversSources = 'sources.discover';
     case Backfills = 'history.backfill';
     case SyncsIncrementally = 'sync.incremental';
@@ -29,6 +31,7 @@ enum Capability: string
     public function contract(): string
     {
         return match ($this) {
+            self::ConfiguresSources => ConfiguresSources::class,
             self::DiscoversSources => DiscoversSources::class,
             self::Backfills => Backfills::class,
             self::SyncsIncrementally => SyncsIncrementally::class,
@@ -44,7 +47,7 @@ enum Capability: string
     public function isDispatchable(): bool
     {
         return match ($this) {
-            self::ExtractsContent, self::Normalizes, self::UsesAgents => false,
+            self::ConfiguresSources, self::ExtractsContent, self::Normalizes, self::UsesAgents => false,
             default => true,
         };
     }

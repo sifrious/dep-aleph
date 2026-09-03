@@ -99,7 +99,7 @@ function appleMailPngBytes(): string
 
 it('ingests one local Mail message with one attachment into run, message artifact, and attachment artifact', function (): void {
     [$launcher, $installation, , $writer] = appleMailLauncher();
-    $pdfBytes = "%PDF-1.4 fixture-invoice-bytes";
+    $pdfBytes = '%PDF-1.4 fixture-invoice-bytes';
     $message = new LocalAppleMailMessage(
         rfcMessageId: '<mail-1@example.test>',
         subject: 'Invoice attached',
@@ -311,6 +311,6 @@ it('implements a real downloadArtifact for local mailbox messages', function ():
 });
 
 it('computes attachment media types from bytes rather than declared types', function (): void {
-    expect(AppleMailMediaType::fromBytes("%PDF-1.7 bytes", 'wrong.txt', 'text/plain'))->toBe('application/pdf')
+    expect(AppleMailMediaType::fromBytes('%PDF-1.7 bytes', 'wrong.txt', 'text/plain'))->toBe('application/pdf')
         ->and(AppleMailMediaType::fromBytes(appleMailPngBytes(), 'x.bin', 'application/octet-stream'))->toBe('image/png');
 });

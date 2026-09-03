@@ -15,11 +15,13 @@ final readonly class DocumentFormatHandoffResult
         public array $details = [],
     ) {}
 
+    /** @param array<string, mixed> $details */
     public static function deferred(array $details = []): self
     {
         return new self('deferred', null, $details);
     }
 
+    /** @param array<string, mixed> $details */
     public static function launched(string $formatRunId, array $details = []): self
     {
         return new self('launched', $formatRunId, $details);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\DB;
 use Sifrious\Aleph\Connector\ConnectorInstallations;
 use Sifrious\Aleph\Connector\ConnectorRegistry;
+use Sifrious\Aleph\Connector\Values\ArtifactRequest;
 use Sifrious\Aleph\Connector\VideoFile\AbsentPythonVideoFileAdapter;
 use Sifrious\Aleph\Connector\VideoFile\LaunchLocalVideoIngestion;
 use Sifrious\Aleph\Connector\VideoFile\LaunchLocalVideoIngestionRequest;
@@ -15,8 +16,8 @@ use Sifrious\Aleph\Connector\VideoFile\VideoFileConnector;
 use Sifrious\Aleph\Connector\VideoFile\VideoFileEnvelopeDocument;
 use Sifrious\Aleph\Connector\VideoFile\VideoFileObservationWriter;
 use Sifrious\Aleph\Ingestion\IngestAdapterRegistry;
-use Sifrious\Aleph\Ingestion\IngestLanguage;
 use Sifrious\Aleph\Ingestion\IngestionRuns;
+use Sifrious\Aleph\Ingestion\IngestLanguage;
 use Sifrious\Aleph\Ingestion\LaunchAuthorization;
 use Sifrious\Aleph\Ingestion\LaunchIngestion;
 use Sifrious\Aleph\Ingestion\LaunchIngestionResult;
@@ -465,12 +466,12 @@ it('emits the same comparable envelope shape from the sibling python twin script
 it('downloads artifacts for path and file inputs when DownloadsArtifacts is advertised', function (): void {
     $connector = new VideoFileConnector;
     $path = tempVideo('download-path-bytes');
-    $fromPath = $connector->downloadArtifact(new Sifrious\Aleph\Connector\Values\ArtifactRequest(
+    $fromPath = $connector->downloadArtifact(new ArtifactRequest(
         sourceReference: 'desktop:capture:main',
         artifactReference: 'file://'.$path,
         parameters: ['input' => 'path', 'path' => $path],
     ));
-    $fromFile = $connector->downloadArtifact(new Sifrious\Aleph\Connector\Values\ArtifactRequest(
+    $fromFile = $connector->downloadArtifact(new ArtifactRequest(
         sourceReference: 'desktop:capture:main',
         artifactReference: 'memory://clip.mp4',
         parameters: [

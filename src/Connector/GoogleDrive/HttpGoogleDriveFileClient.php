@@ -222,7 +222,7 @@ final readonly class HttpGoogleDriveFileClient implements GoogleDriveFileClient
         }
 
         $stem = pathinfo($base, PATHINFO_FILENAME);
-        $stem = is_string($stem) && $stem !== '' ? $stem : $base;
+        $stem = $stem !== '' ? $stem : $base;
 
         return $stem.'.'.$extension;
     }

@@ -6,6 +6,4 @@ namespace Sifrious\Aleph\Connector\GoogleDrive;
 
 use RuntimeException;
 
-final class UnfetchableGoogleDriveFile extends RuntimeException
-{
-}
+final class UnfetchableGoogleDriveFile extends RuntimeException {}

@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use RuntimeException;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 use Sifrious\Aleph\Connector\ConnectorInstallations;
 use Sifrious\Aleph\Connector\ConnectorRegistry;
 use Sifrious\Aleph\Connector\NativePhpDesktop\LaunchNativePhpDesktopFreeformIngestion;
@@ -133,7 +133,7 @@ it('replays the same freeform body for the same installation', function (): void
 
 it('uses installation plus content hash for idempotency', function (): void {
     [$launcher, $installationA, $installationB, $writer] = nativePhpDesktopLauncher();
-    $body = "Same text, different installation should not replay.";
+    $body = 'Same text, different installation should not replay.';
     $authorization = LaunchAuthorization::granted('identity:user/mary', 'authorization:nativephp-desktop/3');
 
     $first = $launcher->launch(new LaunchNativePhpDesktopFreeformIngestionRequest(
@@ -158,7 +158,7 @@ it('uses installation plus content hash for idempotency', function (): void {
 
 it('retries a replayed retryable failed run instead of returning immediately', function (): void {
     [$launcher, $installation, , $writer] = nativePhpDesktopLauncher();
-    $body = "Transient failure should be retryable on replay.";
+    $body = 'Transient failure should be retryable on replay.';
     $request = new LaunchNativePhpDesktopFreeformIngestionRequest(
         sourceInstallationId: $installation->id,
         sourceReference: 'nativephp-desktop://device/workstation-1',

@@ -19,10 +19,7 @@ final class VideoFileEnvelopeDocument
 
     public const EXTENSION_NAMESPACE = 'video.file';
 
-    /**
-     * @param  array<string, mixed>  $metadata
-     * @return array<string, mixed>
-     */
+    /** @return array<string, mixed> */
     public static function fromSubmission(VideoFileArtifactSubmission $submission, string $language): array
     {
         return self::build(

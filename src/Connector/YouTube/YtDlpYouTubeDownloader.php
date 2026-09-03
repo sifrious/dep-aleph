@@ -72,7 +72,7 @@ final class YtDlpYouTubeDownloader implements YouTubeDownloader
     }
 
     /**
-     * @param  array<int, string>  $command
+     * @param  list<string>  $command
      */
     private function run(array $command): string
     {

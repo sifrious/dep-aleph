@@ -271,9 +271,6 @@ final class OursSmfMidiParser implements MidiParser
         ];
     }
 
-    /**
-     * @return null
-     */
     private function skipDataBytes(string $contents, int &$offset, int $count, int $trackEnd): null
     {
         $this->readBytes($contents, $offset, $count, $trackEnd);

@@ -16,9 +16,15 @@ use Sifrious\Aleph\Acceptance\Backfill;
 use Sifrious\Aleph\Acceptance\HistoricalAssertionAcceptance;
 use Sifrious\Aleph\Acceptance\Submissions;
 use Sifrious\Aleph\Assertion\HistoricalAssertionAdapters;
+use Sifrious\Aleph\Connector\AppleMail\AppleMailObservationWriter;
+use Sifrious\Aleph\Connector\AppleMail\FunesAppleMailObservationWriter;
+use Sifrious\Aleph\Connector\AppleMail\LaunchAppleMailIngestion;
 use Sifrious\Aleph\Connector\Communication\CommunicationRecordSubmitter;
 use Sifrious\Aleph\Connector\Communication\CommunicationSources;
 use Sifrious\Aleph\Connector\Communication\ImportCommunicationRecords;
+use Sifrious\Aleph\Connector\Configuration\ConfigureSource;
+use Sifrious\Aleph\Connector\Configuration\FunesSourceConfigurationRecorder;
+use Sifrious\Aleph\Connector\Configuration\SourceConfigurationRecorder;
 use Sifrious\Aleph\Connector\ConnectorCatalogue;
 use Sifrious\Aleph\Connector\ConnectorCredentials;
 use Sifrious\Aleph\Connector\ConnectorDispatcher;
@@ -47,27 +53,6 @@ use Sifrious\Aleph\Connector\GoogleDrive\GoogleDriveFileClient;
 use Sifrious\Aleph\Connector\GoogleDrive\GoogleDriveObservationWriter;
 use Sifrious\Aleph\Connector\GoogleDrive\LaunchGoogleDriveIngestion;
 use Sifrious\Aleph\Connector\GoogleDrive\NullGoogleDriveFileClient;
-use Sifrious\Aleph\Connector\Health\ConnectorHealthChecks;
-use Sifrious\Aleph\Connector\Health\ConnectorHealthQueries;
-use Sifrious\Aleph\Connector\Linear\ConsumeLinearWebhook;
-use Sifrious\Aleph\Connector\Linear\ImportLinearActivities;
-use Sifrious\Aleph\Connector\Linear\LinearActivityNormalizer;
-use Sifrious\Aleph\Connector\Linear\LinearActivitySources;
-use Sifrious\Aleph\Connector\Linear\LinearActivitySubmitter;
-use Sifrious\Aleph\Connector\Linear\LinearWebhookDeliveries;
-use Sifrious\Aleph\Connector\Linear\LinearWebhookNormalizer;
-use Sifrious\Aleph\Connector\Linear\LinearWebhookSecrets;
-use Sifrious\Aleph\Connector\Linear\LinearWebhookVerifier;
-use Sifrious\Aleph\Connector\Podcast\FunesPodcastObservationWriter;
-use Sifrious\Aleph\Connector\Podcast\HttpPodcastEnclosureDownloader;
-use Sifrious\Aleph\Connector\Podcast\LaunchPodcastIngestion;
-use Sifrious\Aleph\Connector\Podcast\NullPodcastEpisodeResolver;
-use Sifrious\Aleph\Connector\Podcast\PodcastEnclosureDownloader;
-use Sifrious\Aleph\Connector\Podcast\PodcastEpisodeResolver;
-use Sifrious\Aleph\Connector\Podcast\PodcastObservationWriter;
-use Sifrious\Aleph\Connector\NativePhpDesktop\FunesNativePhpDesktopObservationWriter;
-use Sifrious\Aleph\Connector\NativePhpDesktop\LaunchNativePhpDesktopFreeformIngestion;
-use Sifrious\Aleph\Connector\NativePhpDesktop\NativePhpDesktopObservationWriter;
 use Sifrious\Aleph\Connector\Handwriting\AbsentHandwritingLocalOcrModel;
 use Sifrious\Aleph\Connector\Handwriting\FunesHandwritingObservationWriter;
 use Sifrious\Aleph\Connector\Handwriting\FunesHandwritingOcrDerivationRecorder;
@@ -75,6 +60,8 @@ use Sifrious\Aleph\Connector\Handwriting\HandwritingLocalOcrModel;
 use Sifrious\Aleph\Connector\Handwriting\HandwritingObservationWriter;
 use Sifrious\Aleph\Connector\Handwriting\HandwritingOcrDerivationRecorder;
 use Sifrious\Aleph\Connector\Handwriting\LaunchHandwritingIngestion;
+use Sifrious\Aleph\Connector\Health\ConnectorHealthChecks;
+use Sifrious\Aleph\Connector\Health\ConnectorHealthQueries;
 use Sifrious\Aleph\Connector\Image\BinaryImageMetadataInspector;
 use Sifrious\Aleph\Connector\Image\ConvertImageFormat;
 use Sifrious\Aleph\Connector\Image\FunesImageClassificationRecorder;
@@ -88,18 +75,15 @@ use Sifrious\Aleph\Connector\Image\ImageMetadataInspector;
 use Sifrious\Aleph\Connector\Image\ImageObservationWriter;
 use Sifrious\Aleph\Connector\Image\LaunchImageIngestion;
 use Sifrious\Aleph\Connector\Image\RecordImageClassification;
-use Sifrious\Aleph\Connector\ScoreTab\AbsentScoreTabLocalModel;
-use Sifrious\Aleph\Connector\ScoreTab\FunesScoreTabDerivationRecorder;
-use Sifrious\Aleph\Connector\ScoreTab\FunesScoreTabObservationWriter;
-use Sifrious\Aleph\Connector\ScoreTab\LaunchScoreTabIngestion;
-use Sifrious\Aleph\Connector\ScoreTab\ScoreTabDerivationRecorder;
-use Sifrious\Aleph\Connector\ScoreTab\ScoreTabLocalModel;
-use Sifrious\Aleph\Connector\ScoreTab\ScoreTabObservationWriter;
-use Sifrious\Aleph\Connector\RegisterSourceAccount;
-use Sifrious\Aleph\Connector\Shell\IngestShellHistory;
-use Sifrious\Aleph\Connector\Shell\ShellCommandTokenizer;
-use Sifrious\Aleph\Connector\Shell\ShellHistorySources;
-use Sifrious\Aleph\Connector\Shell\ShellRedactionPolicy;
+use Sifrious\Aleph\Connector\Linear\ConsumeLinearWebhook;
+use Sifrious\Aleph\Connector\Linear\ImportLinearActivities;
+use Sifrious\Aleph\Connector\Linear\LinearActivityNormalizer;
+use Sifrious\Aleph\Connector\Linear\LinearActivitySources;
+use Sifrious\Aleph\Connector\Linear\LinearActivitySubmitter;
+use Sifrious\Aleph\Connector\Linear\LinearWebhookDeliveries;
+use Sifrious\Aleph\Connector\Linear\LinearWebhookNormalizer;
+use Sifrious\Aleph\Connector\Linear\LinearWebhookSecrets;
+use Sifrious\Aleph\Connector\Linear\LinearWebhookVerifier;
 use Sifrious\Aleph\Connector\Midi\FunesMidiExtractionRecorder;
 use Sifrious\Aleph\Connector\Midi\FunesMidiObservationWriter;
 use Sifrious\Aleph\Connector\Midi\LaunchMidiIngestion;
@@ -107,18 +91,37 @@ use Sifrious\Aleph\Connector\Midi\MidiExtractionRecorder;
 use Sifrious\Aleph\Connector\Midi\MidiObservationWriter;
 use Sifrious\Aleph\Connector\Midi\MidiParser;
 use Sifrious\Aleph\Connector\Midi\OursSmfMidiParser;
-use Sifrious\Aleph\Connector\SpokenSound\FunesSpokenSoundObservationWriter;
-use Sifrious\Aleph\Connector\SpokenSound\LaunchSpokenSoundIngestion;
-use Sifrious\Aleph\Connector\SpokenSound\SpokenSoundObservationWriter;
-use Sifrious\Aleph\Connector\AppleMail\AppleMailObservationWriter;
-use Sifrious\Aleph\Connector\AppleMail\FunesAppleMailObservationWriter;
-use Sifrious\Aleph\Connector\AppleMail\LaunchAppleMailIngestion;
+use Sifrious\Aleph\Connector\NativePhpDesktop\FunesNativePhpDesktopObservationWriter;
+use Sifrious\Aleph\Connector\NativePhpDesktop\LaunchNativePhpDesktopFreeformIngestion;
+use Sifrious\Aleph\Connector\NativePhpDesktop\NativePhpDesktopObservationWriter;
+use Sifrious\Aleph\Connector\Podcast\FunesPodcastObservationWriter;
+use Sifrious\Aleph\Connector\Podcast\HttpPodcastEnclosureDownloader;
+use Sifrious\Aleph\Connector\Podcast\LaunchPodcastIngestion;
+use Sifrious\Aleph\Connector\Podcast\NullPodcastEpisodeResolver;
+use Sifrious\Aleph\Connector\Podcast\PodcastEnclosureDownloader;
+use Sifrious\Aleph\Connector\Podcast\PodcastEpisodeResolver;
+use Sifrious\Aleph\Connector\Podcast\PodcastObservationWriter;
+use Sifrious\Aleph\Connector\RegisterSourceAccount;
+use Sifrious\Aleph\Connector\ScoreTab\AbsentScoreTabLocalModel;
+use Sifrious\Aleph\Connector\ScoreTab\FunesScoreTabDerivationRecorder;
+use Sifrious\Aleph\Connector\ScoreTab\FunesScoreTabObservationWriter;
+use Sifrious\Aleph\Connector\ScoreTab\LaunchScoreTabIngestion;
+use Sifrious\Aleph\Connector\ScoreTab\ScoreTabDerivationRecorder;
+use Sifrious\Aleph\Connector\ScoreTab\ScoreTabLocalModel;
+use Sifrious\Aleph\Connector\ScoreTab\ScoreTabObservationWriter;
+use Sifrious\Aleph\Connector\Shell\IngestShellHistory;
+use Sifrious\Aleph\Connector\Shell\ShellCommandTokenizer;
+use Sifrious\Aleph\Connector\Shell\ShellHistorySources;
+use Sifrious\Aleph\Connector\Shell\ShellRedactionPolicy;
 use Sifrious\Aleph\Connector\Slack\ConsumeSlackEvent;
 use Sifrious\Aleph\Connector\Slack\ImportSlackActivities;
 use Sifrious\Aleph\Connector\Slack\SlackActivitySources;
 use Sifrious\Aleph\Connector\Slack\SlackActivitySubmitter;
 use Sifrious\Aleph\Connector\Slack\SlackCredentials;
 use Sifrious\Aleph\Connector\Slack\SlackEventSecrets;
+use Sifrious\Aleph\Connector\SpokenSound\FunesSpokenSoundObservationWriter;
+use Sifrious\Aleph\Connector\SpokenSound\LaunchSpokenSoundIngestion;
+use Sifrious\Aleph\Connector\SpokenSound\SpokenSoundObservationWriter;
 use Sifrious\Aleph\Connector\VideoFile\AbsentPythonVideoFileAdapter;
 use Sifrious\Aleph\Connector\VideoFile\FunesVideoFileObservationWriter;
 use Sifrious\Aleph\Connector\VideoFile\LaunchLocalVideoIngestion;
@@ -126,27 +129,34 @@ use Sifrious\Aleph\Connector\VideoFile\ProcessPythonVideoFileAdapter;
 use Sifrious\Aleph\Connector\VideoFile\PythonVideoFileAdapter;
 use Sifrious\Aleph\Connector\VideoFile\VideoFileEnvelopeDocument;
 use Sifrious\Aleph\Connector\VideoFile\VideoFileObservationWriter;
-use Sifrious\Aleph\Ingestion\IngestAdapterRegistry;
-use Sifrious\Aleph\Ingestion\IngestLanguage;
 use Sifrious\Aleph\Connector\Watch\RepositoryWatches;
 use Sifrious\Aleph\Connector\YouTube\FunesYouTubeObservationWriter;
 use Sifrious\Aleph\Connector\YouTube\LaunchYouTubeIngestion;
-use Sifrious\Aleph\Connector\YouTube\YtDlpYouTubeDownloader;
 use Sifrious\Aleph\Connector\YouTube\YouTubeDownloader;
 use Sifrious\Aleph\Connector\YouTube\YouTubeObservationWriter;
+use Sifrious\Aleph\Connector\YouTube\YtDlpYouTubeDownloader;
+use Sifrious\Aleph\Console\ConfigureSourceCommand;
+use Sifrious\Aleph\Console\ConnectorsCommand;
 use Sifrious\Aleph\Console\CrawlCommand;
 use Sifrious\Aleph\Console\InventoryCommand;
+use Sifrious\Aleph\Console\ResumeRunCommand;
+use Sifrious\Aleph\Console\RetryRunCommand;
+use Sifrious\Aleph\Console\RunCommand;
+use Sifrious\Aleph\Console\RunsCommand;
+use Sifrious\Aleph\Console\ShowRunCommand;
 use Sifrious\Aleph\Envelope\EnvelopeDrafter;
 use Sifrious\Aleph\Envelope\EnvelopeSubmitter;
 use Sifrious\Aleph\Ingestion\ContinuationLeases;
 use Sifrious\Aleph\Ingestion\DomainRunQueries;
 use Sifrious\Aleph\Ingestion\GitHubRunQueries;
 use Sifrious\Aleph\Ingestion\IncrementalChanges;
+use Sifrious\Aleph\Ingestion\IngestAdapterRegistry;
 use Sifrious\Aleph\Ingestion\IngestionCheckpoints;
 use Sifrious\Aleph\Ingestion\IngestionPartitions;
 use Sifrious\Aleph\Ingestion\IngestionRunQueries;
 use Sifrious\Aleph\Ingestion\IngestionRuns;
 use Sifrious\Aleph\Ingestion\IngestionSchedules;
+use Sifrious\Aleph\Ingestion\IngestLanguage;
 use Sifrious\Aleph\Ingestion\LinearRunQueries;
 use Sifrious\Aleph\Ingestion\SlackRunQueries;
 use Sifrious\Aleph\Ingestion\SourceStreams;
@@ -560,6 +570,21 @@ class AlephServiceProvider extends ServiceProvider
         );
 
         $this->app->singleton(
+            SourceConfigurationRecorder::class,
+            fn (Application $app): SourceConfigurationRecorder => new FunesSourceConfigurationRecorder(
+                $app->make(EnvelopeSubmitter::class),
+            ),
+        );
+
+        $this->app->singleton(
+            ConfigureSource::class,
+            fn (Application $app): ConfigureSource => new ConfigureSource(
+                $app->make(ConnectorRegistry::class),
+                $app->make(ConnectorInstallations::class),
+            ),
+        );
+
+        $this->app->singleton(
             RegisterSourceAccount::class,
             fn (Application $app): RegisterSourceAccount => new RegisterSourceAccount(
                 $this->connection($app),
@@ -666,7 +691,17 @@ class AlephServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
 
         if ($this->app->runningInConsole()) {
-            $this->commands([CrawlCommand::class, InventoryCommand::class]);
+            $this->commands([
+                ConfigureSourceCommand::class,
+                ConnectorsCommand::class,
+                CrawlCommand::class,
+                InventoryCommand::class,
+                ResumeRunCommand::class,
+                RetryRunCommand::class,
+                RunCommand::class,
+                RunsCommand::class,
+                ShowRunCommand::class,
+            ]);
 
             $this->publishes([
                 __DIR__.'/../config/aleph.php' => $this->app->configPath('aleph.php'),

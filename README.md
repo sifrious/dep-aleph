@@ -4,7 +4,9 @@
 > publicly viewable proprietary software, not open-source software. See
 > [LICENSE.md](LICENSE.md).
 
-Aleph is a Laravel package for bounded ingestion from external sources. Its implemented capability is a public-web crawl whose operational state remains in Aleph and whose retrieved content and discovery provenance are accepted by Funes.
+Aleph is a Laravel package for bounded ingestion from external sources. Aleph keeps operational state for discovery, configuration, scheduling, retries, checkpoints, and health. Historical records cross an explicit acceptance boundary into Funes.
+
+The package currently includes ingestion for public websites, Git and GitHub, Linear, email, Slack, Discord, Telegram, SMS and MMS, AI conversations, and shell history. It also has launch adapters for YouTube, podcasts, Apple Mail, Google Drive, images, handwriting, MIDI, scores and tabs, spoken sound, local video, and NativePHP desktop submissions. See [`docs/connectors.md`](docs/connectors.md) for the connector contracts and ownership boundaries.
 
 Provider claims cross that boundary through `HistoricalAssertionAdapter`. A host tags adapters as
 `aleph.historical_assertion_adapters`, and `HistoricalAssertionAdapters` selects one by its stable
@@ -37,7 +39,7 @@ configuration key stay the bare `ahsd`.
 
 ## Ingestion contract
 
-An ingestion run records a source reference, one declared capability, input parameters, lifecycle status, deterministic stats, and an optional error. The only capability currently admitted by `Capability` is `web.crawl`.
+An ingestion run records a source reference, one declared capability, input parameters, lifecycle status, deterministic stats, and an optional error. Connector manifests derive their supported capabilities from the small contracts listed in [`docs/connectors.md`](docs/connectors.md); callers must not assume that every connector supports every operation.
 
 Landing is the master application schema and the source of truth for shared database vocabulary. Aleph's migrations append only `aleph_*` operational tables; overlapping run fields use landing's `stats` and `error` names.
 
@@ -49,6 +51,30 @@ running -> interrupted -> running
 ```
 
 An interrupted run is resumed by default. `--fresh` starts another run. A run cannot complete while a required Funes submission has failed.
+
+## Operating Aleph
+
+The package exposes its connector catalogue and durable run controls through Artisan:
+
+```bash
+php artisan aleph:connectors
+php artisan aleph:connectors --json
+php artisan aleph:source:configure web-crawl ahsd "AHSD" \
+    --value='seeds=["https://www.ahsd.org/"]' \
+    --value='allowed_hosts=["ahsd.org","*.ahsd.org"]'
+php artisan aleph:runs
+php artisan aleph:run:show <run-id> --json
+```
+
+`aleph:run` creates a durable, authorized manual run. The host must bind
+`ManualIngestionDispatcher` to send that run to its worker system. `aleph:run:retry` and
+`aleph:run:resume` use the host's `IngestionQueue` binding. Aleph refuses unsupported capabilities,
+disabled installations, denied authorization, unsafe retries, and unbounded resume requests before
+dispatch.
+
+Source values and run parameters use repeatable `key=value` options. JSON values decode as their
+native type. Credentials are never accepted as values. Pass only an opaque host-owned reference with
+`--credential-reference`.
 
 ## Configuring a web source
 
