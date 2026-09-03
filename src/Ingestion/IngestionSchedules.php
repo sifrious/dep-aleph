@@ -156,6 +156,12 @@ final readonly class IngestionSchedules
 
         return $this->connection->transaction(function () use ($owner, $now, $limit, $lockSeconds): array {
             $rows = $this->table()
+                ->whereExists(function (Builder $query): void {
+                    $query->selectRaw('1')
+                        ->from('aleph_connector_installations as installations')
+                        ->whereColumn('installations.id', 'aleph_ingestion_schedules.source_installation_id')
+                        ->where('installations.enabled', true);
+                })
                 ->where('enabled', true)
                 ->where('next_due_at', '<=', $now)
                 ->where(fn (Builder $query): Builder => $query->whereNull('lock_expires_at')->orWhere('lock_expires_at', '<=', $now))

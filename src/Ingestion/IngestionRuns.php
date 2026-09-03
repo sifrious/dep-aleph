@@ -180,6 +180,37 @@ final readonly class IngestionRuns
             ->all());
     }
 
+    /**
+     * @return list<IngestionRun>
+     */
+    public function forInstallation(string $sourceInstallationId, int $limit = 25): array
+    {
+        if ($limit < 1 || $limit > 100) {
+            throw new \InvalidArgumentException('Run list limit must be between 1 and 100.');
+        }
+
+        return array_values($this->table()
+            ->where('source_installation_id', $sourceInstallationId)
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get()
+            ->map(fn (stdClass $row): IngestionRun => $this->hydrate($row))
+            ->all());
+    }
+
+    public function hasActiveBackoff(
+        string $sourceInstallationId,
+        Capability $capability,
+        DateTimeImmutable $now,
+    ): bool {
+        return $this->connection->table('aleph_ingestion_attempts as attempts')
+            ->join('aleph_ingestion_runs as runs', 'runs.id', '=', 'attempts.run_id')
+            ->where('runs.source_installation_id', $sourceInstallationId)
+            ->where('runs.capability', $capability->value)
+            ->where('attempts.backoff_until', '>', $now)
+            ->exists();
+    }
+
     public function findByIdempotencyKey(string $key): ?IngestionRun
     {
         $row = $this->table()->where('idempotency_key', $key)->first();

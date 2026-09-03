@@ -75,6 +75,14 @@ final readonly class ConnectorInstallations
     /**
      * @return list<ConnectorInstallation>
      */
+    public function all(): array
+    {
+        return $this->hydrateAll($this->table()->orderBy('connector_id')->orderBy('label'));
+    }
+
+    /**
+     * @return list<ConnectorInstallation>
+     */
     public function forConnector(string $connectorId): array
     {
         return $this->hydrateAll($this->table()->where('connector_id', $connectorId)->orderBy('label'));

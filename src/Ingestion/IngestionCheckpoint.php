@@ -23,4 +23,23 @@ final readonly class IngestionCheckpoint
         public ?string $attemptId,
         public DateTimeImmutable $committedAt,
     ) {}
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'source_stream_id' => $this->sourceStreamId,
+            'capability' => $this->capability->value,
+            'partition_key' => $this->partitionKey,
+            'value' => $this->value->toArray(),
+            'version' => $this->version,
+            'accepted_references' => $this->acceptedReferences,
+            'run_id' => $this->runId,
+            'attempt_id' => $this->attemptId,
+            'committed_at' => $this->committedAt->format(DATE_ATOM),
+        ];
+    }
 }

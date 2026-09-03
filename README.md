@@ -64,6 +64,11 @@ php artisan aleph:source:configure web-crawl ahsd "AHSD" \
     --value='allowed_hosts=["ahsd.org","*.ahsd.org"]'
 php artisan aleph:runs
 php artisan aleph:run:show <run-id> --json
+php artisan aleph:sources
+php artisan aleph:source:show <installation-id> --json
+php artisan aleph:source:disable <installation-id>
+php artisan aleph:source:enable <installation-id>
+php artisan aleph:schedules:dispatch scheduler:primary --json
 ```
 
 `aleph:run` creates a durable, authorized manual run. The host must bind
@@ -75,6 +80,11 @@ dispatch.
 Source values and run parameters use repeatable `key=value` options. JSON values decode as their
 native type. Credentials are never accepted as values. Pass only an opaque host-owned reference with
 `--credential-reference`.
+
+`aleph:source:show` reports current health evidence, active streams, accepted checkpoints, schedules,
+recent runs, and active retry backoff. Schedule eligibility is derived at read time. Disabling an
+installation blocks both manual and scheduled dispatch. The schedule command claims due work, then
+calls the host's `ScheduledIngestionDispatcher`; Aleph does not provide another queue runtime.
 
 ## Configuring a web source
 

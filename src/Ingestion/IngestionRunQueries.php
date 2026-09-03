@@ -36,4 +36,19 @@ final readonly class IngestionRunQueries
             $this->runs->recent($limit),
         );
     }
+
+    /**
+     * @return list<IngestionRunReadModel>
+     */
+    public function forInstallation(string $sourceInstallationId, int $limit = 25): array
+    {
+        return array_map(
+            fn (IngestionRun $run): IngestionRunReadModel => new IngestionRunReadModel(
+                $run,
+                $this->runs->attempts($run),
+                $this->runs->failures($run),
+            ),
+            $this->runs->forInstallation($sourceInstallationId, $limit),
+        );
+    }
 }

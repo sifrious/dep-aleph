@@ -118,6 +118,31 @@ final readonly class IngestionCheckpoints
         return $row instanceof stdClass ? $this->hydrate($row) : null;
     }
 
+    /**
+     * @return list<IngestionCheckpoint>
+     */
+    public function latestForStream(SourceStream $stream): array
+    {
+        $latest = [];
+        $rows = $this->table()
+            ->where('source_stream_id', $stream->id)
+            ->orderByDesc('version')
+            ->orderByDesc('committed_at')
+            ->get();
+
+        foreach ($rows as $row) {
+            $key = (string) $row->capability.'|'.(string) $row->partition_key;
+
+            if (! isset($latest[$key])) {
+                $latest[$key] = $this->hydrate($row);
+            }
+        }
+
+        ksort($latest);
+
+        return array_values($latest);
+    }
+
     public function acceptedThroughAt(SourceStream $stream, IngestionRun $run): ?DateTimeImmutable
     {
         $value = $this->table()

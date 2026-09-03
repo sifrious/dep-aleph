@@ -100,6 +100,20 @@ php artisan aleph:run <installation-id> history.backfill slack:T123 \
 delegate to `RetryIngestion` and `ResumeIngestion`, which apply the same safety checks used by other
 transports.
 
+Source lifecycle commands use `SourceInstallationQueries` for one consistent read model:
+
+```bash
+php artisan aleph:sources --json
+php artisan aleph:source:show <installation-id> --json
+php artisan aleph:source:disable <installation-id>
+php artisan aleph:source:enable <installation-id>
+```
+
+The detail response includes connector health, stream freshness, the latest accepted checkpoint for
+each partition, schedules, recent runs, and active retry backoff. A due schedule is eligible only when
+its installation and schedule are enabled, its claim lock is free or expired, and no attempt for the
+same installation and capability has an active backoff.
+
 ## Display layers
 
 Ask the manifest; never encode provider knowledge in the UI.
