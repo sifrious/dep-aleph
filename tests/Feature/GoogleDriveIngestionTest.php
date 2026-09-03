@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\DB;
+use Sifrious\Aleph\Connector\Configuration\ConfigureSource;
+use Sifrious\Aleph\Connector\Configuration\SourceConfigurationRequest;
 use Sifrious\Aleph\Connector\ConnectorInstallations;
 use Sifrious\Aleph\Connector\ConnectorRegistry;
 use Sifrious\Aleph\Connector\Contracts\DownloadsArtifacts;
@@ -699,6 +701,23 @@ it('records XLSX shared inline numeric and boolean cells', function (): void {
     expect($result->formatHandoff['status'] ?? null)->toBe('launched')
         ->and($derived['text'])->toBe("Name\tGross sales\tApproved\nEast\t1250.50\tTRUE\n\nNotes")
         ->and($derived['source']['media_type'])->toBe(GoogleDriveExportPlan::XLSX);
+});
+
+it('configures the shipped Google Drive connector with an opaque OAuth reference', function (): void {
+    $connector = app(GoogleDriveConnector::class);
+    app(ConnectorRegistry::class)->register($connector);
+
+    $configured = app(ConfigureSource::class)->configure('google-drive', new SourceConfigurationRequest(
+        sourceKey: 'personal',
+        name: 'Personal Drive',
+        values: ['drive' => 'user:me@example.com'],
+        credentialReference: 'vault://google-drive/personal',
+    ));
+
+    expect($configured->sourceReference())->toBe('google-drive:personal')
+        ->and($configured->installation->credentialsReference)->toBe('vault://google-drive/personal')
+        ->and($configured->installation->configuration)->toBe(['drive' => 'user:me@example.com'])
+        ->and(DB::table('funes_observations')->count())->toBe(1);
 });
 
 it('leaves malformed supported documents retryable without a derivation', function (): void {

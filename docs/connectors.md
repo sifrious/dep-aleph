@@ -116,6 +116,10 @@ same installation and capability has an active backoff.
 
 ## Google Drive document formatting
 
+`GoogleDriveConnector` accepts a stable account or shared-drive identifier and an opaque OAuth2
+credential reference. The host resolves that reference when it binds `GoogleDriveFileClient`.
+Credentials never enter source configuration values or Funes history.
+
 `LaunchGoogleDriveIngestion` stores the exported file as the accepted observation. It then passes the
 same bytes to `Connector/GoogleDrive/DocumentFormatHandoff`. The default
 `Connector/GoogleDrive/FunesDocumentFormatHandoff` records extracted text in `funes_extractions`; it

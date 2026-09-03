@@ -52,6 +52,7 @@ use Sifrious\Aleph\Connector\GoogleDrive\DocumentFormatHandoff;
 use Sifrious\Aleph\Connector\GoogleDrive\DocumentFormatter;
 use Sifrious\Aleph\Connector\GoogleDrive\FunesDocumentFormatHandoff;
 use Sifrious\Aleph\Connector\GoogleDrive\FunesGoogleDriveObservationWriter;
+use Sifrious\Aleph\Connector\GoogleDrive\GoogleDriveConnector;
 use Sifrious\Aleph\Connector\GoogleDrive\GoogleDriveFileClient;
 use Sifrious\Aleph\Connector\GoogleDrive\GoogleDriveObservationWriter;
 use Sifrious\Aleph\Connector\GoogleDrive\LaunchGoogleDriveIngestion;
@@ -373,6 +374,13 @@ class AlephServiceProvider extends ServiceProvider
         $this->app->singleton(ConvertImageFormat::class);
         $this->app->singleton(RecordImageClassification::class);
         $this->app->singleton(GoogleDriveFileClient::class, NullGoogleDriveFileClient::class);
+        $this->app->singleton(
+            GoogleDriveConnector::class,
+            fn (Application $app): GoogleDriveConnector => new GoogleDriveConnector(
+                $app->make(GoogleDriveFileClient::class),
+                $app->make(SourceConfigurationRecorder::class),
+            ),
+        );
         $this->app->singleton(GoogleDriveObservationWriter::class, FunesGoogleDriveObservationWriter::class);
         $this->app->singleton(DocumentFormatter::class, LocalDocumentFormatter::class);
         $this->app->singleton(DocumentFormatHandoff::class, FunesDocumentFormatHandoff::class);

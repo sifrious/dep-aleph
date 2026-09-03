@@ -40,6 +40,10 @@ The bundled formatter supports DOCX, XLSX, PPTX, PDF, Markdown, CSV, and plain t
 remain deferred. See `src/Connector/GoogleDrive/DocumentFormatHandoff.php` and
 `src/Connector/GoogleDrive/FunesDocumentFormatHandoff.php`.
 
+**Google Drive source.** A configured Drive account or shared drive. Aleph stores its stable host
+identifier and an opaque OAuth2 reference. The host-bound file client resolves credentials when it
+downloads or exports a file. See `src/Connector/Configuration/GoogleDriveConfigurationAdapter.php`.
+
 **Slack activity source.** A host-registered reader for one Slack workspace. The live implementation
 uses the Web API through an opaque token resolved by the host. It returns provider-neutral users,
 channels, and messages to Aleph. See `src/Connector/Slack/SlackWebApiActivitySource.php`.

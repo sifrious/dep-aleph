@@ -5,16 +5,24 @@ declare(strict_types=1);
 namespace Sifrious\Aleph\Connector\GoogleDrive;
 
 use InvalidArgumentException;
-use Sifrious\Aleph\Connector\ConfigurationField;
+use Sifrious\Aleph\Connector\Configuration\GoogleDriveConfigurationAdapter;
+use Sifrious\Aleph\Connector\Configuration\GoogleDriveSourceConfigurator;
+use Sifrious\Aleph\Connector\Configuration\SourceConfiguration;
+use Sifrious\Aleph\Connector\Configuration\SourceConfigurationRecorder;
+use Sifrious\Aleph\Connector\Configuration\SourceConfigurationRequest;
 use Sifrious\Aleph\Connector\ConfigurationSchema;
 use Sifrious\Aleph\Connector\Connector;
+use Sifrious\Aleph\Connector\Contracts\ConfiguresSources;
 use Sifrious\Aleph\Connector\Contracts\DownloadsArtifacts;
 use Sifrious\Aleph\Connector\Values\Artifact;
 use Sifrious\Aleph\Connector\Values\ArtifactRequest;
 
-final readonly class GoogleDriveConnector implements Connector, DownloadsArtifacts
+final readonly class GoogleDriveConnector implements ConfiguresSources, Connector, DownloadsArtifacts
 {
-    public function __construct(private GoogleDriveFileClient $client) {}
+    public function __construct(
+        private GoogleDriveFileClient $client,
+        private ?SourceConfigurationRecorder $configurationRecorder = null,
+    ) {}
 
     public function id(): string
     {
@@ -33,9 +41,12 @@ final readonly class GoogleDriveConnector implements Connector, DownloadsArtifac
 
     public function configuration(): ConfigurationSchema
     {
-        return new ConfigurationSchema(
-            ConfigurationField::secret('access_token', 'Google Drive OAuth access token', required: false),
-        );
+        return (new GoogleDriveConfigurationAdapter)->schema();
+    }
+
+    public function configureSource(SourceConfigurationRequest $request): SourceConfiguration
+    {
+        return (new GoogleDriveSourceConfigurator($this, $this->configurationRecorder))->configureSource($request);
     }
 
     public function downloadArtifact(ArtifactRequest $request): Artifact

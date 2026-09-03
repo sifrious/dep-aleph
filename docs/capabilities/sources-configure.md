@@ -107,6 +107,19 @@ resolves either an OAuth access token or personal API key for
 `ALEPH_SMOKE_LINEAR_OAUTH=1` when the smoke token came from OAuth. Without it, the test sends a
 personal API key.
 
+## Google Drive inputs
+
+Adapter: `Configuration\GoogleDriveConfigurationAdapter`. Source kind `google-drive`. Requires a
+`CredentialKind::OAuth2` reference.
+
+| Input | Env key | Type | Default | Secret | When absent |
+| --- | --- | --- | --- | --- | --- |
+| `drive` | `ALEPH_GOOGLE_DRIVE` | string | none | no | rejected |
+
+`drive` is a stable account or shared-drive identifier chosen by the host. The OAuth access token is
+not part of configuration. The host resolves the opaque credential reference when it constructs the
+`GoogleDriveFileClient` used by that source.
+
 ## Adding a source kind
 
 Implement `SourceConfigurationProvider` — `sourceKind()`, `schema()`, `credentialKind()`,
