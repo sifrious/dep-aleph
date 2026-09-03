@@ -118,7 +118,9 @@ same installation and capability has an active backoff.
 
 `GoogleDriveConnector` accepts a stable account or shared-drive identifier and an opaque OAuth2
 credential reference. The host resolves that reference when it binds `GoogleDriveFileClient`.
-Credentials never enter source configuration values or Funes history.
+Register account-specific clients in `GoogleDriveFileClients` by source reference. The connector
+uses its default client only when no account-specific client exists. Credentials never enter source
+configuration values or Funes history.
 
 `LaunchGoogleDriveIngestion` stores the exported file as the accepted observation. It then passes the
 same bytes to `Connector/GoogleDrive/DocumentFormatHandoff`. The default

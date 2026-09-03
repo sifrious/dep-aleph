@@ -19,6 +19,7 @@ use Sifrious\Aleph\Connector\GoogleDrive\GoogleDriveExportDenied;
 use Sifrious\Aleph\Connector\GoogleDrive\GoogleDriveExportPlan;
 use Sifrious\Aleph\Connector\GoogleDrive\GoogleDriveExportResult;
 use Sifrious\Aleph\Connector\GoogleDrive\GoogleDriveFileClient;
+use Sifrious\Aleph\Connector\GoogleDrive\GoogleDriveFileClients;
 use Sifrious\Aleph\Connector\GoogleDrive\GoogleDriveFileMetadata;
 use Sifrious\Aleph\Connector\GoogleDrive\GoogleDriveObservationWriter;
 use Sifrious\Aleph\Connector\GoogleDrive\LaunchGoogleDriveIngestion;
@@ -718,6 +719,27 @@ it('configures the shipped Google Drive connector with an opaque OAuth reference
         ->and($configured->installation->credentialsReference)->toBe('vault://google-drive/personal')
         ->and($configured->installation->configuration)->toBe(['drive' => 'user:me@example.com'])
         ->and(DB::table('funes_observations')->count())->toBe(1);
+});
+
+it('selects a Google Drive client by configured source reference', function (): void {
+    $default = new FixtureGoogleDriveFileClient([], []);
+    $personal = new FixtureGoogleDriveFileClient(
+        ['file-1' => new GoogleDriveFileMetadata('file-1', 'revision-1', 'text/plain', 'notes.txt')],
+        ['file-1' => new GoogleDriveExportResult('file-1', 'revision-1', 'text/plain', 'text/plain', 'txt', 'notes.txt', 'personal bytes', false)],
+    );
+    $clients = new GoogleDriveFileClients;
+    $clients->register('google-drive:personal', $personal);
+    $connector = new GoogleDriveConnector($default, clients: $clients);
+
+    $artifact = $connector->downloadArtifact(new ArtifactRequest(
+        'google-drive:personal',
+        '',
+        ['file_id' => 'file-1'],
+    ));
+
+    expect($artifact->contents)->toBe('personal bytes')
+        ->and($personal->exportCalls)->toBe([['file-1', null]])
+        ->and($default->exportCalls)->toBe([]);
 });
 
 it('leaves malformed supported documents retryable without a derivation', function (): void {

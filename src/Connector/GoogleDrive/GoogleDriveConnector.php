@@ -22,6 +22,7 @@ final readonly class GoogleDriveConnector implements ConfiguresSources, Connecto
     public function __construct(
         private GoogleDriveFileClient $client,
         private ?SourceConfigurationRecorder $configurationRecorder = null,
+        private ?GoogleDriveFileClients $clients = null,
     ) {}
 
     public function id(): string
@@ -65,7 +66,10 @@ final readonly class GoogleDriveConnector implements ConfiguresSources, Connecto
             ? (string) $request->parameters['preferred_extension']
             : null;
 
-        $export = $this->client->exportOrDownload($fileId, $preferred);
+        $export = $this->clients
+            ?->for($request->sourceReference, $this->client)
+            ->exportOrDownload($fileId, $preferred)
+            ?? $this->client->exportOrDownload($fileId, $preferred);
 
         return new Artifact(
             reference: $request->artifactReference !== ''
