@@ -9,6 +9,13 @@ return [
         'disabled' => [],
     ],
 
+    'gutenberg' => [
+        'base_url' => 'https://www.gutenberg.org',
+        'cache_directory' => storage_path('app/aleph/gutenberg'),
+        'max_attempts' => 3,
+        'retry_delay_milliseconds' => 200,
+    ],
+
     'normalization' => [
         'cache_enabled' => true,
         'cache_ttl' => 604800,
