@@ -6,6 +6,7 @@ namespace Sifrious\Aleph\Connector\Gutenberg;
 
 use Closure;
 use DOMDocument;
+use DOMNode;
 use DOMXPath;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Factory;
@@ -263,6 +264,12 @@ final class GutenbergConnector implements Connector, DiscoversSources, Downloads
     private function metadata(int $id): array
     {
         $recordPath = $this->cachePath("metadata/{$id}.json");
+        /** @var array{
+         *   title: string, creators: list<string>, languages: list<string>,
+         *   files: list<array{url: string, media_type: string}>,
+         *   metadata_url: string, metadata_sha256: string, metadata_acquired_at: string
+         * }|null $cached
+         */
         $cached = $this->readJson($recordPath);
 
         if ($cached !== null) {
@@ -320,11 +327,15 @@ final class GutenbergConnector implements Connector, DiscoversSources, Downloads
         $files = [];
 
         foreach ($xpath->query('//pgterms:file[@rdf:about]') ?: [] as $file) {
+            if (! $file instanceof DOMNode) {
+                continue;
+            }
+
             $url = trim((string) $file->attributes?->getNamedItemNS(
                 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
                 'about',
             )?->nodeValue);
-            $mediaType = trim((string) (new DOMXPath($file->ownerDocument))->evaluate(
+            $mediaType = trim((string) $xpath->evaluate(
                 'string(.//*[local-name()="format"]//*[local-name()="value"][1])',
                 $file,
             ));
@@ -351,6 +362,10 @@ final class GutenbergConnector implements Connector, DiscoversSources, Downloads
         $values = [];
 
         foreach ($xpath->query($expression) ?: [] as $node) {
+            if (! $node instanceof DOMNode) {
+                continue;
+            }
+
             $value = trim($node->textContent);
 
             if ($value !== '') {
@@ -445,7 +460,7 @@ final class GutenbergConnector implements Connector, DiscoversSources, Downloads
     }
 
     /**
-     * @return array<string, int|string|null>
+     * @return array<string, int|string>
      */
     private function responseEvidence(Response $response): array
     {
@@ -455,14 +470,14 @@ final class GutenbergConnector implements Connector, DiscoversSources, Downloads
             'last_modified' => $response->header('Last-Modified'),
             'content_type' => $response->header('Content-Type'),
             'content_length' => $response->header('Content-Length'),
-        ], static fn (mixed $value): bool => $value !== null && $value !== '');
+        ], static fn (int|string $value): bool => $value !== '');
     }
 
     private function mediaType(Response $response, string $declared): string
     {
         $header = $response->header('Content-Type');
 
-        return strtolower(trim(explode(';', is_string($header) && $header !== '' ? $header : $declared)[0]));
+        return strtolower(trim(explode(';', $header !== '' ? $header : $declared)[0]));
     }
 
     /**
