@@ -174,9 +174,18 @@ it('re-ingests idempotently from verified cache without changing acquisition tim
 it('retries bounded transient failures and does not retry permanent failures', function (): void {
     $cache = gutenbergCache();
     $sleeps = [];
-    Http::fakeSequence()
-        ->push('busy', 503)
-        ->push(gutenbergFixture('1342.rdf'), 200);
+    $calls = 0;
+    Http::fake(function ($request) use (&$calls) {
+        $calls++;
+
+        if (str_ends_with($request->url(), '/ebooks/9999.rdf')) {
+            return Http::response('not found', 404);
+        }
+
+        return $calls === 1
+            ? Http::response('busy', 503)
+            : Http::response(gutenbergFixture('1342.rdf'), 200);
+    });
 
     try {
         $connector = new GutenbergConnector(
@@ -192,7 +201,6 @@ it('retries bounded transient failures and does not retry permanent failures', f
         expect($connector->discoverSources(new OperationRequest('gutenberg:ebook/1342')))->toHaveCount(1)
             ->and($sleeps)->toBe([25]);
 
-        Http::fakeSequence()->push('not found', 404);
         $connector->discoverSources(new OperationRequest('gutenberg:ebook/9999'));
     } catch (GutenbergAcquisitionFailure $failure) {
         expect($failure->getMessage())->toContain('HTTP 404');
