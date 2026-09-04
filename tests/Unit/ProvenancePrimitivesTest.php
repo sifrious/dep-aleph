@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Sifrious\Aleph\Provenance\Placement;
+use Sifrious\Aleph\Provenance\PlacementFrame;
 use Sifrious\Aleph\Provenance\PlacementRegion;
 use Sifrious\Aleph\Provenance\PlacementRelation;
 use Sifrious\Aleph\Provenance\PlacementScope;
@@ -99,35 +100,37 @@ it('rejects incomplete or invalid token boundaries', function (?int $start, ?int
     'reversed token range' => [3, 2, 'do not form a valid range'],
 ]);
 
-it('classifies normalized placement using thirds', function (float $position, PlacementRegion $region): void {
-    expect(new Placement(PlacementScope::Document, 1, $position))
-        ->region()->toBe($region);
+it('preserves producer-supplied placement classifications without inventing boundary policy', function (int $ordinal, PlacementRegion $region): void {
+    $placement = Placement::at(new PlacementFrame(PlacementScope::Document, 3), $ordinal, $region);
+
+    expect($placement->region)->toBe($region);
 })->with([
-    'start' => [0.0, PlacementRegion::Beginning],
-    'first third boundary' => [1 / 3, PlacementRegion::Beginning],
-    'middle' => [0.5, PlacementRegion::Middle],
-    'last third boundary' => [2 / 3, PlacementRegion::End],
-    'end' => [1.0, PlacementRegion::End],
+    'beginning' => [1, PlacementRegion::Beginning],
+    'middle' => [2, PlacementRegion::Middle],
+    'end' => [3, PlacementRegion::End],
 ]);
 
-it('normalizes one-based ordinals in every placement scope', function (PlacementScope $scope, int $ordinal, int $total, float $expected): void {
-    $placement = Placement::fromOrdinal($scope, $ordinal, $total);
+it('normalizes one-based ordinals in every placement scope', function (PlacementScope $scope, int $ordinal, int $total, ?float $expected): void {
+    $frame = new PlacementFrame($scope, $total);
+    $placement = Placement::at($frame, $ordinal, PlacementRegion::Middle);
 
-    expect($placement->scope)->toBe($scope)
+    expect($placement->frame)->toBe($frame)
         ->and($placement->ordinal)->toBe($ordinal)
         ->and($placement->normalizedPosition)->toBe($expected);
 })->with([
     'sentence start' => [PlacementScope::Sentence, 1, 5, 0.0],
     'paragraph midpoint' => [PlacementScope::Paragraph, 3, 5, 0.5],
     'section end' => [PlacementScope::Section, 5, 5, 1.0],
-    'singleton document is neutral' => [PlacementScope::Document, 1, 1, 0.5],
+    'singleton document has no relative position' => [PlacementScope::Document, 1, 1, null],
 ]);
 
-it('serializes placement without an artifact or textual-unit identity', function (PlacementScope $scope, array $expected): void {
-    expect((new Placement($scope, 4, 0.75))->toArray())->toBe($expected);
+it('serializes placement without an artifact or textual-unit identity', function (PlacementFrame $frame, int $ordinal, PlacementRegion $region, array $expected): void {
+    expect(Placement::at($frame, $ordinal, $region)->toArray())->toBe($expected);
 })->with([
     'document placement' => [
-        PlacementScope::Document,
+        new PlacementFrame(PlacementScope::Document, 5),
+        4,
+        PlacementRegion::End,
         [
             'scope' => 'document',
             'absolute_ordinal' => 4,
@@ -135,66 +138,93 @@ it('serializes placement without an artifact or textual-unit identity', function
             'region' => 'end',
         ],
     ],
+    'singleton omits undefined normalized position' => [
+        new PlacementFrame(PlacementScope::Sentence, 1),
+        1,
+        PlacementRegion::Beginning,
+        [
+            'scope' => 'sentence',
+            'absolute_ordinal' => 1,
+            'region' => 'beginning',
+        ],
+    ],
 ]);
 
 it('compares placement direction and distance within a scope', function (
     int $leftOrdinal,
-    float $leftPosition,
     int $rightOrdinal,
-    float $rightPosition,
     PlacementRelation $relation,
     int $ordinalDistance,
-    float $normalizedDistance,
+    ?float $normalizedDistance,
 ): void {
-    $left = new Placement(PlacementScope::Paragraph, $leftOrdinal, $leftPosition);
-    $right = new Placement(PlacementScope::Paragraph, $rightOrdinal, $rightPosition);
+    $frame = new PlacementFrame(PlacementScope::Paragraph, 5);
+    $left = Placement::at($frame, $leftOrdinal, PlacementRegion::Middle);
+    $right = Placement::at($frame, $rightOrdinal, PlacementRegion::Middle);
 
     expect($left->relationTo($right))->toBe($relation)
         ->and($left->ordinalDistanceTo($right))->toBe($ordinalDistance)
         ->and($left->normalizedDistanceTo($right))->toBe($normalizedDistance);
 })->with([
-    'preceding' => [2, 0.25, 5, 1.0, PlacementRelation::Preceding, 3, 0.75],
-    'same' => [3, 0.5, 3, 0.5, PlacementRelation::Same, 0, 0.0],
-    'following' => [5, 1.0, 2, 0.25, PlacementRelation::Following, 3, 0.75],
+    'preceding' => [2, 5, PlacementRelation::Preceding, 3, 0.75],
+    'same' => [3, 3, PlacementRelation::Same, 0, 0.0],
+    'following' => [5, 2, PlacementRelation::Following, 3, 0.75],
+]);
+
+it('keeps relative distance undefined for a singleton frame', function (PlacementScope $scope): void {
+    $frame = new PlacementFrame($scope, 1);
+    $placement = Placement::at($frame, 1, PlacementRegion::Beginning);
+
+    expect($placement->normalizedDistanceTo($placement))->toBeNull()
+        ->and($placement->ordinalDistanceTo($placement))->toBe(0);
+})->with([
+    'singleton sentence' => [PlacementScope::Sentence],
 ]);
 
 it('rejects invalid placement values', function (Closure $construct, string $message): void {
     expect($construct)->toThrow(InvalidArgumentException::class, $message);
 })->with([
+    'empty frame' => [
+        fn (): PlacementFrame => new PlacementFrame(PlacementScope::Sentence, 0),
+        'must contain at least one position',
+    ],
     'zero ordinal' => [
-        fn (): Placement => new Placement(PlacementScope::Sentence, 0, 0.0),
-        'ordinal must be at least one',
-    ],
-    'negative normalized position' => [
-        fn (): Placement => new Placement(PlacementScope::Sentence, 1, -0.1),
-        'must be between zero and one',
-    ],
-    'normalized position above one' => [
-        fn (): Placement => new Placement(PlacementScope::Sentence, 1, 1.1),
-        'must be between zero and one',
-    ],
-    'non-finite normalized position' => [
-        fn (): Placement => new Placement(PlacementScope::Sentence, 1, INF),
-        'must be between zero and one',
+        fn (): Placement => Placement::at(
+            new PlacementFrame(PlacementScope::Sentence, 3),
+            0,
+            PlacementRegion::Beginning,
+        ),
+        'must fall within its frame',
     ],
     'ordinal exceeds total' => [
-        fn (): Placement => Placement::fromOrdinal(PlacementScope::Sentence, 4, 3),
-        'must fall within the supplied total',
-    ],
-    'empty total' => [
-        fn (): Placement => Placement::fromOrdinal(PlacementScope::Sentence, 1, 0),
-        'must fall within the supplied total',
+        fn (): Placement => Placement::at(
+            new PlacementFrame(PlacementScope::Sentence, 3),
+            4,
+            PlacementRegion::End,
+        ),
+        'must fall within its frame',
     ],
 ]);
 
-it('rejects comparisons across placement scopes', function (string $operation): void {
-    $sentence = new Placement(PlacementScope::Sentence, 1, 0.0);
-    $paragraph = new Placement(PlacementScope::Paragraph, 1, 0.0);
+it('rejects comparisons across distinct coordinate frames', function (PlacementFrame $leftFrame, PlacementFrame $rightFrame, string $operation): void {
+    $left = Placement::at($leftFrame, 1, PlacementRegion::Beginning);
+    $right = Placement::at($rightFrame, 1, PlacementRegion::Beginning);
 
-    expect(fn (): mixed => $sentence->{$operation}($paragraph))
-        ->toThrow(InvalidArgumentException::class, 'within the same scope');
+    expect(fn (): mixed => $left->{$operation}($right))
+        ->toThrow(InvalidArgumentException::class, 'within the same coordinate frame');
 })->with([
-    'relation' => ['relationTo'],
-    'ordinal distance' => ['ordinalDistanceTo'],
-    'normalized distance' => ['normalizedDistanceTo'],
+    'same scope type but different container' => [
+        new PlacementFrame(PlacementScope::Paragraph, 3),
+        new PlacementFrame(PlacementScope::Paragraph, 3),
+        'relationTo',
+    ],
+    'different scope type' => [
+        new PlacementFrame(PlacementScope::Sentence, 3),
+        new PlacementFrame(PlacementScope::Paragraph, 3),
+        'ordinalDistanceTo',
+    ],
+    'normalized distance' => [
+        new PlacementFrame(PlacementScope::Document, 3),
+        new PlacementFrame(PlacementScope::Document, 3),
+        'normalizedDistanceTo',
+    ],
 ]);

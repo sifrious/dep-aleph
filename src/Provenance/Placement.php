@@ -9,49 +9,36 @@ use InvalidArgumentException;
 /**
  * The position of a unit within a sentence, paragraph, section, or document.
  *
- * Ordinals are one-based. Normalized positions run from 0.0 to 1.0.
+ * Ordinals are one-based. Normalized positions run from 0.0 to 1.0 and are
+ * undefined for a frame containing only one position. Region classification is
+ * supplied by the caller because its policy belongs to the producing analysis.
  */
 final readonly class Placement
 {
-    public function __construct(
-        public PlacementScope $scope,
+    private function __construct(
+        public PlacementFrame $frame,
         public int $ordinal,
-        public float $normalizedPosition,
-    ) {
-        if ($ordinal < 1) {
-            throw new InvalidArgumentException('A placement ordinal must be at least one.');
-        }
+        public PlacementRegion $region,
+        public ?float $normalizedPosition,
+    ) {}
 
-        if (! is_finite($normalizedPosition) || $normalizedPosition < 0.0 || $normalizedPosition > 1.0) {
-            throw new InvalidArgumentException('A normalized placement must be between zero and one.');
-        }
-    }
-
-    public static function fromOrdinal(PlacementScope $scope, int $ordinal, int $total): self
+    public static function at(PlacementFrame $frame, int $ordinal, PlacementRegion $region): self
     {
-        if ($total < 1 || $ordinal > $total) {
-            throw new InvalidArgumentException('A placement ordinal must fall within the supplied total.');
+        if ($ordinal < 1 || $ordinal > $frame->total) {
+            throw new InvalidArgumentException('A placement ordinal must fall within its frame.');
         }
 
-        $normalizedPosition = $total === 1
-            ? 0.5
-            : ($ordinal - 1) / ($total - 1);
-
-        return new self($scope, $ordinal, $normalizedPosition);
-    }
-
-    public function region(): PlacementRegion
-    {
-        return match (true) {
-            $this->normalizedPosition <= (1 / 3) => PlacementRegion::Beginning,
-            $this->normalizedPosition >= (2 / 3) => PlacementRegion::End,
-            default => PlacementRegion::Middle,
-        };
+        return new self(
+            frame: $frame,
+            ordinal: $ordinal,
+            region: $region,
+            normalizedPosition: $frame->total === 1 ? null : ($ordinal - 1) / ($frame->total - 1),
+        );
     }
 
     public function relationTo(self $other): PlacementRelation
     {
-        $this->assertSameScope($other);
+        $this->assertSameFrame($other);
 
         return match ($this->ordinal <=> $other->ordinal) {
             -1 => PlacementRelation::Preceding,
@@ -62,14 +49,18 @@ final readonly class Placement
 
     public function ordinalDistanceTo(self $other): int
     {
-        $this->assertSameScope($other);
+        $this->assertSameFrame($other);
 
         return abs($this->ordinal - $other->ordinal);
     }
 
-    public function normalizedDistanceTo(self $other): float
+    public function normalizedDistanceTo(self $other): ?float
     {
-        $this->assertSameScope($other);
+        $this->assertSameFrame($other);
+
+        if ($this->normalizedPosition === null || $other->normalizedPosition === null) {
+            return null;
+        }
 
         return abs($this->normalizedPosition - $other->normalizedPosition);
     }
@@ -78,24 +69,24 @@ final readonly class Placement
      * @return array{
      *     scope: string,
      *     absolute_ordinal: int,
-     *     normalized_position: float,
+     *     normalized_position?: float,
      *     region: string
      * }
      */
     public function toArray(): array
     {
-        return [
-            'scope' => $this->scope->value,
+        return array_filter([
+            'scope' => $this->frame->scope->value,
             'absolute_ordinal' => $this->ordinal,
             'normalized_position' => $this->normalizedPosition,
-            'region' => $this->region()->value,
-        ];
+            'region' => $this->region->value,
+        ], static fn (mixed $value): bool => $value !== null);
     }
 
-    private function assertSameScope(self $other): void
+    private function assertSameFrame(self $other): void
     {
-        if ($this->scope !== $other->scope) {
-            throw new InvalidArgumentException('Placements can only be compared within the same scope.');
+        if ($this->frame !== $other->frame) {
+            throw new InvalidArgumentException('Placements can only be compared within the same coordinate frame.');
         }
     }
 }
