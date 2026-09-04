@@ -35,7 +35,7 @@ final readonly class TextSpan
     {
         $span = ['source_range' => $this->sourceRange->toArray()];
 
-        if ($this->tokenStart !== null) {
+        if ($this->tokenStart !== null && $this->tokenEnd !== null) {
             $span['token'] = ['start' => $this->tokenStart, 'end' => $this->tokenEnd];
         }
 

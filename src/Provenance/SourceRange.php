@@ -42,15 +42,15 @@ final readonly class SourceRange
     {
         $range = [];
 
-        if ($this->byteStart !== null) {
+        if ($this->byteStart !== null && $this->byteEnd !== null) {
             $range['byte'] = ['start' => $this->byteStart, 'end' => $this->byteEnd];
         }
 
-        if ($this->characterStart !== null) {
+        if ($this->characterStart !== null && $this->characterEnd !== null) {
             $range['character'] = ['start' => $this->characterStart, 'end' => $this->characterEnd];
         }
 
-        if ($this->lineStart !== null) {
+        if ($this->lineStart !== null && $this->lineEnd !== null) {
             $range['line'] = ['start' => $this->lineStart, 'end' => $this->lineEnd];
         }
 
