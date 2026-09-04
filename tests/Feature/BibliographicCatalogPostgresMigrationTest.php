@@ -11,7 +11,7 @@ it('builds PostgreSQL migration SQL with the self foreign key added after table 
     Connection::resolverFor('pgsql', static function (mixed $connection, string $database, string $prefix, array $config): PostgresConnection {
         $pdo = new PDO('sqlite::memory:');
         $postgres = new PostgresConnection($pdo, $database, $prefix, $config);
-        $postgres->setSchemaGrammar(new PostgresGrammar);
+        $postgres->setSchemaGrammar(new PostgresGrammar($postgres));
 
         return $postgres;
     });
