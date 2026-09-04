@@ -83,7 +83,7 @@ return new class extends Migration
             $table->char('identity_key', 64)->unique();
             $table->foreignUlid('edition_id')->constrained('aleph_editions')->restrictOnDelete();
             $table->foreignUlid('resource_id')->constrained('aleph_resources')->restrictOnDelete();
-            $table->foreignUlid('derived_from_file_id')->nullable()->constrained('aleph_book_files')->restrictOnDelete();
+            $table->foreignUlid('derived_from_file_id')->nullable();
             $table->string('mime_type');
             $table->string('format')->nullable();
             $table->string('encoding')->nullable();
@@ -94,6 +94,10 @@ return new class extends Migration
             $table->timestampTz('acquired_at')->nullable();
             $table->timestampTz('created_at');
             $table->timestampTz('updated_at');
+        });
+
+        Schema::table('aleph_book_files', function (Blueprint $table): void {
+            $table->foreign('derived_from_file_id')->references('id')->on('aleph_book_files')->restrictOnDelete();
         });
     }
 
