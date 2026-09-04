@@ -13,6 +13,44 @@ the provider fields it omitted and optional confidence. `HistoricalAssertionAcce
 claim with the caller's authorization context. The raw provider record remains a portable provenance
 reference rather than canonical Funes state.
 
+## Bibliographic catalog
+
+`Bibliography\BibliographicCatalog` persists provider-neutral bibliographic identity in six
+`aleph_*` tables. Its public write methods are `upsertResource`, `upsertAuthor`, `upsertBook`,
+`attachAuthor`, `upsertEdition`, and `upsertBookFile`; typed IDs and immutable return values keep
+conceptual books, published editions, generic source resources, and acquired files distinct.
+The public values are `ResourceId`, `AuthorId`, `BookId`, `BookAuthorId`, `EditionId`,
+`BookFileId`, `SourceIdentifier`, and `ContentIdentity`.
+
+```php
+$catalog = app(\Sifrious\Aleph\Bibliography\BibliographicCatalog::class);
+$book = $catalog->upsertBook(
+    new SourceIdentifier('open-library', 'OL45804W'),
+    'The Left Hand of Darkness',
+    'en',
+);
+$edition = $catalog->upsertEdition(
+    new SourceIdentifier('open-library', 'OL7353617M'),
+    $book->id,
+    publisher: 'Ace',
+);
+```
+
+All reconciliation is explicit-ID based. Exact replay returns the original row without touching
+timestamps; later evidence may fill null descriptive fields and merge identifiers. It never matches
+on title or author. Source namespaces are trimmed and lowercased while their opaque identifiers are
+preserved byte-for-byte. A resource has an immutable type (default `source`), optional canonical URI
+and language, and fill-only metadata, so non-web sources do not need to invent a URL.
+
+`ContentIdentity` requires an exact 64-hex SHA-256 digest. That digest alone is the global file
+identity key; additional hashes are preserved and may enrich the same file without changing its
+identity. A repeated digest must agree on edition, resource, MIME/format, encoding, byte size, and
+immutable `derivedFromFileId` linkage or an `ImmutableBibliographicConflict` is thrown. Creator
+roles are lowercased; a missing position may fill once, while a conflicting known position throws.
+Acquisition metadata and acquired time may only fill missing evidence.
+The complete public contract and reconciliation table are documented in
+[`docs/bibliographic-identity.md`](docs/bibliographic-identity.md).
+
 ## Installation
 
 Install Aleph and run the package migrations:

@@ -1328,3 +1328,36 @@ teaching Funes about provider payloads. Hosts add adapters through the
 `aleph.historical_assertion_adapters` container tag. Incomplete payloads, malformed mappings,
 unsupported providers, and unsupported assertion types have distinct exceptions. Aleph does not
 hide persistence failures. A caller may retry the same input because Funes append is idempotent.
+
+## D-090 — Bibliographic identity is source-anchored; acquired bytes are content-anchored
+
+**Decision.** Resources, authors, conceptual books, and editions have deterministic SHA-256
+`identity_key` values from an explicit source namespace and source identifier. Source namespaces
+are trimmed and lowercased; opaque identifiers are preserved byte-for-byte. Their database IDs
+remain typed ULIDs. A book is not an edition, and a generic source resource is not an acquired book
+file. Resources have an immutable `resource_type` (default `source`), nullable canonical URI and
+language, and JSON metadata. Creator relationships retain author, lowercased role, and optional
+order independently.
+
+Book files instead have one global identity from the required canonical SHA-256 digest.
+`ContentIdentity` rejects missing, malformed, or non-64-hex SHA-256 values. Additional named hashes
+are preserved enrichment and do not alter identity. Equal SHA-256 content must agree on edition,
+resource, MIME type, format, encoding, byte size, and derivation linkage. Source and derived files
+are separate rows linked from the derived row to its source by `derived_from_file_id`;
+self-derivation is invalid.
+
+**Reconciliation.** Exact source replay returns the original row and does not alter either timestamp.
+Later source evidence may fill null descriptive fields and merge explicit identifiers. A resource's
+null canonical URI may fill once; conflicting known URIs throw, while language and metadata are
+fill-only. Acquisition metadata is recursively fill-only, and `acquired_at` may fill a null value.
+Creator position also fills only from null; replay leaves timestamps unchanged and conflicting
+known positions throw. Existing descriptions are not silently replaced. Any conflicting resource
+type, canonical URI, conceptual-book linkage, file linkage, content attribute, or derivation linkage
+throws `ImmutableBibliographicConflict`. No path matches title or author text, so Aleph never turns
+a similarity heuristic into identity.
+
+**Boundary.** This catalogue is a current bibliographic identity and acquisition index. Funes remains
+the immutable observation/history boundary: it records what a source said and when. Aleph web
+resources remain crawl/retrieval evidence; an `aleph_resources` row is only a generic canonical
+source locator intentionally admitted to the bibliographic model. The catalogue stores hashes and
+metadata, not file bytes or web response bodies.

@@ -17,6 +17,7 @@ use Sifrious\Aleph\Acceptance\Backfill;
 use Sifrious\Aleph\Acceptance\HistoricalAssertionAcceptance;
 use Sifrious\Aleph\Acceptance\Submissions;
 use Sifrious\Aleph\Assertion\HistoricalAssertionAdapters;
+use Sifrious\Aleph\Bibliography\BibliographicCatalog;
 use Sifrious\Aleph\Connector\AppleMail\AppleMailObservationWriter;
 use Sifrious\Aleph\Connector\AppleMail\FunesAppleMailObservationWriter;
 use Sifrious\Aleph\Connector\AppleMail\LaunchAppleMailIngestion;
@@ -455,6 +456,11 @@ class AlephServiceProvider extends ServiceProvider
         );
 
         $this->app->singleton(GitRepositorySources::class);
+
+        $this->app->singleton(
+            BibliographicCatalog::class,
+            fn (Application $app): BibliographicCatalog => new BibliographicCatalog($this->connection($app)),
+        );
 
         $this->app->singleton(GitChangeDetector::class);
 
