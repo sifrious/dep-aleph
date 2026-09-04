@@ -18,6 +18,7 @@ final readonly class BibliographicCatalog
 
     /**
      * @param  list<SourceIdentifier>  $identifiers
+     * @param  array<string, mixed>  $metadata
      */
     public function upsertResource(
         SourceIdentifier $sourceIdentifier,
@@ -39,7 +40,6 @@ final readonly class BibliographicCatalog
             throw new InvalidArgumentException('A resource requires an absolute canonical URI.');
         }
 
-        /** @var resource */
         return $this->connection->transaction(function () use ($sourceIdentifier, $canonicalUri, $identifiers, $resourceType, $language, $metadata): Resource {
             $row = $this->sourceRow('aleph_resources', $sourceIdentifier);
 
@@ -70,7 +70,7 @@ final readonly class BibliographicCatalog
                 $existingIdentifiers = $this->decodeIdentifiers($row->identifiers);
                 $mergedIdentifiers = $this->mergeIdentifiers($existingIdentifiers, [$sourceIdentifier, ...$identifiers]);
 
-                if ($mergedIdentifiers !== $existingIdentifiers) {
+                if ($this->identifierArrays($mergedIdentifiers) !== $this->identifierArrays($existingIdentifiers)) {
                     $updates['identifiers'] = $this->encodeIdentifierList($mergedIdentifiers);
                 }
 
@@ -107,7 +107,6 @@ final readonly class BibliographicCatalog
         ?string $name = null,
         array $identifiers = [],
     ): Author {
-        /** @var Author */
         return $this->connection->transaction(function () use ($sourceIdentifier, $name, $identifiers): Author {
             $row = $this->sourceRow('aleph_authors', $sourceIdentifier);
 
@@ -134,7 +133,6 @@ final readonly class BibliographicCatalog
         ?string $language = null,
         array $identifiers = [],
     ): Book {
-        /** @var Book */
         return $this->connection->transaction(function () use ($sourceIdentifier, $title, $language, $identifiers): Book {
             $row = $this->sourceRow('aleph_books', $sourceIdentifier);
             $fields = ['title' => $this->optional($title), 'language' => $this->optional($language)];
@@ -163,7 +161,6 @@ final readonly class BibliographicCatalog
             throw new InvalidArgumentException('A creator role must be non-empty and its position cannot be negative.');
         }
 
-        /** @var BookAuthor */
         return $this->connection->transaction(function () use ($bookId, $authorId, $role, $position): BookAuthor {
             $key = hash('sha256', implode("\0", [$bookId->value, $authorId->value, $role]));
             $row = $this->table('aleph_book_authors')->where('identity_key', $key)->first();
@@ -212,7 +209,6 @@ final readonly class BibliographicCatalog
         ?string $publishedAt = null,
         array $identifiers = [],
     ): Edition {
-        /** @var Edition */
         return $this->connection->transaction(function () use ($sourceIdentifier, $bookId, $title, $language, $publisher, $publishedAt, $identifiers): Edition {
             $row = $this->sourceRow('aleph_editions', $sourceIdentifier);
             $fields = [
@@ -262,7 +258,6 @@ final readonly class BibliographicCatalog
             throw new InvalidArgumentException('A book file requires a MIME type.');
         }
 
-        /** @var BookFile */
         return $this->connection->transaction(function () use ($editionId, $resourceId, $contentIdentity, $mimeType, $format, $encoding, $sourceIdentifiers, $acquisitionMetadata, $acquiredAt, $derivedFromFileId): BookFile {
             $key = $contentIdentity->key();
             $row = $this->table('aleph_book_files')->where('identity_key', $key)->first();
@@ -288,14 +283,15 @@ final readonly class BibliographicCatalog
                 $updates = [];
                 $existingHashes = $this->decodeArray($row->hashes);
                 $mergedHashes = $this->mergeHashes((string) $row->id, $existingHashes, $contentIdentity->hashes);
-                $mergedIdentifiers = $this->mergeIdentifiers($this->decodeIdentifiers($row->source_identifiers), $sourceIdentifiers);
+                $existingIdentifiers = $this->decodeIdentifiers($row->source_identifiers);
+                $mergedIdentifiers = $this->mergeIdentifiers($existingIdentifiers, $sourceIdentifiers);
                 $mergedMetadata = $this->fillArray($this->decodeArray($row->acquisition_metadata), $acquisitionMetadata);
 
                 if ($mergedHashes !== $existingHashes) {
                     $updates['hashes'] = json_encode($mergedHashes, JSON_THROW_ON_ERROR);
                 }
 
-                if ($mergedIdentifiers !== $this->decodeIdentifiers($row->source_identifiers)) {
+                if ($this->identifierArrays($mergedIdentifiers) !== $this->identifierArrays($existingIdentifiers)) {
                     $updates['source_identifiers'] = $this->encodeIdentifierList($mergedIdentifiers);
                 }
 
@@ -496,9 +492,10 @@ final readonly class BibliographicCatalog
             }
         }
 
-        $merged = $this->mergeIdentifiers($this->decodeIdentifiers($row->identifiers), [$sourceIdentifier, ...$identifiers]);
+        $existingIdentifiers = $this->decodeIdentifiers($row->identifiers);
+        $merged = $this->mergeIdentifiers($existingIdentifiers, [$sourceIdentifier, ...$identifiers]);
 
-        if ($merged !== $this->decodeIdentifiers($row->identifiers)) {
+        if ($this->identifierArrays($merged) !== $this->identifierArrays($existingIdentifiers)) {
             $updates['identifiers'] = $this->encodeIdentifierList($merged);
         }
 
@@ -535,10 +532,6 @@ final readonly class BibliographicCatalog
 
         foreach ([$existing, $incoming] as $identifiers) {
             foreach ($identifiers as $identifier) {
-                if (! $identifier instanceof SourceIdentifier) {
-                    throw new InvalidArgumentException('Identifiers must be SourceIdentifier values.');
-                }
-
                 $key = $identifier->source."\0".$identifier->identifier;
                 $merged[$key] ??= $identifier;
             }
@@ -547,6 +540,18 @@ final readonly class BibliographicCatalog
         ksort($merged, SORT_STRING);
 
         return array_values($merged);
+    }
+
+    /**
+     * @param  list<SourceIdentifier>  $identifiers
+     * @return list<array{source: string, identifier: string}>
+     */
+    private function identifierArrays(array $identifiers): array
+    {
+        return array_map(
+            static fn (SourceIdentifier $identifier): array => $identifier->toArray(),
+            $identifiers,
+        );
     }
 
     /**
@@ -599,9 +604,9 @@ final readonly class BibliographicCatalog
     }
 
     /**
-     * @param  array<string, mixed>  $existing
-     * @param  array<string, mixed>  $incoming
-     * @return array<string, mixed>
+     * @param  array<array-key, mixed>  $existing
+     * @param  array<array-key, mixed>  $incoming
+     * @return array<array-key, mixed>
      */
     private function fillArray(array $existing, array $incoming): array
     {
