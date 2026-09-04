@@ -7,7 +7,9 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Sifrious\Aleph\Bibliography\BibliographicCatalog;
+use Sifrious\Aleph\Bibliography\Book;
 use Sifrious\Aleph\Bibliography\ContentIdentity;
+use Sifrious\Aleph\Bibliography\Edition;
 use Sifrious\Aleph\Bibliography\ImmutableBibliographicConflict;
 use Sifrious\Aleph\Bibliography\SourceIdentifier;
 
@@ -21,7 +23,7 @@ afterEach(function (): void {
 });
 
 /**
- * @return array{0: \Sifrious\Aleph\Bibliography\Book, 1: \Sifrious\Aleph\Bibliography\Edition, 2: \Sifrious\Aleph\Bibliography\Resource}
+ * @return array{0: Book, 1: Edition, 2: Sifrious\Aleph\Bibliography\Resource}
  */
 function bibliographicFixture(string $suffix = 'one'): array
 {

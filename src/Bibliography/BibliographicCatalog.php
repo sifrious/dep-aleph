@@ -39,7 +39,7 @@ final readonly class BibliographicCatalog
             throw new InvalidArgumentException('A resource requires an absolute canonical URI.');
         }
 
-        /** @var Resource */
+        /** @var resource */
         return $this->connection->transaction(function () use ($sourceIdentifier, $canonicalUri, $identifiers, $resourceType, $language, $metadata): Resource {
             $row = $this->sourceRow('aleph_resources', $sourceIdentifier);
 
